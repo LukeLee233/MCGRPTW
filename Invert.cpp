@@ -86,7 +86,7 @@ void Invert::move(NeighBorSearch &ns, const MCGRP &mcgrp)
 
     //Update neighbor search info
     ns.unpack_seq(individual.sequence, mcgrp);
-    ns.delimiter_coding_sol = get_delimeter_coding(ns.negative_coding_sol);
+    ns.delimiter_coding_sol = get_delimiter_coding(ns.negative_coding_sol);
 
     My_Assert(prior_cost + move_result.delta == ns.cur_solution_cost,"Wrong prediction!");
 
@@ -106,7 +106,7 @@ void Invert::move(NeighBorSearch &ns, const MCGRP &mcgrp)
 void Invert::unit_test(NeighBorSearch &ns, const MCGRP &mcgrp)
 {
     vector<int> task_set(mcgrp.actual_task_num);
-    std::generate(task_set.begin(), task_set.end(), Genetator());
+    std::generate(task_set.begin(), task_set.end(), Generator());
     mcgrp._rng.RandPerm(task_set);    //shuffle tasks
 
 
@@ -265,7 +265,7 @@ void Invert::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
 void Invert::unit_test(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
 {
     vector<int> task_set(mcgrp.actual_task_num);
-    std::generate(task_set.begin(), task_set.end(), Genetator());
+    std::generate(task_set.begin(), task_set.end(), Generator());
     mcgrp._rng.RandPerm(task_set);    //shuffle tasks
 
 

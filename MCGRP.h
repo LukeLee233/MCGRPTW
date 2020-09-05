@@ -43,7 +43,7 @@ public:
 
     std::vector<arc> inst_arcs;
 
-    //L2-distance (djikstra)min_cost[node+1][node+1]
+    //L2-distance (dijkstra)min_cost[node+1][node+1]
     std::vector<std::vector<int>> min_cost;
 
 
@@ -75,7 +75,7 @@ public:
 
     MCGRP(const instance_num_information &instance_info, RNG &rng);
 
-    Individual parse_delimeter_seq(const vector<int> &seq) const;
+    Individual parse_delimiter_seq(const vector<int> &seq) const;
 
     inline double get_yield(int task_num) const
     {

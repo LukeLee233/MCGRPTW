@@ -11,7 +11,7 @@
 using namespace std;
 using json = nlohmann::json;
 
-extern timeb epoch_start_time;
+extern timeb phase_start_time;
 
 MCGRP::MCGRP(const instance_num_information &instance_info, RNG &rng)
     : _rng(rng)
@@ -40,7 +40,8 @@ MCGRP::MCGRP(const instance_num_information &instance_info, RNG &rng)
         min_cost[i].resize(offset_node_num);
     }
 
-    My_Assert(serve_cost[0].empty() && min_cost[0].empty() && trav_cost[0].empty(), "Dummy row should be null!");
+    My_Assert(serve_cost[0].empty() && min_cost[0].empty() && trav_cost[0].empty()
+              , "Dummy row should be null!");
 
     task_dist.resize(task_num);
     for (int i = 0; i < task_num; i++) {
@@ -65,13 +66,13 @@ void MCGRP::create_individual(Individual &p) const
     My_Assert(!best_sol_buff.empty(), "Best solution cannot be empty!");
 
     p.sequence.clear();
-    p.sequence = get_delimeter_coding(best_sol_buff);
+    p.sequence = get_delimiter_coding(best_sol_buff);
 
     p.route_seg_load.clear();
     p.total_vio_load = 0;
 
     int load = 0;
-    My_Assert(p.sequence.front() == DUMMY, "Incorrect delimeter coding!");
+    My_Assert(p.sequence.front() == DUMMY, "Incorrect delimiter coding!");
 
     double total_cost = 0;
     total_cost = inst_tasks[p.sequence.front()].serv_cost;
@@ -435,7 +436,7 @@ void MCGRP::dijkstra()
             int minimum = std::numeric_limits<decltype(minimum)>::max();
             nearest_neighbor.clear();
 
-            for (int j = 1; j <= node_num; j++) {//chec for the newly nearest node can be reached in this time step
+            for (int j = 1; j <= node_num; j++) {//check for the newly nearest node can be reached in this time step
                 if (mark[j])    //already reach
                     continue;
 
@@ -717,17 +718,20 @@ bool MCGRP::check_best_solution(const double total_route_length, const vector<in
         struct timeb cur_time;
         ftime(&cur_time);
         best_sol_time =
-            (cur_time.time - epoch_start_time.time) + ((cur_time.millitm - epoch_start_time.millitm) * 1.0 / 1000);
+            (cur_time.time - phase_start_time.time) + ((cur_time.millitm - phase_start_time.millitm) * 1.0 / 1000);
 
 //        My_Assert(print(log_out, to_string((int) total_route_length)),"Wrong print");
+#ifdef DEBUG
         print(log_out, to_string((int) total_route_length));
+#endif
         return true;
     }
     else {
 
 //        My_Assert(print(log_out, to_string((int) total_route_length)),"Wrong print");
+#ifdef DEBUG
         print(log_out, to_string((int) total_route_length));
-
+#endif
         return false;
     }
 }
@@ -744,7 +748,7 @@ bool MCGRP::check_best_solution(const double total_route_length, const vector<in
 //        struct timeb cur_time;
 //        ftime(&cur_time);
 //        best_sol_time =
-//            (cur_time.time - epoch_start_time.time) + ((cur_time.millitm - epoch_start_time.millitm) * 1.0 / 1000);
+//            (cur_time.time - phase_start_time.time) + ((cur_time.millitm - phase_start_time.millitm) * 1.0 / 1000);
 //
 //        print(log_out, to_string((int) route_length)+','+to_string((int) vio_load) + ','+ to_string((double) beta)+','+to_string((double)fitness));
 //        return true;
@@ -757,7 +761,7 @@ bool MCGRP::check_best_solution(const double total_route_length, const vector<in
 
 
 
-Individual MCGRP::parse_delimeter_seq(const vector<int> &seq) const
+Individual MCGRP::parse_delimiter_seq(const vector<int> &seq) const
 {
     My_Assert(!seq.empty() && seq.front() == DUMMY && seq.back() == DUMMY, "invalid seq");
 

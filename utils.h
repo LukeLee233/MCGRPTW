@@ -13,7 +13,7 @@
 
 #define seed_size 100
 
-#ifndef NODEBUG
+#ifdef DEBUG
 #   define My_Assert(Expr, Msg) \
     __My_Assert(#Expr, Expr, __FILE__, __LINE__, Msg)
 
@@ -62,8 +62,6 @@ bool print(std::ostream &os1, const std::string &str);
 
 extern std::array<int, seed_size> seed;
 
-
-double sum(const std::vector<double> &vec);
 
 struct instance_num_information
 {
@@ -184,12 +182,12 @@ struct identity
     typedef T type;
 };
 
-class Genetator
+class Generator
 {
 private:
     int _count = 0;
 public:
-    Genetator(int count = 0):_count(count){};
+    Generator(int count = 0): _count(count){};
 
     int operator()()
     {
@@ -198,18 +196,18 @@ public:
 };
 
 /*!
- * @details convert  delimeter coding to negative coding
- * @param sequence : delimeter coding
+ * @details convert  delimiter coding to negative coding
+ * @param sequence : delimiter coding
  * @return  negative coding
  */
 vector<int> get_negative_coding(const vector<int> &sequence);
 
 /*!
- * @details convert negative coding to delimeter coding
+ * @details convert negative coding to delimiter coding
  * @param negative_coding : negative coding
- * @return  delimeter coding
+ * @return  delimiter coding
  */
-vector<int> get_delimeter_coding(const vector<int> &negative_coding);
+vector<int> get_delimiter_coding(const vector<int> &negative_coding);
 
 
 class MCGRPMOVE

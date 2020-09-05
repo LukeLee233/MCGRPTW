@@ -22,12 +22,15 @@ message(STATUS "Boost_LIBRARIES: ${Boost_LIBRARIES}")
 message(STATUS "Boost_VERSION: ${Boost_VERSION}")
 
 
-add_definitions(-D NODEBUG)
+#add_definitions(-D DEBUG)
 
 include_directories(${Boost_INCLUDE_DIRS})
 include_directories(${GSL_INCLUDE_DIR})
 
 aux_source_directory(. MCGRP_src)
 
-add_executable(MCGRP_debug ${MCGRP_src} json.hpp SearchPolicy.cpp SearchPolicy.h Slice.cpp Slice.h Extraction.cpp Extraction.h Similarity.cpp Similarity.h)
+add_executable(MCGRP_debug ${MCGRP_src}
+        json.hpp SearchPolicy.cpp SearchPolicy.h
+        Slice.cpp Slice.h Extraction.cpp Extraction.h
+        Similarity.cpp Similarity.h config.cpp config.h)
 target_link_libraries(MCGRP_debug gsl gslcblas ${Boost_LIBRARIES})
