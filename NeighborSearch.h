@@ -11,7 +11,7 @@
 #include <memory>
 #include <stack>
 #include <unordered_set>
-
+#include "config.h"
 
 extern vector<double> ratios;
 extern vector<double> prob;
@@ -39,10 +39,9 @@ class NeighBorSearch
     friend struct RouteSegment get_segment_info(const MCGRP &mcgrp,const NeighBorSearch &ns,const int a,const int b);
 private:
 
-    const int significant_serach_delta = 5;         //default is 5
-    const double local_ratio_threshold = 0.8;       //default is 0.8
-    const double infeasible_distance_threshold = 0.3;
-    const int IDP_frequence = 100;                   //default is 100
+    const int significant_search_delta = significant_search;
+    const double local_ratio_threshold = local_ratio;
+    const double infeasible_distance_threshold = infeasible_distance;
 
 
     //dynamic info
@@ -75,14 +74,14 @@ public:
 
     Policy policy;
 
-    int search_step;
-    int equal_step;
+    int search_step; // a valid move operation
+    int equal_step; // a valid move operation but lead no change in solution objective
 
     NeighBorSearch(const MCGRP &mcgrp);
     ~NeighBorSearch();
 
     int local_minimum_likelihood = 0;
-    const int local_threshold = 40;
+    const int local_threshold = local_minimum_threshold;
 
     double get_fitness(){
         My_Assert(policy.beta != std::numeric_limits<decltype(policy.beta)>::max(), "beta is undefined!");
@@ -265,7 +264,7 @@ private:
     };
 
     struct DUMMYPOOL{
-        //This calss is used to manage dummy task
+        //This class is used to manage dummy task
         struct DUMMY_TASK{
             bool used;
             TASK_NODE task_info;
@@ -467,11 +466,10 @@ private:
 
     double best_solution_cost;
 
-    const int significant_serach_delta = 5;         //default is 5
+    const int significant_search_delta = 5;         //default is 5
     const double local_ratio_threshold = 0.8;       //default is 0.8
     const double infeasible_distance_threshold = 0.3;
 
-    const int IDP_frequence = 100;                   //default is 100
     int search_step;
 
     int equal_step;

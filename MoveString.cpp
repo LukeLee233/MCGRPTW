@@ -304,7 +304,7 @@ void MoveString::move(NeighBorSearch &ns, const MCGRP &mcgrp)
 
     //Update neighbor search info
     ns.unpack_seq(individual.sequence, mcgrp);
-    ns.delimiter_coding_sol = get_delimeter_coding(ns.negative_coding_sol);
+    ns.delimiter_coding_sol = get_delimiter_coding(ns.negative_coding_sol);
     //    ns.create_individual(mcgrp, ns.ns_indi);
 
     My_Assert(prior_cost + move_result.delta == ns.cur_solution_cost,"Wrong prediction!");

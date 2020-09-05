@@ -7,8 +7,7 @@
 
 #include <bitset>
 #include "MCGRP.h"
-//#include "NeighborSearch.h"
-
+#include "config.h"
 
 enum search_sequence
 {
@@ -43,7 +42,7 @@ public:
     double benchmark = std::numeric_limits<decltype(benchmark)>::max();
     double nearest_feasible_cost = std::numeric_limits<decltype(benchmark)>::max();
 
-    const int tabu_step_threshold = 500;
+    const int tabu_step_threshold = tabu_step;
 
     //infeasible search penalty coefficient
     double tolerance = 0;
@@ -71,7 +70,7 @@ public:
     * @param policy
     * @return
     */
-    bool check_move(const MCGRPMOVE &move_resultconst);
+    bool check_move(const MCGRPMOVE &move_result);
 
     /*!
      * @details check if moveresult M1 is better than moveresult M2

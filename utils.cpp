@@ -38,19 +38,19 @@ vector<int> get_negative_coding(const vector<int> &sequence)
     return negative_coding_sol;
 }
 
-vector<int> get_delimeter_coding(const vector<int> &negative_coding)
+vector<int> get_delimiter_coding(const vector<int> &negative_coding)
 {
-    vector<int> delimeter_coding;
-    delimeter_coding.clear();
+    vector<int> delimiter_coding;
+    delimiter_coding.clear();
     for (auto task:negative_coding) {
         if (task < 0) {
-            delimeter_coding.push_back(DUMMY);
+            delimiter_coding.push_back(DUMMY);
         }
-        delimeter_coding.push_back(abs(task));
+        delimiter_coding.push_back(abs(task));
     }
-    delimeter_coding.push_back(DUMMY);
+    delimiter_coding.push_back(DUMMY);
 
-    return delimeter_coding;
+    return delimiter_coding;
 }
 
 std::vector<std::string> read_directory(const std::string dir_path)

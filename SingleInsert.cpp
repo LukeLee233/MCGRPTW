@@ -244,7 +244,7 @@ void SingleInsert::move(NeighBorSearch &ns, const MCGRP &mcgrp)
         postsert.move(ns, mcgrp);
     }
     else{
-        My_Assert(false,"Uknown operator");
+        My_Assert(false,"Unknown operator");
     }
 
     if (ns.total_vio_load == 0)
@@ -261,7 +261,7 @@ void SingleInsert::move(NeighBorSearch &ns, const MCGRP &mcgrp)
 void SingleInsert::unit_test(NeighBorSearch &ns, const MCGRP &mcgrp)
 {
     vector<int> task_set(mcgrp.actual_task_num);
-    std::generate(task_set.begin(), task_set.end(), Genetator());
+    std::generate(task_set.begin(), task_set.end(), Generator());
     mcgrp._rng.RandPerm(task_set);    //shuffle tasks
 
     auto original_policy = ns.policy.get();
@@ -557,7 +557,7 @@ void SingleInsert::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
 void SingleInsert::unit_test(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
 {
     vector<int> task_set(mcgrp.actual_task_num);
-    std::generate(task_set.begin(), task_set.end(), Genetator());
+    std::generate(task_set.begin(), task_set.end(), Generator());
     mcgrp._rng.RandPerm(task_set);    //shuffle tasks
 
     auto original_policy = ns.policy.get();
