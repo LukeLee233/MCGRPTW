@@ -160,7 +160,7 @@ void Slice::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp){
 
 void Slice::unit_test(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp){
     vector<int> task_set(mcgrp.actual_task_num);
-    std::generate(task_set.begin(), task_set.end(), Genetator());
+    std::generate(task_set.begin(), task_set.end(), Generator());
     mcgrp._rng.RandPerm(task_set);    //shuffle tasks
 
 

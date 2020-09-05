@@ -185,7 +185,7 @@ void merge_split(NeighBorSearch &ns, const MCGRP &mcgrp, const int merge_size, c
         seq_buffer.push_back(DUMMY);
 
         //Best Accept
-        Individual candidate_choice = mcgrp.parse_delimeter_seq(seq_buffer);
+        Individual candidate_choice = mcgrp.parse_delimiter_seq(seq_buffer);
         if (candidate_choice.total_cost < best_choice) {
             best_buffer = seq_buffer;
         }
@@ -193,7 +193,7 @@ void merge_split(NeighBorSearch &ns, const MCGRP &mcgrp, const int merge_size, c
 
     //Update neighbor search info
     ns.unpack_seq(best_buffer, mcgrp);
-    ns.delimiter_coding_sol = get_delimeter_coding(ns.negative_coding_sol);
+    ns.delimiter_coding_sol = get_delimiter_coding(ns.negative_coding_sol);
     //    ns.create_individual(mcgrp, ns.ns_indi);
 
     //check for missed
@@ -214,7 +214,7 @@ void merge_split(class HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, const in
         auto candidate_tasks = ns.get_tasks_set();
         auto seq_buffer = split_task(ns.policy,mcgrp, candidate_tasks,pseudo_capacity);
 
-        ns.unpack_seq(get_delimeter_coding(mcgrp.best_sol_buff), mcgrp);
+        ns.unpack_seq(get_delimiter_coding(mcgrp.best_sol_buff), mcgrp);
 
         return;
     }
@@ -278,7 +278,7 @@ void merge_split(class HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, const in
         My_Assert(seq_buffer.front() == DUMMY && seq_buffer.back() == DUMMY, "Incorrect sequence!");
 
         //Best Accept
-        Individual res = mcgrp.parse_delimeter_seq(seq_buffer);
+        Individual res = mcgrp.parse_delimiter_seq(seq_buffer);
         double fitness = res.total_cost + ns.policy.beta * res.total_vio_load;
         if (fitness < best_choice) {
             best_choice = fitness;
@@ -307,7 +307,7 @@ vector<int> split_task(Policy& policy, const MCGRP &mcgrp, const vector<int> &ta
     /*-----------------Nearest L2 distance merge policy--------------------------*/
     merge_sequence = nearest_growing(mcgrp, tasks, constraint);
     Individual nearest_L2_indi;
-    nearest_L2_indi = mcgrp.parse_delimeter_seq(merge_sequence);
+    nearest_L2_indi = mcgrp.parse_delimiter_seq(merge_sequence);
     res = nearest_L2_indi;
     fitness = res.total_cost + policy.beta * res.total_vio_load;
     /*-----------------Nearest L2 distance merge policy--------------------------*/
@@ -315,7 +315,7 @@ vector<int> split_task(Policy& policy, const MCGRP &mcgrp, const vector<int> &ta
     /*-----------------Furthest L2 distance merge policy--------------------------*/
     merge_sequence = nearest_depot_growing(mcgrp, tasks,constraint);
     Individual nearest_depot_indi;
-    nearest_depot_indi = mcgrp.parse_delimeter_seq(merge_sequence);
+    nearest_depot_indi = mcgrp.parse_delimiter_seq(merge_sequence);
     buffer = nearest_depot_indi.total_cost + policy.beta * nearest_depot_indi.total_vio_load;
     if (buffer < fitness) {
         res = nearest_depot_indi;
@@ -326,7 +326,7 @@ vector<int> split_task(Policy& policy, const MCGRP &mcgrp, const vector<int> &ta
     /*-----------------Max yield merge policy--------------------------*/
     merge_sequence = maximum_yield_growing(mcgrp, tasks,constraint);
     Individual maximum_yield_indi;
-    maximum_yield_indi = mcgrp.parse_delimeter_seq(merge_sequence);
+    maximum_yield_indi = mcgrp.parse_delimiter_seq(merge_sequence);
     buffer = maximum_yield_indi.total_cost + policy.beta * maximum_yield_indi.total_vio_load;
     if (buffer < fitness) {
         res = maximum_yield_indi;
@@ -337,7 +337,7 @@ vector<int> split_task(Policy& policy, const MCGRP &mcgrp, const vector<int> &ta
     /*-----------------Min yield merge policy--------------------------*/
     merge_sequence = minimum_yield_growing(mcgrp, tasks,constraint);
     Individual minimum_yield_indi;
-    minimum_yield_indi = mcgrp.parse_delimeter_seq(merge_sequence);
+    minimum_yield_indi = mcgrp.parse_delimiter_seq(merge_sequence);
     buffer = minimum_yield_indi.total_cost + policy.beta * minimum_yield_indi.total_vio_load;
     if (buffer < fitness) {
         res = minimum_yield_indi;
@@ -348,7 +348,7 @@ vector<int> split_task(Policy& policy, const MCGRP &mcgrp, const vector<int> &ta
     /*-----------------mixtured merge policy--------------------------*/
     merge_sequence = mixtured_growing(mcgrp, tasks,constraint);
     Individual mixtured_indi;
-    mixtured_indi = mcgrp.parse_delimeter_seq(merge_sequence);
+    mixtured_indi = mcgrp.parse_delimiter_seq(merge_sequence);
     buffer = mixtured_indi.total_cost + policy.beta * mixtured_indi.total_vio_load;
     if (buffer < fitness) {
         res = mixtured_indi;

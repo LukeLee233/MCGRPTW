@@ -51,9 +51,9 @@ void Memetic::memetic_search(const MCGRP &mcgrp)
         for (auto iter = 1; iter <= evolve_num; iter++) {
             cout << iter << "th times local search\n";
 
-            ns.unpack_seq(get_delimeter_coding(population.front()), mcgrp);
+            ns.unpack_seq(get_delimiter_coding(population.front()), mcgrp);
 //            ns.create_individual(mcgrp, ns.ns_indi);
-            ns.delimiter_coding_sol = get_delimeter_coding(ns.negative_coding_sol);
+            ns.delimiter_coding_sol = get_delimiter_coding(ns.negative_coding_sol);
 
             ns.neighbor_search(mcgrp);
             population.front() = ns.negative_coding_sol;
@@ -90,7 +90,7 @@ void Memetic::memetic_search(const MCGRP &mcgrp)
             /* local search */
             ns.unpack_seq(xed_child.sequence, mcgrp);
 //            ns.create_individual(mcgrp, ns.ns_indi);
-            ns.delimiter_coding_sol = get_delimeter_coding(ns.negative_coding_sol);
+            ns.delimiter_coding_sol = get_delimiter_coding(ns.negative_coding_sol);
 
             ns.neighbor_search(mcgrp);
 
@@ -454,7 +454,7 @@ void Memetic::parse_solution(const MCGRP &mcgrp, Individual &p, const vector<int
     int route_number = 0;
     int route_load = 0;
 
-    p.sequence = get_delimeter_coding(sol);
+    p.sequence = get_delimiter_coding(sol);
     p.route_seg_load.clear();
     for (int i = 0; i < sol.size(); ++i) {
         if (sol[i] < 0) {
@@ -605,7 +605,7 @@ void Memetic::init_population(const MCGRP &mcgrp)
 
         /* local search on construct solution */
         ns.unpack_seq(buffer.sequence, mcgrp);
-        ns.delimiter_coding_sol = get_delimeter_coding(ns.negative_coding_sol);
+        ns.delimiter_coding_sol = get_delimiter_coding(ns.negative_coding_sol);
         ns.neighbor_search(mcgrp);
 
         if (!is_used(ns.cur_solution_cost, SIMILARITY::COST_DISTANCE)) {
@@ -784,7 +784,7 @@ void HighSpeedMemetic::memetic_search(const MCGRP &mcgrp)
         for (auto iter = 1; iter <= evolve_num; iter++) {
             cout << iter << "th times local search\n";
             ns.clear();
-            ns.unpack_seq(get_delimeter_coding(population.front().solution), mcgrp);
+            ns.unpack_seq(get_delimiter_coding(population.front().solution), mcgrp);
 
             if(iter > 1){
                 ns.infeasible_exploration(mcgrp);
@@ -964,7 +964,7 @@ void HighSpeedMemetic::merge_split_repair(const MCGRP &mcgrp,SOLUTION& solution,
     /*-----------------Nearest L2 distance merge policy--------------------------*/
     merge_sequence = nearest_growing(mcgrp, task_set, mcgrp.capacity);
     Individual nearest_L2_indi;
-    nearest_L2_indi = mcgrp.parse_delimeter_seq(merge_sequence);
+    nearest_L2_indi = mcgrp.parse_delimiter_seq(merge_sequence);
     res = nearest_L2_indi;
     fitness = res.total_cost;
     /*-----------------Nearest L2 distance merge policy--------------------------*/
@@ -972,7 +972,7 @@ void HighSpeedMemetic::merge_split_repair(const MCGRP &mcgrp,SOLUTION& solution,
     /*-----------------Furthest L2 distance merge policy--------------------------*/
     merge_sequence = nearest_depot_growing(mcgrp, task_set,mcgrp.capacity);
     Individual nearest_depot_indi;
-    nearest_depot_indi = mcgrp.parse_delimeter_seq(merge_sequence);
+    nearest_depot_indi = mcgrp.parse_delimiter_seq(merge_sequence);
     buffer = nearest_depot_indi.total_cost;
     if (buffer < fitness) {
         res = nearest_depot_indi;
@@ -983,7 +983,7 @@ void HighSpeedMemetic::merge_split_repair(const MCGRP &mcgrp,SOLUTION& solution,
     /*-----------------Max yield merge policy--------------------------*/
     merge_sequence = maximum_yield_growing(mcgrp, task_set,mcgrp.capacity);
     Individual maximum_yield_indi;
-    maximum_yield_indi = mcgrp.parse_delimeter_seq(merge_sequence);
+    maximum_yield_indi = mcgrp.parse_delimiter_seq(merge_sequence);
     buffer = maximum_yield_indi.total_cost;
     if (buffer < fitness) {
         res = maximum_yield_indi;
@@ -994,7 +994,7 @@ void HighSpeedMemetic::merge_split_repair(const MCGRP &mcgrp,SOLUTION& solution,
     /*-----------------Min yield merge policy--------------------------*/
     merge_sequence = minimum_yield_growing(mcgrp, task_set,mcgrp.capacity);
     Individual minimum_yield_indi;
-    minimum_yield_indi = mcgrp.parse_delimeter_seq(merge_sequence);
+    minimum_yield_indi = mcgrp.parse_delimiter_seq(merge_sequence);
     buffer = minimum_yield_indi.total_cost;
     if (buffer < fitness) {
         res = minimum_yield_indi;
@@ -1005,7 +1005,7 @@ void HighSpeedMemetic::merge_split_repair(const MCGRP &mcgrp,SOLUTION& solution,
     /*-----------------mixtured merge policy--------------------------*/
     merge_sequence = mixtured_growing(mcgrp, task_set,mcgrp.capacity);
     Individual mixtured_indi;
-    mixtured_indi = mcgrp.parse_delimeter_seq(merge_sequence);
+    mixtured_indi = mcgrp.parse_delimiter_seq(merge_sequence);
     buffer = mixtured_indi.total_cost;
     if (buffer < fitness) {
         res = mixtured_indi;
@@ -1326,11 +1326,11 @@ vector<int> HighSpeedMemetic::route_based_crossover(const MCGRP &mcgrp, const ve
     /* generate corresponding routes_id */
     // random policy,avoiding crossover the same route repeatly
     vector<int> parent_a_route_id(parent_a.routes.size());
-    std::generate(parent_a_route_id.begin(), parent_a_route_id.end(), Genetator(-1));
+    std::generate(parent_a_route_id.begin(), parent_a_route_id.end(), Generator(-1));
     mcgrp._rng.RandPerm(parent_a_route_id);
 
     vector<int> parent_b_route_id(parent_b.routes.size());
-    std::generate(parent_b_route_id.begin(), parent_b_route_id.end(), Genetator(-1));
+    std::generate(parent_b_route_id.begin(), parent_b_route_id.end(), Generator(-1));
     mcgrp._rng.RandPerm(parent_b_route_id);
 
     vector<int> chosen_parent_a_route_id(parent_a_route_id.begin(),parent_a_route_id.begin()+ actual_cross_num);
@@ -1588,7 +1588,7 @@ void HighSpeedMemetic::search_child(const MCGRP &mcgrp, vector<int> child) {
     cout<<this_thread::get_id()<<endl;
 
     HighSpeedNeighBorSearch  ns_(mcgrp);
-    ns_.unpack_seq(get_delimeter_coding(child), mcgrp);
+    ns_.unpack_seq(get_delimiter_coding(child), mcgrp);
     ns_.trace(mcgrp);
 
 //    ns_.infeasible_exploration(mcgrp);

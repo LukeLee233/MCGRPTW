@@ -8,7 +8,6 @@ void GetTasksNum(std::string filename, instance_num_information &number_info)
     FILE *infile;
 
     infile = fopen(filename.c_str(), "r");
-    /* �쳣���� */
     if (infile == NULL) {
         fprintf(stderr, "Unable to open %s for reading\n", filename.c_str());
         exit(-1);
@@ -22,7 +21,7 @@ void GetTasksNum(std::string filename, instance_num_information &number_info)
     int count = 0;
 
     while (true) {
-        fscanf(infile, "%s", dummy_string); //��������
+        fscanf(infile, "%s", dummy_string);
         if (strcmp(dummy_string, "#Required") == 0) {
             fscanf(infile, "%s", dummy_string);
             if (strcmp(dummy_string, "E:") == 0) {

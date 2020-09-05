@@ -319,7 +319,7 @@ void Swap::move(NeighBorSearch &ns, const MCGRP &mcgrp)
 
     //Update neighbor search info
     ns.unpack_seq(individual.sequence, mcgrp);
-    ns.delimiter_coding_sol = get_delimeter_coding(ns.negative_coding_sol);
+    ns.delimiter_coding_sol = get_delimiter_coding(ns.negative_coding_sol);
 
     if(ns.cur_solution_cost == prior_cost){
         ns.equal_step++;
@@ -344,7 +344,7 @@ void Swap::move(NeighBorSearch &ns, const MCGRP &mcgrp)
 void Swap::unit_test(NeighBorSearch &ns, const MCGRP &mcgrp)
 {
     vector<int> task_set(mcgrp.actual_task_num);
-    std::generate(task_set.begin(), task_set.end(), Genetator());
+    std::generate(task_set.begin(), task_set.end(), Generator());
     mcgrp._rng.RandPerm(task_set);    //shuffle tasks
 
     ns.policy.set(BEST_ACCEPT | TOLERANCE | DELTA_ONLY);
@@ -1123,7 +1123,7 @@ void NewSwap::move(NeighBorSearch &ns, const MCGRP &mcgrp)
 
     //Update neighbor search info
     ns.unpack_seq(individual.sequence, mcgrp);
-    ns.delimiter_coding_sol = get_delimeter_coding(ns.negative_coding_sol);
+    ns.delimiter_coding_sol = get_delimiter_coding(ns.negative_coding_sol);
 
     My_Assert(prior_cost + move_result.delta == ns.cur_solution_cost,"Wrong prediction!");
 
@@ -1146,7 +1146,7 @@ void NewSwap::move(NeighBorSearch &ns, const MCGRP &mcgrp)
 void NewSwap::unit_test(NeighBorSearch &ns, const MCGRP &mcgrp)
 {
     vector<int> task_set(mcgrp.actual_task_num);
-    std::generate(task_set.begin(), task_set.end(), Genetator());
+    std::generate(task_set.begin(), task_set.end(), Generator());
     mcgrp._rng.RandPerm(task_set);    //shuffle tasks
 
     auto original_policy = ns.policy.get();
@@ -2403,7 +2403,7 @@ void NewSwap::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
 void NewSwap::unit_test(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
 {
     vector<int> task_set(mcgrp.actual_task_num);
-    std::generate(task_set.begin(), task_set.end(), Genetator());
+    std::generate(task_set.begin(), task_set.end(), Generator());
     mcgrp._rng.RandPerm(task_set);    //shuffle tasks
 
     auto original_policy = ns.policy.get();

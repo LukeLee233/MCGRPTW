@@ -13,6 +13,7 @@
 #include <bitset>
 #include <cmath>
 #include <algorithm>
+#include "config.h"
 
 using namespace std;
 
@@ -54,9 +55,14 @@ void NeighBorSearch::neighbor_search(const MCGRP &mcgrp)
 
     mcgrp.best_total_route_length = cur_solution_cost;
 
-    int mode = (int) mcgrp._rng.Randint(0, 1);
-//  int mode = RTRIDP;
-//  int mode = IDPRTR;
+    int mode;
+    if(neighbor_search_mode == "IDPRTR")
+        mode = IDPRTR;
+    else if (neighbor_search_mode == "RTRIDP")
+        mode = RTRIDP;
+    else
+        mode = (int) mcgrp._rng.Randint(0, 1);
+
     _neigh_search(mcgrp, mode);
 
     mcgrp.check_best_solution(cur_solution_cost, negative_coding_sol);
@@ -247,7 +253,7 @@ void NeighBorSearch::create_individual(const MCGRP &mcgrp, Individual &p)
     My_Assert(!negative_coding_sol.empty(), "Current soluiton cannot be empty!");
 
     p.sequence.clear();
-    p.sequence = get_delimeter_coding(negative_coding_sol);
+    p.sequence = get_delimiter_coding(negative_coding_sol);
 
     assert(!routes.empty());
     p.route_seg_load.clear();
@@ -310,9 +316,9 @@ void NeighBorSearch::RTR_search(const MCGRP &mcgrp)
             DEBUG_PRINT("reset local likelihood");
             local_minimum_likelihood = 1;
             cnt++;
-            if (cnt == 50)
+            if (cnt == max_RTR_search_cycle)
             {
-                DEBUG_PRINT("maybe a local optimimum");
+                DEBUG_PRINT("maybe a local optimal");
                 local_minimum_likelihood = local_threshold;
             }
             mcgrp.check_best_solution(cur_solution_cost, negative_coding_sol);
@@ -379,7 +385,7 @@ void NeighBorSearch::threshold_exploration_version_0(const MCGRP &mcgrp)
         mcgrp._rng.RandPerm(neighbor_operator);
 
         vector<int> task_set(mcgrp.actual_task_num);
-        std::generate(task_set.begin(), task_set.end(), Genetator());
+        std::generate(task_set.begin(), task_set.end(), Generator());
         int chosen_task = -1;
 
         for (auto cur_operator:neighbor_operator) {
@@ -549,7 +555,7 @@ void NeighBorSearch::threshold_exploration_version_1(const MCGRP &mcgrp)
         mcgrp._rng.RandPerm(neighbor_operator);
 
         vector<int> task_set(mcgrp.actual_task_num);
-        std::generate(task_set.begin(), task_set.end(), Genetator());
+        std::generate(task_set.begin(), task_set.end(), Generator());
         int chosen_task = -1;
 
         for (auto cur_operator:neighbor_operator) {
@@ -710,7 +716,7 @@ void NeighBorSearch::descent_exploration_version_0(const MCGRP &mcgrp)
     };
 
     vector<int> task_set(mcgrp.actual_task_num);
-    std::generate(task_set.begin(), task_set.end(), Genetator());
+    std::generate(task_set.begin(), task_set.end(), Generator());
 
     int chosen_task = -1;
     mcgrp._rng.RandPerm(neighbor_operator);
@@ -875,9 +881,9 @@ void NeighBorSearch::descent_exploration_version_1(const MCGRP &mcgrp)
     };
 
     vector<int> task_set(mcgrp.actual_task_num);
-    std::generate(task_set.begin(), task_set.end(), Genetator());
+    std::generate(task_set.begin(), task_set.end(), Generator());
 
-    int prior_serach_step;
+    int prior_search_step;
     int prior_equal_step;
 
     int search_step_delta;
@@ -887,7 +893,7 @@ void NeighBorSearch::descent_exploration_version_1(const MCGRP &mcgrp)
 
     do{
         prior_equal_step = this->equal_step;
-        prior_serach_step = this->search_step;
+        prior_search_step = this->search_step;
 
         int chosen_task = -1;
         mcgrp._rng.RandPerm(neighbor_operator);
@@ -1002,7 +1008,7 @@ void NeighBorSearch::descent_exploration_version_1(const MCGRP &mcgrp)
             }
         }
 
-        search_step_delta = search_step - prior_serach_step;
+        search_step_delta = search_step - prior_search_step;
         equal_step_delta = equal_step - prior_equal_step;
 
         if (search_step_delta == 0) {
@@ -1017,7 +1023,7 @@ void NeighBorSearch::descent_exploration_version_1(const MCGRP &mcgrp)
 
 
     } while(
-        search_step_delta > significant_serach_delta
+        search_step_delta > significant_search_delta
         && equal_ratio < local_ratio_threshold
     );
 
@@ -1030,7 +1036,7 @@ void NeighBorSearch::infeasible_exploration(const MCGRP &mcgrp)
 {
     // Based on the best solution find so far, experiment shows this is better than the policy
     // which start from current solution.
-    delimiter_coding_sol = get_delimeter_coding(mcgrp.best_sol_buff);
+    delimiter_coding_sol = get_delimiter_coding(mcgrp.best_sol_buff);
     unpack_seq(delimiter_coding_sol, mcgrp);
 
     My_Assert(total_vio_load == 0, "Cannot start from an infeasible point!");
@@ -1088,7 +1094,7 @@ void NeighBorSearch::small_step_infeasible_descent_search(const MCGRP &mcgrp)
     };
 
     vector<int> task_set(mcgrp.actual_task_num);
-    std::generate(task_set.begin(), task_set.end(), Genetator());
+    std::generate(task_set.begin(), task_set.end(), Generator());
 
     this->equal_step = 0;
     this->search_step = 0;
@@ -1249,7 +1255,7 @@ void NeighBorSearch::small_step_infeasible_descent_search(const MCGRP &mcgrp)
 
         My_Assert(equal_ratio >=0 && equal_ratio <= 1,"Wrong ratio!");
     }while(
-        search_step_delta > significant_serach_delta
+        search_step_delta > significant_search_delta
             && equal_ratio < local_ratio_threshold
         );
 
@@ -1277,7 +1283,7 @@ void NeighBorSearch::small_step_infeasible_tabu_search(const MCGRP &mcgrp)
     mcgrp._rng.RandPerm(neighbor_operator);
 
     vector<int> task_set(mcgrp.actual_task_num);
-    std::generate(task_set.begin(), task_set.end(), Genetator());
+    std::generate(task_set.begin(), task_set.end(), Generator());
     int chosen_task = -1;
 
     for (auto cur_operator:neighbor_operator) {
@@ -1518,7 +1524,7 @@ void NeighBorSearch::repair_solution(const MCGRP &mcgrp)
 
     //Update neighbor search info
     unpack_seq(new_feasible_sol, mcgrp);
-    delimiter_coding_sol = get_delimeter_coding(negative_coding_sol);
+    delimiter_coding_sol = get_delimiter_coding(negative_coding_sol);
 
     My_Assert(total_vio_load == 0, "Repair method seems doesn't work properly!");
 }
@@ -1526,7 +1532,7 @@ void NeighBorSearch::repair_solution(const MCGRP &mcgrp)
 bool NeighBorSearch::check_missed(const MCGRP &mcgrp)
 {
     vector<int> task_set(mcgrp.actual_task_num);
-    std::generate(task_set.begin(), task_set.end(), Genetator());
+    std::generate(task_set.begin(), task_set.end(), Generator());
 
     for (auto task:task_set) {
         if (next_array[task]
@@ -1753,7 +1759,7 @@ HighSpeedNeighBorSearch::HighSpeedNeighBorSearch(const MCGRP &mcgrp)
     cur_solution_cost = numeric_limits<decltype(best_solution_cost)>::max();
     total_vio_load = 0;
     best_solution_cost = numeric_limits<decltype(best_solution_cost)>::max();
-    std::generate(task_set.begin(), task_set.end(), Genetator());
+    std::generate(task_set.begin(), task_set.end(), Generator());
     solution.print();
 }
 
@@ -2183,7 +2189,7 @@ void HighSpeedNeighBorSearch::threshold_exploration_version_0(const MCGRP &mcgrp
 //        mcgrp._rng.RandPerm(neighbor_operator);
 //
 //        vector<int> task_set(mcgrp.actual_task_num);
-//        std::generate(task_set.begin(), task_set.end(), Genetator());
+//        std::generate(task_set.begin(), task_set.end(), Generator());
 //        int chosen_task = -1;
 //
 //        for (auto cur_operator:neighbor_operator) {
@@ -2545,7 +2551,7 @@ void HighSpeedNeighBorSearch::descent_exploration_version_1(const MCGRP &mcgrp)
 
 
     } while(
-        search_step_delta > significant_serach_delta
+        search_step_delta > significant_search_delta
             && equal_ratio < local_ratio_threshold
         );
 
@@ -2559,7 +2565,7 @@ void HighSpeedNeighBorSearch::infeasible_exploration(const MCGRP &mcgrp)
     // Based on the best solution find so far, experiment shows this is better than the policy
     // which start from current solution.
     this->clear();
-    unpack_seq(get_delimeter_coding(mcgrp.best_sol_buff), mcgrp);
+    unpack_seq(get_delimiter_coding(mcgrp.best_sol_buff), mcgrp);
 
     My_Assert(total_vio_load == 0, "Cannot start from an infeasible point!");
     policy.nearest_feasible_cost = cur_solution_cost;
@@ -2713,7 +2719,7 @@ void HighSpeedNeighBorSearch::small_step_infeasible_descent_search(const MCGRP &
 
         My_Assert(equal_ratio >=0 && equal_ratio <= 1,"Wrong ratio!");
     }while(
-        search_step_delta > significant_serach_delta
+        search_step_delta > significant_search_delta
             && equal_ratio < local_ratio_threshold
         );
 

@@ -212,7 +212,7 @@ void DoubleInsert::move(NeighBorSearch &ns, const MCGRP &mcgrp)
 void DoubleInsert::unit_test(NeighBorSearch &ns, const MCGRP &mcgrp)
 {
     vector<int> task_set(mcgrp.actual_task_num);
-    std::generate(task_set.begin(), task_set.end(), Genetator());
+    std::generate(task_set.begin(), task_set.end(), Generator());
     mcgrp._rng.RandPerm(task_set);    //shuffle tasks
 
     auto original_policy = ns.policy.get();
@@ -546,7 +546,7 @@ void DoubleInsert::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
 void DoubleInsert::unit_test(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
 {
     vector<int> task_set(mcgrp.actual_task_num);
-    std::generate(task_set.begin(), task_set.end(), Genetator());
+    std::generate(task_set.begin(), task_set.end(), Generator());
     mcgrp._rng.RandPerm(task_set);    //shuffle tasks
 
     auto original_policy = ns.policy.get();
