@@ -1767,40 +1767,27 @@ HighSpeedNeighBorSearch::~HighSpeedNeighBorSearch() = default;
 
 void HighSpeedNeighBorSearch::neighbor_search(const MCGRP &mcgrp)
 {
-    best_solution_cost = cur_solution_cost;
+    int mode;
+    if(neighbor_search_mode == "IDPRTR")
+        mode = IDPRTR;
+    else if (neighbor_search_mode == "RTRIDP")
+        mode = RTRIDP;
+    else
+        mode = (int) mcgrp._rng.Randint(0, 1);
 
-    int finish_likelihood = 0;
-    double pre_fea_infea = cur_solution_cost;
-    do{
+    _neigh_search(mcgrp, mode);
 
-        int local_likelihood = 0;
-        double pre_cur_best = cur_solution_cost;
+    trace(mcgrp);
+}
 
-        do{
-            DEBUG_PRINT("RTTP Procedure started...");
+void HighSpeedNeighBorSearch::_neigh_search(const MCGRP &mcgrp, int mode){
+    if (mode == RTRIDP) {
+        cout<<"RTTR -> IDP\n";
+        DEBUG_PRINT("RTTP Procedure started...");
 
-            struct timeb start_time;
-            ftime(&start_time);
+        RTR_search(mcgrp);
 
-            RTR_search(mcgrp);
-
-            struct timeb end_time;
-            ftime(&end_time);
-            cout << "Finish a RTR search, spent: "
-                 <<fixed << (end_time.time - start_time.time)
-                     + ((end_time.millitm - start_time.millitm) * 1.0 / 1000) << 's' << endl;
-
-            DEBUG_PRINT("RTTP Procedure done!");
-
-            if(best_solution_cost < pre_cur_best){
-                pre_cur_best = best_solution_cost;
-                local_likelihood = 0;
-            }
-            else{
-                local_likelihood++;
-            }
-        }while (local_likelihood < 2);
-
+        DEBUG_PRINT("RTTP Procedure done!");
 
         //Second Infeasible solve
         DEBUG_PRINT("IDP Procedure started...");
@@ -1811,17 +1798,33 @@ void HighSpeedNeighBorSearch::neighbor_search(const MCGRP &mcgrp)
 
         My_Assert(total_vio_load == 0, "IDP procedure produce an infeasible solution");
 
-        if(pre_cur_best < pre_fea_infea){
-            pre_fea_infea = pre_cur_best;
-            finish_likelihood = 0;
-        }
-        else{
-            finish_likelihood++;
-        }
-    }while(finish_likelihood < 2);
+        DEBUG_PRINT("RTTP Procedure started...");
 
+        RTR_search(mcgrp);
+
+        DEBUG_PRINT("RTTP Procedure done!");
+
+    }
+    else if (mode == IDPRTR) {
+        cout<<"IDP -> RTTP\n";
+        DEBUG_PRINT("IDP Procedure started...");
+
+        infeasible_exploration(mcgrp);
+
+        DEBUG_PRINT("IDP Procedure done!");
+
+        My_Assert(total_vio_load == 0, "IDP procedure produce an infeasible solution");
+
+        DEBUG_PRINT("RTTP Procedure started...");
+
+        RTR_search(mcgrp);
+
+        DEBUG_PRINT("RTTP Procedure done!");
+    }
+    else{
+        My_Assert(false,"Unknown search policy");
+    }
 }
-
 
 void HighSpeedNeighBorSearch::unpack_seq(const std::vector<int> &del_seq, const MCGRP &mcgrp)
 {
