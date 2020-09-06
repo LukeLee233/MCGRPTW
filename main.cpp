@@ -208,14 +208,12 @@ int main(int argc, char *argv[])
             Mixed_Instance.best_total_route_length = numeric_limits<double>::max();
             Mixed_Instance.best_sol_time = numeric_limits<double>::max();
 
-            NeighBorSearch NBS(Mixed_Instance);
+            HighSpeedNeighBorSearch NBS(Mixed_Instance);
 
             Individual initial_solution;
             nearest_scanning(Mixed_Instance,initial_solution);
-            NBS.delimiter_coding_sol = initial_solution.sequence;
-            NBS.unpack_seq(NBS.delimiter_coding_sol, Mixed_Instance);
-            Mixed_Instance.check_best_solution(NBS.cur_solution_cost, NBS.negative_coding_sol);
-
+            NBS.unpack_seq(initial_solution.sequence, Mixed_Instance);
+            NBS.trace(Mixed_Instance);
 
             /*----------------------------------------------------------*/
             cout << "Begin Local search..." << endl;

@@ -466,16 +466,16 @@ private:
 
     double best_solution_cost;
 
-    const int significant_search_delta = 5;         //default is 5
-    const double local_ratio_threshold = 0.8;       //default is 0.8
-    const double infeasible_distance_threshold = 0.3;
+    const int significant_search_delta = significant_search;
+    const double local_ratio_threshold = local_ratio;
+    const double infeasible_distance_threshold = infeasible_distance;
 
     int search_step;
 
     int equal_step;
-    const int local_threshold = 40;
 
     int local_minimum_likelihood = 0;
+    const int local_threshold = local_minimum_threshold;
 
 
     //dynamic info
@@ -618,7 +618,18 @@ public:
 
     bool valid_sol(const MCGRP& mcgrp);
 
+    /*!
+     * extract the searched solution to MCGRP instance
+     * @param mcgrp: the implementation of a problem
+     */
     void trace(const MCGRP &mcgrp);
+
+    /*!
+     * the implementation of the neighborhood search given a specific mode
+     * @param mcgrp: the implementation of a problem
+     * @param mode: search mode
+     */
+    void _neigh_search(const MCGRP &mcgrp, int mode);
 
 };
 
