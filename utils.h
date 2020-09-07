@@ -10,6 +10,7 @@
 #include <fstream>
 #include "RNG.h"
 #include <stack>
+#include <sys/timeb.h>
 
 #define seed_size 100
 
@@ -297,3 +298,7 @@ public:
     }
 
 };
+
+inline double get_time_difference(const timeb& start,const timeb& end){
+    return (end.time - start.time) + ((end.millitm - start.millitm) * 1.0 / 1000);
+}

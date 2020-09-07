@@ -19,6 +19,9 @@ extern double QNDF_weights;
 
 extern std::string neighbor_search_mode;
 
+extern int search_time;
+
+
 // Descent Local Search(determine whether we can do down further)
 extern int significant_search;
 extern double local_ratio;

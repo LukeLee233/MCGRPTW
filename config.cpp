@@ -16,6 +16,8 @@ double QNDF_weights;
 
 std::string neighbor_search_mode;
 
+int search_time;
+
 int significant_search;
 double local_ratio;
 

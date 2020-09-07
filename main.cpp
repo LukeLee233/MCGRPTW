@@ -27,6 +27,8 @@ namespace bpo = boost::program_options;
 using json = nlohmann::json;
 
 struct timeb phase_start_time;
+struct timeb cur_time;
+
 
 int main(int argc, char *argv[])
 {
@@ -39,6 +41,7 @@ int main(int argc, char *argv[])
         ("directory,dir", bpo::value<std::string>(&instance_directory), "the instance directory")
         ("config_file,config", bpo::value<string>(&config_file)->default_value(""), "parameter_file")
         ("freeze_config", bpo::value<bool>(&freeze_config)->default_value(false), "whether to record the parameters")
+        ("search_time", bpo::value<int>(&search_time)->default_value(60), "total search time")
         ("neighbor_search_mode", bpo::value<std::string>(&neighbor_search_mode)->default_value("random"), "select mode in neighbor search")
         ("significant_search", bpo::value<int>(&significant_search)->default_value(5), "if valid move steps doesn't less than this, descent search will be terminated")
         ("local_ratio", bpo::value<double>(&local_ratio)->default_value(0.8), "if the percentage of equal move larger than this number, descent search will be terminated")
@@ -74,6 +77,7 @@ int main(int argc, char *argv[])
         j.at("pool_size").get_to(pool_size);
         j.at("evolve_steps").get_to(evolve_steps);
         j.at("phase_number").get_to(phase_number);
+        j.at("search_time").get_to(search_time);
         j.at("random_seed").get_to(random_seed);
         j.at("neighbor_size").get_to(neighbor_size);
         j.at("QNDF_weights").get_to(QNDF_weights);
@@ -105,6 +109,9 @@ int main(int argc, char *argv[])
         fout << setw(4) << j << endl;
     }
 
+    if(phase_number == -1){
+        phase_number = 1e6;
+    }
     /*----------------------------------------------------------------*/
 
     /*----------------------Create search info log----------------------*/
@@ -198,13 +205,16 @@ int main(int argc, char *argv[])
 #ifdef DEBUG
         log_out.open(date_folder + '/' + file_name + ".log", ios::out);
 #endif
-
-        for (int start_seed = random_seed; start_seed < random_seed + phase_number; start_seed++) {
+        struct timeb search_start_time;
+        ftime(&search_start_time);
+        ftime(&cur_time);
+        for (int start_seed = random_seed; start_seed < random_seed + phase_number
+            && get_time_difference(search_start_time,cur_time)<search_time; start_seed++) {
             cout << string (24,'-') << "Start "
                  << start_seed - random_seed + 1
                  << "th times search" << string (24,'-') << endl;
 
-            Mixed_Instance._rng.change(seed[start_seed]);
+            Mixed_Instance._rng.change(seed[start_seed % seed_size]);
             Mixed_Instance.best_total_route_length = numeric_limits<double>::max();
             Mixed_Instance.best_sol_time = numeric_limits<double>::max();
 
@@ -222,7 +232,6 @@ int main(int argc, char *argv[])
             ftime(&phase_start_time);
             NBS.neighbor_search(Mixed_Instance);
 
-            struct timeb cur_time;
             ftime(&cur_time);
             cout << "Finish " << start_seed - random_seed << "th search, spent: "
                  << (cur_time.time - phase_start_time.time)

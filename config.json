@@ -1,8 +1,9 @@
 {
     "pool_size": 5,
     "evolve_steps": 5,
-    "phase_number": 1,
+    "phase_number": -1,
     "random_seed": 0,
+    "search_time": 3600,
     "neighbor_size": 25,
     "QNDF_weights": 0.6,
     "neighbor_search_mode": "random",
