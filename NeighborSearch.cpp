@@ -2007,8 +2007,8 @@ void HighSpeedNeighBorSearch::RTR_search(const MCGRP &mcgrp)
             DEBUG_PRINT("reset local likelihood");
             local_minimum_likelihood = 1;
             cnt++;
-            if (cnt == 50) {
-                DEBUG_PRINT("maybe a local optimimum");
+            if (cnt == max_RTR_search_cycle) {
+                DEBUG_PRINT("maybe a local optimal");
                 local_minimum_likelihood = local_threshold;
             }
         }

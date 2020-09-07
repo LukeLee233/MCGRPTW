@@ -7,6 +7,8 @@ std::string instance_directory;
 std::string config_file;
 bool freeze_config;
 
+int search_time;
+
 int pool_size;
 int evolve_steps;
 int phase_number;

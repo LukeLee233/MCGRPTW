@@ -10,6 +10,8 @@ extern std::string instance_directory;
 extern std::string config_file;
 extern bool freeze_config;
 
+extern int search_time;
+
 extern int pool_size;
 extern int evolve_steps;
 extern int phase_number;
