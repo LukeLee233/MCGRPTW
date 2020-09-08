@@ -109,9 +109,8 @@ int main(int argc, char *argv[])
         fout << setw(4) << j << endl;
     }
 
-    if(phase_number == -1){
-        phase_number = 1e6;
-    }
+    phase_number = (phase_number == -1) ? 1e6 : phase_number;
+    evolve_steps = (evolve_steps == -1) ? 1e6 : evolve_steps;
     /*----------------------------------------------------------------*/
 
     /*----------------------Create search info log----------------------*/
@@ -221,22 +220,11 @@ int main(int argc, char *argv[])
 
             HighSpeedNeighBorSearch NBS(Mixed_Instance);
 
-            if(SolutionVec.empty()){
-                Individual initial_solution;
-                nearest_scanning(Mixed_Instance,initial_solution);
-                NBS.unpack_seq(initial_solution.sequence, Mixed_Instance);
-                NBS.trace(Mixed_Instance);
-            }else{
-                NBS.unpack_seq(get_delimiter_coding(SolutionVec.back()), Mixed_Instance);
-                NBS.trace(Mixed_Instance);
-            }
-
-
             /*----------------------------------------------------------*/
-            cout << "Begin Local search..." << endl;
+            cout << "Begin Memetic search..." << endl;
+            HighSpeedMemetic MA(NBS, pool_size, evolve_steps, QNDF_weights);
             ftime(&phase_start_time);
-            NBS.neighbor_search(Mixed_Instance);
-
+            MA.memetic_search(Mixed_Instance);
             ftime(&cur_time);
             cout << "Finish " << start_seed - random_seed << "th search, spent: "
                  << get_time_difference(phase_start_time,cur_time) << 's' << endl;

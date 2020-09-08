@@ -5,7 +5,7 @@
 #include <algorithm>
 #include <sys/timeb.h>
 #include "Similarity.h"
-
+#include "config.h"
 
 using namespace std;
 
@@ -42,13 +42,20 @@ void Memetic::reset()
 
 void Memetic::memetic_search(const MCGRP &mcgrp)
 {
+    struct timeb search_start_time;
+    struct timeb cur_time;
+    ftime(&search_start_time);
+    ftime(&cur_time);
+
     //start initializing the pool
     init_population(mcgrp);
 
     if (popSize == 1) {
         cout << "Pop Size is 1\n"
              << "Toggle to Local Search...\n";
-        for (auto iter = 1; iter <= evolve_num; iter++) {
+        for (auto iter = 1; iter <= evolve_num
+        && get_time_difference(search_start_time,cur_time)< search_time ; iter++) {
+            ftime(&cur_time);
             cout << iter << "th times local search\n";
 
             ns.unpack_seq(get_delimiter_coding(population.front()), mcgrp);
@@ -69,8 +76,10 @@ void Memetic::memetic_search(const MCGRP &mcgrp)
 
         int randNo1, randNo2;    //The ID of parents who involve in crossovering
 
-        for (auto iter = 1; iter <= evolve_num; iter++) {
+        for (auto iter = 1; iter <= evolve_num
+        && get_time_difference(search_start_time,cur_time)< search_time ; iter++) {
             cout << iter << "th times evolution\n";
+            ftime(&cur_time);
             /* choose parent randomly */
             randNo1 = mcgrp._rng.Randint(0, popSize - 1);
             randNo2 = mcgrp._rng.Randint(0, popSize - 1);
@@ -775,13 +784,20 @@ HighSpeedMemetic::HighSpeedMemetic(HighSpeedNeighBorSearch &local_search, const 
 
 void HighSpeedMemetic::memetic_search(const MCGRP &mcgrp)
 {
+    struct timeb search_start_time;
+    struct timeb cur_time;
+    ftime(&search_start_time);
+    ftime(&cur_time);
+
     //start initializing the pool
     init_population(mcgrp);
 
     if (population.size() == 1) {
         DEBUG_PRINT("Pop Size is 1\nToggle to Local Search...");
         HighSpeedNeighBorSearch ns(mcgrp);
-        for (auto iter = 1; iter <= evolve_num; iter++) {
+        for (auto iter = 1; iter <= evolve_num
+        && get_time_difference(search_start_time,cur_time)< search_time ; iter++) {
+            ftime(&cur_time);
             cout << iter << "th times local search\n";
             ns.clear();
             ns.unpack_seq(get_delimiter_coding(population.front().solution), mcgrp);
@@ -804,7 +820,9 @@ void HighSpeedMemetic::memetic_search(const MCGRP &mcgrp)
 
         clear_buffer();
 
-        for (auto iter = 0; iter < evolve_num ;) {
+        for (auto iter = 0; get_time_difference(search_start_time,cur_time)< search_time ;) {
+            ftime(&cur_time);
+
             unique_lock<mutex> citizen_buffer_lock(buffer_lock);
 
             if(thread_pool.activate_thread_num + iter < evolve_num){
