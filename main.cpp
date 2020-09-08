@@ -190,6 +190,7 @@ int main(int argc, char *argv[])
         vector<double> FitnessVec;
         vector<double> BestTimeVec;
         vector<double> SearchTimeVec;
+        vector<vector<int>> SolutionVec;
 
         /************************************************************************************************/
         /* initialize the instance object */
@@ -220,10 +221,16 @@ int main(int argc, char *argv[])
 
             HighSpeedNeighBorSearch NBS(Mixed_Instance);
 
-            Individual initial_solution;
-            nearest_scanning(Mixed_Instance,initial_solution);
-            NBS.unpack_seq(initial_solution.sequence, Mixed_Instance);
-            NBS.trace(Mixed_Instance);
+            if(SolutionVec.empty()){
+                Individual initial_solution;
+                nearest_scanning(Mixed_Instance,initial_solution);
+                NBS.unpack_seq(initial_solution.sequence, Mixed_Instance);
+                NBS.trace(Mixed_Instance);
+            }else{
+                NBS.unpack_seq(get_delimiter_coding(SolutionVec.back()), Mixed_Instance);
+                NBS.trace(Mixed_Instance);
+            }
+
 
             /*----------------------------------------------------------*/
             cout << "Begin Local search..." << endl;
@@ -238,12 +245,12 @@ int main(int argc, char *argv[])
 
             /* solution record */
             ftime(&cur_time);
-            SearchTimeVec.push_back((cur_time.time - phase_start_time.time) +
-                ((cur_time.millitm - phase_start_time.millitm) * 1.0 / 1000));
+            SearchTimeVec.push_back(get_time_difference(phase_start_time,cur_time));
 
             /* record the best info of each epoch */
             FitnessVec.push_back(Mixed_Instance.best_total_route_length);
             BestTimeVec.push_back(Mixed_Instance.best_sol_time);
+            SolutionVec.push_back(Mixed_Instance.best_sol_buff);
 
             cout << "Finish " << start_seed - random_seed + 1 << "th times\n";
 
