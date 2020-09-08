@@ -1793,7 +1793,7 @@ void HighSpeedNeighBorSearch::neighbor_search(const MCGRP &mcgrp)
             else{
                 local_likelihood++;
             }
-        }while (local_likelihood < 3);
+        }while (local_likelihood < 2);
 
 
         //Second Infeasible solve
@@ -1812,7 +1812,7 @@ void HighSpeedNeighBorSearch::neighbor_search(const MCGRP &mcgrp)
         else{
             finish_likelihood++;
         }
-    }while(finish_likelihood<3);
+    }while(finish_likelihood < 2);
 
 }
 
