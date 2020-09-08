@@ -802,11 +802,8 @@ void HighSpeedMemetic::memetic_search(const MCGRP &mcgrp)
             ns.clear();
             ns.unpack_seq(get_delimiter_coding(population.front().solution), mcgrp);
 
-            if(iter > 1){
-                ns.infeasible_exploration(mcgrp);
-            }
-
             ns.neighbor_search(mcgrp);
+
             population.front().solution = get_negative_coding(ns.get_solution());
             population.front().obj = ns.get_cur_cost();
         }

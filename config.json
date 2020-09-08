@@ -1,5 +1,5 @@
 {
-    "pool_size": 2,
+    "pool_size": 10,
     "evolve_steps": -1,
     "phase_number": -1,
     "random_seed": 0,
