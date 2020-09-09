@@ -8,7 +8,7 @@
 using namespace std;
 
 bool Slice::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_task){
-    //No seach space in Slice operator, No accept rule for invert operator
+    //No search space in Slice operator, No accept rule for invert operator
     pre_slice_times = 0;
     post_slice_times = 0;
 
@@ -149,7 +149,7 @@ void Slice::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp){
         postslice.move(ns, mcgrp);
     }
     else{
-        My_Assert(false,"Uknown operator");
+        My_Assert(false,"Unknown operator");
     }
 
     ns.trace(mcgrp);

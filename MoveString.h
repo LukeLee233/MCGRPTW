@@ -17,12 +17,12 @@ public:
 	 * @details yielding h-l & t-u-i-j-k-v-w
      * @param ns
      * @param mcgrp
-     * @param distrubance_seq
+     * @param disturbance_seq
      * @param u
      * @param move_result
      * @return
      */
-    bool considerable_move(NeighBorSearch &ns, const MCGRP &mcgrp, vector<int> distrubance_seq, const int u);
+    bool considerable_move(NeighBorSearch &ns, const MCGRP &mcgrp, vector<int> disturbance_seq, const int u);
 
     void move(NeighBorSearch &ns, const MCGRP &mcgrp);
 };
@@ -44,12 +44,12 @@ public:
 	 * @details yielding h-l & t-u-i-j-k-v-w
      * @param ns
      * @param mcgrp
-     * @param distrubance_seq
+     * @param disturbance_seq
      * @param u
      * @param move_result
      * @return
      */
-    bool considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, vector<int> distrubance_seq, const int u);
+    bool considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, vector<int> disturbance_seq, const int u);
 
     void move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp);
 };
@@ -67,12 +67,12 @@ public:
 	 * @details yielding h-l & t-u-i-j-k-v-w
      * @param ns
      * @param mcgrp
-     * @param distrubance_seq
+     * @param disturbance_seq
      * @param u
      * @param move_result
      * @return
      */
-    bool considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, vector<int> distrubance_seq, const int u);
+    bool considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, vector<int> disturbance_seq, const int u);
 
     void move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp);
 };

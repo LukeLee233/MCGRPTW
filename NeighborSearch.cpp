@@ -14,6 +14,7 @@
 #include <cmath>
 #include <algorithm>
 #include "config.h"
+#include "utils.h"
 
 using namespace std;
 
@@ -178,7 +179,7 @@ void NeighBorSearch::unpack_seq(const std::vector<int> &del_seq, const MCGRP &mc
                     next_array[current_task] = -del_seq[cursor + 2];
             }
 
-            /* intialize a new route */
+            /* initialize a new route */
             MCGRPRoute tmp;
             tmp.start = current_task;
             tmp.length = 0;
@@ -250,7 +251,7 @@ void NeighBorSearch::unpack_seq(const std::vector<int> &del_seq, const MCGRP &mc
 
 void NeighBorSearch::create_individual(const MCGRP &mcgrp, Individual &p)
 {
-    My_Assert(!negative_coding_sol.empty(), "Current soluiton cannot be empty!");
+    My_Assert(!negative_coding_sol.empty(), "Current solution cannot be empty!");
 
     p.sequence.clear();
     p.sequence = get_delimiter_coding(negative_coding_sol);
@@ -339,7 +340,7 @@ void NeighBorSearch::create_search_neighborhood(const MCGRP &mcgrp, const int ta
     search_space.clear();
 
     for(auto chosen_task:mcgrp.task_neigh_list[task]){
-        //chose the task which in the current soluiton
+        //chose the task which in the current solution
         auto task_id = chosen_task.task_id;
         if(next_array[task_id] != std::numeric_limits<identity<decltype(next_array)>::type::value_type>::max()){
             search_space.push_back(task_id);
@@ -357,7 +358,7 @@ void NeighBorSearch::threshold_exploration_version_0(const MCGRP &mcgrp)
 {
     DEBUG_PRINT("Uphill and downhill...");
 
-    // Based on the best solution find so far, experiment shows this is better than the policy,espicially on big instance
+    // Based on the best solution find so far, experiment shows this is better than the policy,especially on big instance
     // which start from current solution.
     policy.benchmark = mcgrp.best_total_route_length;
 
@@ -366,7 +367,7 @@ void NeighBorSearch::threshold_exploration_version_0(const MCGRP &mcgrp)
     const auto original_policy = policy.get();
     policy.set(BEST_ACCEPT | TOLERANCE | DELTA_ONLY);
 
-    //you need to decide the dynamic neighborsize when you search based on different policy
+    //you need to decide the dynamic neighbor size when you search based on different policy
         neigh_size = mcgrp.neigh_size;
 //    neigh_size = min(10,mcgrp.neigh_size);
 
@@ -524,7 +525,7 @@ void NeighBorSearch::threshold_exploration_version_1(const MCGRP &mcgrp)
 {
     DEBUG_PRINT("Uphill and downhill...");
 
-    // Based on the best solution find so far, experiment shows this is better than the policy,espicially on big instance
+    // Based on the best solution find so far, experiment shows this is better than the policy,especially on big instance
     // which start from current solution.
     policy.benchmark = mcgrp.best_total_route_length;
 
@@ -533,7 +534,7 @@ void NeighBorSearch::threshold_exploration_version_1(const MCGRP &mcgrp)
     const auto original_policy = policy.get();
     policy.set(BEST_ACCEPT | TOLERANCE | DELTA_ONLY);
 
-    //you need to decide the dynamic neighborsize when you search based on different policy
+    //you need to decide the dynamic neighbor size when you search based on different policy
     neigh_size = mcgrp.neigh_size;
 //    neigh_size = min(10,mcgrp.neigh_size);
 
@@ -1099,7 +1100,7 @@ void NeighBorSearch::small_step_infeasible_descent_search(const MCGRP &mcgrp)
     this->equal_step = 0;
     this->search_step = 0;
 
-    int prior_serach_step;
+    int prior_search_step;
     int prior_equal_step;
 
     int search_step_delta;
@@ -1113,7 +1114,7 @@ void NeighBorSearch::small_step_infeasible_descent_search(const MCGRP &mcgrp)
 
     do {
         prior_equal_step = this->equal_step;
-        prior_serach_step = this->search_step;
+        prior_search_step = this->search_step;
         int chosen_task = -1;
         mcgrp._rng.RandPerm(neighbor_operator);
 
@@ -1243,7 +1244,7 @@ void NeighBorSearch::small_step_infeasible_descent_search(const MCGRP &mcgrp)
             }
         }
 
-        search_step_delta = search_step - prior_serach_step;
+        search_step_delta = search_step - prior_search_step;
         equal_step_delta = equal_step - prior_equal_step;
 
         if(search_step_delta == 0 && equal_step_delta == 0){
@@ -1387,11 +1388,11 @@ void NeighBorSearch::small_step_infeasible_tabu_search(const MCGRP &mcgrp)
 void NeighBorSearch::large_step_infeasible_search(const MCGRP &mcgrp)
 {
     DEBUG_PRINT("Trigger large step break movement");
-    //decide how many routes need to be merged, self-adapative
+    //decide how many routes need to be merged, self-adaptive
 //    int merge_size = routes.size() / 3;
     int merge_size = 10;
 
-    //enlarge the capacity for infeasible search to dicede whether use infeasible considerition
+    //enlarge the capacity for infeasible search to decide whether use infeasible consideration
 //    double scale = mcgrp.capacity * policy.beta;
 //    int pseudo_capacity = int(mcgrp.capacity *(1+ (scale / (policy.beta*sqrt(1+scale*scale)))));
     int pseudo_capacity = mcgrp.capacity;
@@ -1420,7 +1421,7 @@ void NeighBorSearch::repair_solution(const MCGRP &mcgrp)
 
     vector<Route> original_route_tasks(routes.size());
 
-    //generate tasks disturbution in routes
+    //generate tasks distribution in routes
     int cursor = -1;
     for (auto task : negative_coding_sol) {
         if (task < 0) {
@@ -1438,7 +1439,7 @@ void NeighBorSearch::repair_solution(const MCGRP &mcgrp)
             original_route_tasks[cursor].load += mcgrp.inst_tasks[task].demand;
         }
         else {
-            My_Assert(false, "dummy task cannot occur in negative coding soluiton!");
+            My_Assert(false, "dummy task cannot occur in negative coding solution!");
         }
     }
     original_route_tasks.back().task_seq.push_back(DUMMY);
@@ -1468,7 +1469,7 @@ void NeighBorSearch::repair_solution(const MCGRP &mcgrp)
     int delta = numeric_limits<decltype(delta)>::max();
     for (auto task : candidate_tasks) {
         //reset chosen information before insert
-        //for faster execution time, I ommit inverse task of edge task!:)
+        //for faster execution time, I omit inverse task of edge task!:)
         chosen_route = -1;
         chosen_pos = -1;
         best_delta = numeric_limits<decltype(best_delta)>::max();
@@ -1580,9 +1581,9 @@ void NeighBorSearch::presert_sentinel(const MCGRP &mcgrp, const int i){
     My_Assert(i >= 1 && i <= mcgrp.actual_task_num,"Invalid task!");
 
     auto ite = find(delimiter_coding_sol.begin(),delimiter_coding_sol.end(),i);
-    My_Assert( ite != delimiter_coding_sol.end(),"Task doesn't exist in curretn sol!");
+    My_Assert( ite != delimiter_coding_sol.end(),"Task doesn't exist in current sol!");
 
-    //1.handle delimeter_coding_sol
+    //1.handle delimiter_coding_sol
     //presert
     delimiter_coding_sol.insert(ite, mcgrp.sentinel);
 
@@ -1607,7 +1608,7 @@ void NeighBorSearch::presert_sentinel(const MCGRP &mcgrp, const int i){
     pred_array[mcgrp.sentinel] = pre_i;
 
 
-    //3.hande route info
+    //3.handle route info
     int i_route = route_id[i];
     int start_i = routes[i_route].start;
 
@@ -1630,9 +1631,9 @@ void NeighBorSearch::postsert_sentinel(const MCGRP &mcgrp, const int i)
     My_Assert(i >= 1 && i <= mcgrp.actual_task_num,"Invalid task!");
 
     auto ite = find(delimiter_coding_sol.begin(),delimiter_coding_sol.end(),i);
-    My_Assert( ite != delimiter_coding_sol.end(),"Task doesn't exist in curretn sol!");
+    My_Assert( ite != delimiter_coding_sol.end(),"Task doesn't exist in current sol!");
 
-    //1.handle delimeter_coding_sol
+    //1.handle delimiter_coding_sol
     //postsert
     delimiter_coding_sol.insert(ite + 1, mcgrp.sentinel);
 
@@ -1678,9 +1679,9 @@ void NeighBorSearch::remove_sentinel(const MCGRP &mcgrp){
     const int route_start = routes[sentinel_route].start;
     const int route_end = routes[sentinel_route].end;
 
-    //1.handle delimeter_coding_sol
+    //1.handle delimiter_coding_sol
     auto ite = find(delimiter_coding_sol.begin(),delimiter_coding_sol.end(),mcgrp.sentinel);
-    My_Assert( ite != delimiter_coding_sol.end(),"Sentinel doesn't exist in curretn sol!");
+    My_Assert( ite != delimiter_coding_sol.end(),"Sentinel doesn't exist in current sol!");
     delimiter_coding_sol.erase(ite);
 
 
@@ -1834,7 +1835,7 @@ void HighSpeedNeighBorSearch::unpack_seq(const std::vector<int> &del_seq, const 
     //parse solution
     TASK_NODE *dummy = nullptr;
     dummy = solution.dummypool.get_new_dummy();
-    My_Assert(solution.very_start == nullptr, "Incorrect state of soulution");
+    My_Assert(solution.very_start == nullptr, "Incorrect state of solution");
     solution.very_start = dummy;
 
     //link first dummy
@@ -1999,8 +2000,7 @@ void HighSpeedNeighBorSearch::RTR_search(const MCGRP &mcgrp)
         ftime(&end_time);
 
         cout << "Finish a feasible search process, spent: "
-             <<fixed << (end_time.time - start_time.time)
-                 + ((end_time.millitm - start_time.millitm) * 1.0 / 1000) << 's' << endl;
+             <<fixed << get_time_difference(start_time,end_time) << 's' << endl;
 
         if (cur_solution_cost < orig_val_for_uphill){
             DEBUG_PRINT("total_route_length " +  to_string(orig_val_for_uphill));
@@ -2073,7 +2073,7 @@ void HighSpeedNeighBorSearch::threshold_exploration_version_0(const MCGRP &mcgrp
 {
     DEBUG_PRINT("Uphill and downhill...");
 
-    // Based on the best solution find so far, experiment shows this is better than the policy,espicially on big instance
+    // Based on the best solution find so far, experiment shows this is better than the policy,especially on big instance
     // which start from current solution.
     policy.benchmark = this->best_solution_cost;
 
@@ -2082,7 +2082,7 @@ void HighSpeedNeighBorSearch::threshold_exploration_version_0(const MCGRP &mcgrp
     const auto original_policy = policy.get();
     policy.set(BEST_ACCEPT | TOLERANCE | DELTA_ONLY);
 
-    //you need to decide the dynamic neighborsize when you search based on different policy
+    //you need to decide the dynamic neighbor size when you search based on different policy
     neigh_size = mcgrp.neigh_size;
 //    neigh_size = min(10,mcgrp.neigh_size);
 
@@ -2161,7 +2161,7 @@ void HighSpeedNeighBorSearch::threshold_exploration_version_0(const MCGRP &mcgrp
 //{
 //    DEBUG_PRINT("Uphill and downhill...");
 //
-//    // Based on the best solution find so far, experiment shows this is better than the policy,espicially on big instance
+//    // Based on the best solution find so far, experiment shows this is better than the policy,especially on big instance
 //    // which start from current solution.
 //    policy.benchmark = mcgrp.best_total_route_length;
 //
@@ -2170,7 +2170,7 @@ void HighSpeedNeighBorSearch::threshold_exploration_version_0(const MCGRP &mcgrp
 //    const auto original_policy = policy.get();
 //    policy.set(BEST_ACCEPT | TOLERANCE | DELTA_ONLY);
 //
-//    //you need to decide the dynamic neighborsize when you search based on different policy
+//    //you need to decide the dynamic neighbor size when you search based on different policy
 //    neigh_size = mcgrp.neigh_size;
 ////    neigh_size = min(10,mcgrp.neigh_size);
 //
@@ -2415,7 +2415,7 @@ void HighSpeedNeighBorSearch::descent_exploration_version_1(const MCGRP &mcgrp)
         NeighborOperator::TWO_OPT,
     };
 
-    int prior_serach_step;
+    int prior_search_step;
     int prior_equal_step;
 
     int search_step_delta;
@@ -2425,7 +2425,7 @@ void HighSpeedNeighBorSearch::descent_exploration_version_1(const MCGRP &mcgrp)
 
     do{
         prior_equal_step = this->equal_step;
-        prior_serach_step = this->search_step;
+        prior_search_step = this->search_step;
 
         int chosen_task = -1;
         mcgrp._rng.RandPerm(neighbor_operator);
@@ -2539,7 +2539,7 @@ void HighSpeedNeighBorSearch::descent_exploration_version_1(const MCGRP &mcgrp)
             }
         }
 
-        search_step_delta = search_step - prior_serach_step;
+        search_step_delta = search_step - prior_search_step;
         equal_step_delta = equal_step - prior_equal_step;
 
         if (search_step_delta == 0) {
@@ -2635,7 +2635,7 @@ void HighSpeedNeighBorSearch::small_step_infeasible_descent_search(const MCGRP &
     equal_step = 0;
     search_step = 0;
 
-    int prior_serach_step;
+    int prior_search_step;
     int prior_equal_step;
 
     int search_step_delta;
@@ -2649,7 +2649,7 @@ void HighSpeedNeighBorSearch::small_step_infeasible_descent_search(const MCGRP &
 
     do {
         prior_equal_step = this->equal_step;
-        prior_serach_step = this->search_step;
+        prior_search_step = this->search_step;
         int chosen_task = -1;
         mcgrp._rng.RandPerm(neighbor_operator);
 
@@ -2710,7 +2710,7 @@ void HighSpeedNeighBorSearch::small_step_infeasible_descent_search(const MCGRP &
             }
         }
 
-        search_step_delta = search_step - prior_serach_step;
+        search_step_delta = search_step - prior_search_step;
         equal_step_delta = equal_step - prior_equal_step;
 
         if(search_step_delta == 0 && equal_step_delta == 0){
@@ -2793,11 +2793,11 @@ void HighSpeedNeighBorSearch::small_step_infeasible_tabu_search(const MCGRP &mcg
 void HighSpeedNeighBorSearch::large_step_infeasible_search(const MCGRP &mcgrp)
 {
     DEBUG_PRINT("Trigger large step break movement");
-    //decide how many routes need to be merged, self-adapative
+    //decide how many routes need to be merged, self-adaptive
 //    int merge_size = routes.size() / 3;
     int merge_size = 10;
 
-    //enlarge the capacity for infeasible search to dicede whether use infeasible considerition
+    //enlarge the capacity for infeasible search to decide whether use infeasible consideration
 //    double scale = mcgrp.capacity * policy.beta;
 //    int pseudo_capacity = int(mcgrp.capacity *(1+ (scale / (policy.beta*sqrt(1+scale*scale)))));
     int pseudo_capacity = mcgrp.capacity;
@@ -2977,7 +2977,7 @@ void HighSpeedNeighBorSearch::repair_solution(const MCGRP &mcgrp)
     vector<Route> satisfied_routes;
     vector<Route> violated_routes;
 
-    //generate tasks disturbution in routes
+    //generate tasks distribution in routes
     for(auto route_id : routes.activated_route_id){
         Route tmp;
         tmp.route_id = route_id;
@@ -3061,7 +3061,7 @@ void HighSpeedNeighBorSearch::repair_solution(const MCGRP &mcgrp)
     int delta = numeric_limits<decltype(delta)>::max();
     for (auto task : candidate_tasks) {
         //reset chosen information before insert
-        //for faster execution time, I ommit inverse task of edge task!:)
+        //for faster execution time, I omit inverse task of edge task!:)
         chosen_route = -1;
         best_delta = numeric_limits<decltype(best_delta)>::max();
         left_task = nullptr;

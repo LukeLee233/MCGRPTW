@@ -74,11 +74,11 @@ bool Swap::search(NeighBorSearch &ns, const MCGRP &mcgrp, int chosen_task)
 bool Swap::considerable_move(NeighBorSearch &ns, const MCGRP &mcgrp, int u, int i)
 {
     My_Assert(u != i, "two task need to be different!");
-    My_Assert(u != DUMMY && i != DUMMY, "Swap can'y not handle dummy task!");
+    My_Assert(u != DUMMY && i != DUMMY, "Swap can't not handle dummy task!");
     My_Assert(ns.next_array[u] != std::numeric_limits<identity<decltype(ns.next_array)>::type::value_type>::max()
                   || ns.next_array[i]
                       != std::numeric_limits<identity<decltype(ns.next_array)>::type::value_type>::max(),
-              "task u or i are not in current soluiton");
+              "task u or i are not in current solution");
 
     const int original_u = u;
     const int original_i = i;

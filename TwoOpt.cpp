@@ -496,7 +496,7 @@ bool NewTwoOpt::considerable_move(NeighBorSearch &ns, const MCGRP &mcgrp, int a,
     if (a_route == c_route) {   //This is flip operation
         //Definitely feasible
         // same route: the 2opt move here corresponds to reversing the sequence of
-        // the subroute that is between (a|b) and (c|d), open interval
+        // the sub route that is between (a|b) and (c|d), open interval
         DEBUG_PRINT("Flip operator in 2-opt");
         flip_times++;
         if (a != DUMMY && b != DUMMY && c != DUMMY && d != DUMMY){
@@ -615,9 +615,9 @@ bool NewTwoOpt::considerable_move(NeighBorSearch &ns, const MCGRP &mcgrp, int a,
     }
     else //This is SwapEnds operation
     {
-        //Cross routes, feasibilty need checked
+        //Cross routes, feasibility need checked
         //different routes: the 2opt move here corresponds to swap the sequence of
-        // the subroute that is after a and c, open interval
+        // the sub route that is after a and c, open interval
 
         /// Example: ( a & v input): DEPOT-i-a-b-j-k-l-DEPOT and DEPOT-t-u-v-w-x-y-z-DEPOT becomes
         /// DEPOT-i-a-w-x-y-z-DEPOT and DEPOT-t-u-v-b-j-k-l-DEPOT
@@ -741,7 +741,7 @@ void NewTwoOpt::move(NeighBorSearch &ns, const MCGRP &mcgrp){
         swap_ends.move(ns,mcgrp);
     }
     else{
-        My_Assert(false,"Uknown operator");
+        My_Assert(false,"Unknown operator");
     }
 
     if (ns.total_vio_load == 0) {
@@ -1083,7 +1083,7 @@ bool NewTwoOpt::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgr
     if (a_route == c_route) {   //This is flip operation
         //Definitely feasible
         // same route: the 2opt move here corresponds to reversing the sequence of
-        // the subroute that is between (a|b) and (c|d), open interval
+        // the sub route that is between (a|b) and (c|d), open interval
         DEBUG_PRINT("Flip operator in 2-opt");
         flip_times++;
 
@@ -1112,9 +1112,9 @@ bool NewTwoOpt::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgr
     }
     else //This is SwapEnds operation
     {
-        //Cross routes, feasibilty need checked
+        //Cross routes, feasibility need checked
         //different routes: the 2opt move here corresponds to swap the sequence of
-        // the subroute that is after a and c, open interval
+        // the sub route that is after a and c, open interval
 
         /// Example: ( a & v input): DEPOT-i-a-b-j-k-l-DEPOT and DEPOT-t-u-v-w-x-y-z-DEPOT becomes
         /// DEPOT-i-a-w-x-y-z-DEPOT and DEPOT-t-u-v-b-j-k-l-DEPOT
@@ -1151,7 +1151,7 @@ void NewTwoOpt::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp){
         swap_ends.move(ns,mcgrp);
     }
     else{
-        My_Assert(false,"Uknown operator");
+        My_Assert(false,"Unknown operator");
     }
 
     ns.trace(mcgrp);

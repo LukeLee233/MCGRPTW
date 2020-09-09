@@ -3,432 +3,432 @@
 
 using namespace std;
 
-MCGRPMOVE SwapEnds::move_result = MCGRPMOVE(NeighborOperator::SWAP_ENDS);
-
-bool
-SwapEnds::considerable_move(NeighBorSearch &ns, const MCGRP &mcgrp, vector<int> chosen_seq, vector<int> candidate_seq)
-{
-    My_Assert(find(chosen_seq.begin(), chosen_seq.end(), DUMMY) == chosen_seq.end(),
-              "Chosen sequence can't have dummy task!");
-
-    My_Assert(find(candidate_seq.begin(), candidate_seq.end(), DUMMY) == candidate_seq.end(),
-              "Candidate sequence can't have dummy task!");
-
-    const int chosen_route = ns.route_id[chosen_seq.front()];
-    const int candidate_route = ns.route_id[candidate_seq.front()];
-
-    My_Assert(chosen_route != candidate_route, "Two sequences should be different routes!");
-
-    move_result.choose_tasks(chosen_seq.front(), candidate_seq.front());
-    move_result.move_arguments = chosen_seq;
-    move_result.move_arguments.insert(move_result.move_arguments.end(), candidate_seq.begin(), candidate_seq.end());
-
-    //check load
-    int chosen_seq_load = 0;
-    for (auto task : chosen_seq) {
-        chosen_seq_load += mcgrp.inst_tasks[task].demand;
-    }
-    int candidate_seq_load = 0;
-    for (auto task : candidate_seq) {
-        candidate_seq_load += mcgrp.inst_tasks[task].demand;
-    }
-
-    if (ns.routes[chosen_route].load - chosen_seq_load + candidate_seq_load > mcgrp.capacity ||
-        ns.routes[candidate_route].load - candidate_seq_load + chosen_seq_load > mcgrp.capacity) {
-        move_result.reset();
-        return false;
-    }
-
-    vector<int> potential_chosen_seq;
-    potential_chosen_seq.reserve(chosen_seq.size());
-
-    vector<int> potential_candidate_seq;
-    potential_chosen_seq.reserve(candidate_seq.size());
-
-    for (auto cursor = 0; cursor < chosen_seq.size(); cursor++) {
-        //Base on probobality
-        if (mcgrp.is_edge(chosen_seq[cursor]) && mcgrp._rng.Randfloat(0, 1) > 0.5) {
-            potential_chosen_seq.push_back(mcgrp.inst_tasks[chosen_seq[cursor]].inverse);
-        }
-        else {
-            potential_chosen_seq.push_back(chosen_seq[cursor]);
-        }
-    }
-
-    for (auto cursor = 0; cursor < candidate_seq.size(); cursor++) {
-        //Base on probobality
-        if (mcgrp.is_edge(candidate_seq[cursor]) && mcgrp._rng.Randfloat(0, 1) > 0.5) {
-            potential_candidate_seq.push_back(mcgrp.inst_tasks[candidate_seq[cursor]].inverse);
-        }
-        else {
-            potential_candidate_seq.push_back(candidate_seq[cursor]);
-        }
-    }
-
-    const int pre_chosen_start = max(ns.pred_array[chosen_seq.front()], DUMMY);
-    const int post_chosen_end = max(ns.next_array[chosen_seq.back()], DUMMY);
-    const int pre_candidate_start = max(ns.pred_array[candidate_seq.front()], DUMMY);
-    const int post_candidate_end = max(ns.next_array[candidate_seq.back()], DUMMY);
-
-    double chosen_delta = 0;
-    double candidate_delta = 0;
-
-    vector<int> actual_chosen_seq;
-    actual_chosen_seq.reserve(chosen_seq.size());
-    vector<int> actual_candidate_seq;
-    actual_candidate_seq.reserve(candidate_seq.size());
-
-    if (chosen_seq == potential_chosen_seq && candidate_seq == potential_candidate_seq) {
-        //no need to do compare
-        chosen_delta -=
-            mcgrp.min_cost[mcgrp.inst_tasks[pre_chosen_start].tail_node][mcgrp.inst_tasks[chosen_seq.front()]
-                .head_node];
-
-        for (auto cursor = 0; cursor < chosen_seq.size() - 1; cursor++) {
-            chosen_delta -= mcgrp.inst_tasks[chosen_seq[cursor]].serv_cost;
-            chosen_delta -=
-                mcgrp.min_cost[mcgrp.inst_tasks[chosen_seq[cursor]].tail_node][mcgrp.inst_tasks[chosen_seq[cursor + 1]]
-                    .head_node];
-        }
-        chosen_delta -= mcgrp.inst_tasks[chosen_seq.back()].serv_cost;
-        chosen_delta -=
-            mcgrp.min_cost[mcgrp.inst_tasks[chosen_seq.back()].tail_node][mcgrp.inst_tasks[post_chosen_end].head_node];
-
-        chosen_delta +=
-            mcgrp.min_cost[mcgrp.inst_tasks[pre_chosen_start].tail_node][mcgrp.inst_tasks[candidate_seq.back()]
-                .head_node];
-        for (auto cursor = candidate_seq.size() - 1; cursor > 0; --cursor) {
-            chosen_delta += mcgrp.inst_tasks[candidate_seq[cursor]].serv_cost;
-            chosen_delta +=
-                mcgrp.min_cost[mcgrp.inst_tasks[candidate_seq[cursor]].tail_node][mcgrp.inst_tasks[candidate_seq[cursor
-                    - 1]].head_node];
-        }
-        chosen_delta += mcgrp.inst_tasks[candidate_seq.front()].serv_cost;
-        chosen_delta +=
-            mcgrp.min_cost[mcgrp.inst_tasks[candidate_seq.front()].tail_node][mcgrp.inst_tasks[post_chosen_end]
-                .head_node];
-
-
-        ////////////////////////////////////////////////////////////////////////////////////////////////
-        candidate_delta -=
-            mcgrp.min_cost[mcgrp.inst_tasks[pre_candidate_start].tail_node][mcgrp.inst_tasks[candidate_seq.front()]
-                .head_node];
-
-        for (auto cursor = 0; cursor < candidate_seq.size() - 1; cursor++) {
-            candidate_delta -= mcgrp.inst_tasks[candidate_seq[cursor]].serv_cost;
-            candidate_delta -=
-                mcgrp.min_cost[mcgrp.inst_tasks[candidate_seq[cursor]].tail_node][mcgrp.inst_tasks[candidate_seq[cursor
-                    + 1]].head_node];
-        }
-        candidate_delta -= mcgrp.inst_tasks[candidate_seq.back()].serv_cost;
-        candidate_delta -=
-            mcgrp.min_cost[mcgrp.inst_tasks[candidate_seq.back()].tail_node][mcgrp.inst_tasks[post_candidate_end]
-                .head_node];
-
-        candidate_delta +=
-            mcgrp.min_cost[mcgrp.inst_tasks[pre_candidate_start].tail_node][mcgrp.inst_tasks[chosen_seq.back()]
-                .head_node];
-        for (auto cursor = chosen_seq.size() - 1; cursor > 0; --cursor) {
-            candidate_delta += mcgrp.inst_tasks[chosen_seq[cursor]].serv_cost;
-            candidate_delta +=
-                mcgrp.min_cost[mcgrp.inst_tasks[chosen_seq[cursor]].tail_node][mcgrp.inst_tasks[chosen_seq[cursor - 1]]
-                    .head_node];
-        }
-        candidate_delta += mcgrp.inst_tasks[chosen_seq.front()].serv_cost;
-        candidate_delta +=
-            mcgrp.min_cost[mcgrp.inst_tasks[chosen_seq.front()].tail_node][mcgrp.inst_tasks[post_candidate_end]
-                .head_node];
-
-        actual_chosen_seq = chosen_seq;
-        actual_candidate_seq = candidate_seq;
-    }
-    else {
-        //chose the one will lead to less cost
-        //connect original candidate seq
-        double original_chosen_delta = 0;
-        original_chosen_delta -=
-            mcgrp.min_cost[mcgrp.inst_tasks[pre_chosen_start].tail_node][mcgrp.inst_tasks[chosen_seq.front()]
-                .head_node];
-
-        for (auto cursor = 0; cursor < chosen_seq.size() - 1; cursor++) {
-            original_chosen_delta -= mcgrp.inst_tasks[chosen_seq[cursor]].serv_cost;
-            original_chosen_delta -=
-                mcgrp.min_cost[mcgrp.inst_tasks[chosen_seq[cursor]].tail_node][mcgrp.inst_tasks[chosen_seq[cursor + 1]]
-                    .head_node];
-        }
-        original_chosen_delta -= mcgrp.inst_tasks[chosen_seq.back()].serv_cost;
-        original_chosen_delta -=
-            mcgrp.min_cost[mcgrp.inst_tasks[chosen_seq.back()].tail_node][mcgrp.inst_tasks[post_chosen_end].head_node];
-
-        original_chosen_delta +=
-            mcgrp.min_cost[mcgrp.inst_tasks[pre_chosen_start].tail_node][mcgrp.inst_tasks[candidate_seq.back()]
-                .head_node];
-        for (auto cursor = candidate_seq.size() - 1; cursor > 0; --cursor) {
-            original_chosen_delta += mcgrp.inst_tasks[candidate_seq[cursor]].serv_cost;
-            original_chosen_delta +=
-                mcgrp.min_cost[mcgrp.inst_tasks[candidate_seq[cursor]].tail_node][mcgrp.inst_tasks[candidate_seq[cursor
-                    - 1]].head_node];
-        }
-        original_chosen_delta += mcgrp.inst_tasks[candidate_seq.front()].serv_cost;
-        original_chosen_delta +=
-            mcgrp.min_cost[mcgrp.inst_tasks[candidate_seq.front()].tail_node][mcgrp.inst_tasks[post_chosen_end]
-                .head_node];
-
-
-        ////////////////////////////////////////////////////////////////////////////////////////////////
-        //connect original chosen seq
-        double original_candidate_delta = 0;
-
-        original_candidate_delta -=
-            mcgrp.min_cost[mcgrp.inst_tasks[pre_candidate_start].tail_node][mcgrp.inst_tasks[candidate_seq.front()]
-                .head_node];
-
-        for (auto cursor = 0; cursor < candidate_seq.size() - 1; cursor++) {
-            original_candidate_delta -= mcgrp.inst_tasks[candidate_seq[cursor]].serv_cost;
-            original_candidate_delta -=
-                mcgrp.min_cost[mcgrp.inst_tasks[candidate_seq[cursor]].tail_node][mcgrp.inst_tasks[candidate_seq[cursor
-                    + 1]].head_node];
-        }
-        original_candidate_delta -= mcgrp.inst_tasks[candidate_seq.back()].serv_cost;
-        original_candidate_delta -=
-            mcgrp.min_cost[mcgrp.inst_tasks[candidate_seq.back()].tail_node][mcgrp.inst_tasks[post_candidate_end]
-                .head_node];
-
-        original_candidate_delta +=
-            mcgrp.min_cost[mcgrp.inst_tasks[pre_candidate_start].tail_node][mcgrp.inst_tasks[chosen_seq.back()]
-                .head_node];
-        for (auto cursor = chosen_seq.size() - 1; cursor > 0; --cursor) {
-            original_candidate_delta += mcgrp.inst_tasks[chosen_seq[cursor]].serv_cost;
-            original_candidate_delta +=
-                mcgrp.min_cost[mcgrp.inst_tasks[chosen_seq[cursor]].tail_node][mcgrp.inst_tasks[chosen_seq[cursor - 1]]
-                    .head_node];
-        }
-        original_candidate_delta += mcgrp.inst_tasks[chosen_seq.front()].serv_cost;
-        original_candidate_delta +=
-            mcgrp.min_cost[mcgrp.inst_tasks[chosen_seq.front()].tail_node][mcgrp.inst_tasks[post_candidate_end]
-                .head_node];
-
-        ////////////////////////////////////////////////////////////////////////////////////////////////
-        //connect potential candidate seq
-        double potential_chosen_delta = 0;
-        potential_chosen_delta -=
-            mcgrp.min_cost[mcgrp.inst_tasks[pre_chosen_start].tail_node][mcgrp.inst_tasks[chosen_seq.front()]
-                .head_node];
-
-        for (auto cursor = 0; cursor < chosen_seq.size() - 1; cursor++) {
-            potential_chosen_delta -= mcgrp.inst_tasks[chosen_seq[cursor]].serv_cost;
-            potential_chosen_delta -= mcgrp.min_cost[mcgrp.inst_tasks[chosen_seq[cursor]].tail_node][mcgrp
-                .inst_tasks[chosen_seq[cursor + 1]].head_node];
-        }
-        potential_chosen_delta -= mcgrp.inst_tasks[chosen_seq.back()].serv_cost;
-        potential_chosen_delta -=
-            mcgrp.min_cost[mcgrp.inst_tasks[chosen_seq.back()].tail_node][mcgrp.inst_tasks[post_chosen_end]
-                .head_node];
-
-        potential_chosen_delta +=
-            mcgrp.min_cost[mcgrp.inst_tasks[pre_chosen_start].tail_node][mcgrp.inst_tasks[potential_candidate_seq
-                .back()].head_node];
-        for (auto cursor = potential_candidate_seq.size() - 1; cursor > 0; --cursor) {
-            potential_chosen_delta += mcgrp.inst_tasks[potential_candidate_seq[cursor]].serv_cost;
-            potential_chosen_delta += mcgrp.min_cost[mcgrp.inst_tasks[potential_candidate_seq[cursor]].tail_node][mcgrp
-                .inst_tasks[potential_candidate_seq[cursor - 1]].head_node];
-        }
-        potential_chosen_delta += mcgrp.inst_tasks[potential_candidate_seq.front()].serv_cost;
-        potential_chosen_delta += mcgrp.min_cost[mcgrp.inst_tasks[potential_candidate_seq.front()].tail_node][mcgrp
-            .inst_tasks[post_chosen_end].head_node];
-
-        ////////////////////////////////////////////////////////////////////////////////////////////////
-        //connect potential chosen seq
-        double potential_candidate_delta = 0;
-
-        potential_candidate_delta -=
-            mcgrp.min_cost[mcgrp.inst_tasks[pre_candidate_start].tail_node][mcgrp.inst_tasks[candidate_seq
-                .front()].head_node];
-
-        for (auto cursor = 0; cursor < candidate_seq.size() - 1; cursor++) {
-            potential_candidate_delta -= mcgrp.inst_tasks[candidate_seq[cursor]].serv_cost;
-            potential_candidate_delta -=
-                mcgrp.min_cost[mcgrp.inst_tasks[candidate_seq[cursor]].tail_node][mcgrp
-                    .inst_tasks[candidate_seq[cursor + 1]].head_node];
-        }
-        potential_candidate_delta -= mcgrp.inst_tasks[candidate_seq.back()].serv_cost;
-        potential_candidate_delta -= mcgrp.min_cost[mcgrp.inst_tasks[candidate_seq.back()].tail_node][mcgrp
-            .inst_tasks[post_candidate_end].head_node];
-
-        potential_candidate_delta +=
-            mcgrp.min_cost[mcgrp.inst_tasks[pre_candidate_start].tail_node][mcgrp.inst_tasks[potential_chosen_seq
-                .back()].head_node];
-        for (auto cursor = potential_chosen_seq.size() - 1; cursor > 0; --cursor) {
-            potential_candidate_delta += mcgrp.inst_tasks[potential_chosen_seq[cursor]].serv_cost;
-            potential_candidate_delta += mcgrp.min_cost[mcgrp.inst_tasks[potential_chosen_seq[cursor]].tail_node][mcgrp
-                .inst_tasks[potential_chosen_seq[cursor - 1]].head_node];
-        }
-        potential_candidate_delta += mcgrp.inst_tasks[potential_chosen_seq.front()].serv_cost;
-        potential_candidate_delta += mcgrp.min_cost[mcgrp.inst_tasks[potential_chosen_seq.front()].tail_node][mcgrp
-            .inst_tasks[post_candidate_end].head_node];
-
-        ////////////////////////////////////////////////////////////////////////////////////////////////
-        if(original_chosen_delta <= potential_chosen_delta){
-            chosen_delta = original_chosen_delta;
-            actual_candidate_seq = candidate_seq;
-        }
-        else{
-            chosen_delta = potential_chosen_delta;
-            actual_candidate_seq = potential_candidate_seq;
-        }
-
-        if(original_candidate_delta <= potential_candidate_delta){
-            candidate_delta = original_candidate_delta;
-            actual_chosen_seq = chosen_seq;
-        }
-        else{
-            candidate_delta = potential_candidate_delta;
-            actual_chosen_seq = potential_chosen_seq;
-        }
-    }
-
-    move_result.num_affected_routes = 2;
-
-    move_result.route_id.push_back(chosen_route);
-    move_result.route_id.push_back(candidate_route);
-
-    move_result.delta = chosen_delta + candidate_delta;
-
-    move_result.seq1_cus_num = chosen_seq.size();
-    move_result.seq2_cus_num = candidate_seq.size();
-
-    move_result.route_lens.push_back(ns.routes[chosen_route].length + chosen_delta);
-    move_result.route_lens.push_back(ns.routes[candidate_route].length + candidate_delta);
-
-
-    move_result.route_loads.push_back(ns.routes[chosen_route].load - chosen_seq_load + candidate_seq_load);
-    move_result.route_loads.push_back(ns.routes[candidate_route].load - candidate_seq_load + chosen_seq_load);
-
-
-    move_result.route_custs_num
-        .push_back(ns.routes[chosen_route].num_customers - actual_chosen_seq.size() + actual_candidate_seq.size());
-    move_result.route_custs_num
-        .push_back(ns.routes[candidate_route].num_customers - actual_candidate_seq.size() + actual_chosen_seq.size());
-
-
-    reverse(actual_chosen_seq.begin(), actual_chosen_seq.end());
-    move_result.move_arguments
-        .insert(move_result.move_arguments.end(), actual_chosen_seq.begin(), actual_chosen_seq.end());
-    reverse(actual_candidate_seq.begin(), actual_candidate_seq.end());
-    move_result.move_arguments
-        .insert(move_result.move_arguments.end(), actual_candidate_seq.begin(), actual_candidate_seq.end());
-
-
-    move_result.new_total_route_length = ns.cur_solution_cost + move_result.delta;
-    move_result.considerable = true;
-
-    return true;
-}
-
-void SwapEnds::move(NeighBorSearch &ns, const MCGRP &mcgrp)
-{
-    My_Assert(move_result.move_arguments.size() == (move_result.seq1_cus_num + move_result.seq2_cus_num) * 2,
-              "move arguments number is not correct!");
-
-    //extract move arguments
-    vector<int> original_chosen_seq(move_result.move_arguments.begin(),
-                                    move_result.move_arguments.begin() + move_result.seq1_cus_num);
-
-    vector<int> original_candidate_seq(move_result.move_arguments.begin() + move_result.seq1_cus_num,
-                                       move_result.move_arguments.begin() + move_result.seq1_cus_num
-                                           + move_result.seq2_cus_num);
-
-    vector<int> actual_chosen_seq(move_result.move_arguments.begin() + move_result.seq1_cus_num + move_result.seq2_cus_num,
-                                  move_result.move_arguments.begin() + 2 * move_result.seq1_cus_num + move_result.seq2_cus_num);
-
-    vector<int>
-        actual_candidate_seq(move_result.move_arguments.begin() + 2 * move_result.seq1_cus_num + move_result.seq2_cus_num,
-                             move_result.move_arguments.end());
-
-    My_Assert(original_chosen_seq.size() == actual_chosen_seq.size()
-                  && original_candidate_seq.size() == actual_candidate_seq.size(),
-              "move sequence is not consistent!");
-
-    const int chosen_start_task = original_chosen_seq.front();
-    const int chosen_end_task = original_chosen_seq.back();
-    const int candidate_start_task = original_candidate_seq.front();
-    const int candidate_end_task = original_candidate_seq.back();
-
-    Individual individual;
-    ns.create_individual(mcgrp, individual);
-
-    My_Assert(ns.delimiter_coding_sol == individual.sequence,
-              "Inconsistency between negative coding and delimiter coding.");
-
-    const auto chosen_ite_start = std::find(individual.sequence.begin(), individual.sequence.end(), chosen_start_task);
-    const auto chosen_ite_end = std::find(individual.sequence.begin(), individual.sequence.end(), chosen_end_task);
-
-    My_Assert(chosen_ite_start != individual.sequence.end() && chosen_ite_end != individual.sequence.end(),
-              "Can't find corresponding chosen tasks in sequence!");
-
-    const auto original_candidate_ite_start =
-        std::find(individual.sequence.begin(), individual.sequence.end(), candidate_start_task);
-    const auto original_candidate_ite_end =
-        std::find(individual.sequence.begin(), individual.sequence.end(), candidate_end_task);
-
-    My_Assert(original_candidate_ite_start != individual.sequence.end()
-                  && original_candidate_ite_end != individual.sequence.end(),
-              "Can't find corresponding candidate tasks in sequence!");
-
-
-    individual.sequence.erase(chosen_ite_start, chosen_ite_end + 1);
-    individual.sequence.insert(chosen_ite_start, actual_candidate_seq.begin(), actual_candidate_seq.end());
-
-    //The location info has been updated
-    auto updated_candidate_ite_start = individual.sequence.end();
-    auto updated_candidate_ite_end = individual.sequence.end();
-
-    //rescale the searching range
-    if (original_candidate_ite_start < chosen_ite_start) {
-        updated_candidate_ite_start = std::find(individual.sequence.begin(), chosen_ite_start, candidate_start_task);
-        updated_candidate_ite_end = updated_candidate_ite_start + original_candidate_seq.size() - 1;
-    }
-    else if (original_candidate_ite_start > chosen_ite_start) {
-        updated_candidate_ite_start =
-            std::find(chosen_ite_start + actual_candidate_seq.size(), individual.sequence.end(), candidate_start_task);
-        updated_candidate_ite_end = updated_candidate_ite_start + original_candidate_seq.size() - 1;
-    }
-    else {
-        cerr << "can't handle two same sequence!/n";
-        abort();
-    }
-
-    My_Assert(updated_candidate_ite_start != individual.sequence.end()
-                  && updated_candidate_ite_end != individual.sequence.end(),
-              "Can't find corresponding candidate tasks in sequence!");
-
-    individual.sequence.erase(updated_candidate_ite_start, updated_candidate_ite_end + 1);
-    individual.sequence.insert(updated_candidate_ite_start, actual_chosen_seq.begin(), actual_chosen_seq.end());
-
-
-    auto prior_cost = ns.cur_solution_cost;
-
-    //Update neighbor search info
-    ns.unpack_seq(individual.sequence, mcgrp);
-//    ns.create_individual(mcgrp, ns.ns_indi);
-    ns.delimiter_coding_sol = get_delimiter_coding(ns.negative_coding_sol);
-
-    My_Assert(prior_cost + move_result.delta == ns.cur_solution_cost,"Wrong prediction!");
-
-
-    if(ns.cur_solution_cost == prior_cost){
-        ns.equal_step++;
-    }
-
-//    if(ns.cur_solution_cost < ns.policy.cost_benchmark){
-//        ns.policy.cost_benchmark = ns.cur_solution_cost;
+//MCGRPMOVE SwapEnds::move_result = MCGRPMOVE(NeighborOperator::SWAP_ENDS);
+//
+//bool
+//SwapEnds::considerable_move(NeighBorSearch &ns, const MCGRP &mcgrp, vector<int> chosen_seq, vector<int> candidate_seq)
+//{
+//    My_Assert(find(chosen_seq.begin(), chosen_seq.end(), DUMMY) == chosen_seq.end(),
+//              "Chosen sequence can't have dummy task!");
+//
+//    My_Assert(find(candidate_seq.begin(), candidate_seq.end(), DUMMY) == candidate_seq.end(),
+//              "Candidate sequence can't have dummy task!");
+//
+//    const int chosen_route = ns.route_id[chosen_seq.front()];
+//    const int candidate_route = ns.route_id[candidate_seq.front()];
+//
+//    My_Assert(chosen_route != candidate_route, "Two sequences should be different routes!");
+//
+//    move_result.choose_tasks(chosen_seq.front(), candidate_seq.front());
+//    move_result.move_arguments = chosen_seq;
+//    move_result.move_arguments.insert(move_result.move_arguments.end(), candidate_seq.begin(), candidate_seq.end());
+//
+//    //check load
+//    int chosen_seq_load = 0;
+//    for (auto task : chosen_seq) {
+//        chosen_seq_load += mcgrp.inst_tasks[task].demand;
 //    }
-
-    move_result.reset();
-    move_result.move_type = NeighborOperator::SWAP_ENDS;
-
-    ns.search_step++;
-}
+//    int candidate_seq_load = 0;
+//    for (auto task : candidate_seq) {
+//        candidate_seq_load += mcgrp.inst_tasks[task].demand;
+//    }
+//
+//    if (ns.routes[chosen_route].load - chosen_seq_load + candidate_seq_load > mcgrp.capacity ||
+//        ns.routes[candidate_route].load - candidate_seq_load + chosen_seq_load > mcgrp.capacity) {
+//        move_result.reset();
+//        return false;
+//    }
+//
+//    vector<int> potential_chosen_seq;
+//    potential_chosen_seq.reserve(chosen_seq.size());
+//
+//    vector<int> potential_candidate_seq;
+//    potential_chosen_seq.reserve(candidate_seq.size());
+//
+//    for (auto cursor = 0; cursor < chosen_seq.size(); cursor++) {
+//        //Base on probability
+//        if (mcgrp.is_edge(chosen_seq[cursor]) && mcgrp._rng.Randfloat(0, 1) > 0.5) {
+//            potential_chosen_seq.push_back(mcgrp.inst_tasks[chosen_seq[cursor]].inverse);
+//        }
+//        else {
+//            potential_chosen_seq.push_back(chosen_seq[cursor]);
+//        }
+//    }
+//
+//    for (auto cursor = 0; cursor < candidate_seq.size(); cursor++) {
+//        //Base on probability
+//        if (mcgrp.is_edge(candidate_seq[cursor]) && mcgrp._rng.Randfloat(0, 1) > 0.5) {
+//            potential_candidate_seq.push_back(mcgrp.inst_tasks[candidate_seq[cursor]].inverse);
+//        }
+//        else {
+//            potential_candidate_seq.push_back(candidate_seq[cursor]);
+//        }
+//    }
+//
+//    const int pre_chosen_start = max(ns.pred_array[chosen_seq.front()], DUMMY);
+//    const int post_chosen_end = max(ns.next_array[chosen_seq.back()], DUMMY);
+//    const int pre_candidate_start = max(ns.pred_array[candidate_seq.front()], DUMMY);
+//    const int post_candidate_end = max(ns.next_array[candidate_seq.back()], DUMMY);
+//
+//    double chosen_delta = 0;
+//    double candidate_delta = 0;
+//
+//    vector<int> actual_chosen_seq;
+//    actual_chosen_seq.reserve(chosen_seq.size());
+//    vector<int> actual_candidate_seq;
+//    actual_candidate_seq.reserve(candidate_seq.size());
+//
+//    if (chosen_seq == potential_chosen_seq && candidate_seq == potential_candidate_seq) {
+//        //no need to do compare
+//        chosen_delta -=
+//            mcgrp.min_cost[mcgrp.inst_tasks[pre_chosen_start].tail_node][mcgrp.inst_tasks[chosen_seq.front()]
+//                .head_node];
+//
+//        for (auto cursor = 0; cursor < chosen_seq.size() - 1; cursor++) {
+//            chosen_delta -= mcgrp.inst_tasks[chosen_seq[cursor]].serv_cost;
+//            chosen_delta -=
+//                mcgrp.min_cost[mcgrp.inst_tasks[chosen_seq[cursor]].tail_node][mcgrp.inst_tasks[chosen_seq[cursor + 1]]
+//                    .head_node];
+//        }
+//        chosen_delta -= mcgrp.inst_tasks[chosen_seq.back()].serv_cost;
+//        chosen_delta -=
+//            mcgrp.min_cost[mcgrp.inst_tasks[chosen_seq.back()].tail_node][mcgrp.inst_tasks[post_chosen_end].head_node];
+//
+//        chosen_delta +=
+//            mcgrp.min_cost[mcgrp.inst_tasks[pre_chosen_start].tail_node][mcgrp.inst_tasks[candidate_seq.back()]
+//                .head_node];
+//        for (auto cursor = candidate_seq.size() - 1; cursor > 0; --cursor) {
+//            chosen_delta += mcgrp.inst_tasks[candidate_seq[cursor]].serv_cost;
+//            chosen_delta +=
+//                mcgrp.min_cost[mcgrp.inst_tasks[candidate_seq[cursor]].tail_node][mcgrp.inst_tasks[candidate_seq[cursor
+//                    - 1]].head_node];
+//        }
+//        chosen_delta += mcgrp.inst_tasks[candidate_seq.front()].serv_cost;
+//        chosen_delta +=
+//            mcgrp.min_cost[mcgrp.inst_tasks[candidate_seq.front()].tail_node][mcgrp.inst_tasks[post_chosen_end]
+//                .head_node];
+//
+//
+//        ////////////////////////////////////////////////////////////////////////////////////////////////
+//        candidate_delta -=
+//            mcgrp.min_cost[mcgrp.inst_tasks[pre_candidate_start].tail_node][mcgrp.inst_tasks[candidate_seq.front()]
+//                .head_node];
+//
+//        for (auto cursor = 0; cursor < candidate_seq.size() - 1; cursor++) {
+//            candidate_delta -= mcgrp.inst_tasks[candidate_seq[cursor]].serv_cost;
+//            candidate_delta -=
+//                mcgrp.min_cost[mcgrp.inst_tasks[candidate_seq[cursor]].tail_node][mcgrp.inst_tasks[candidate_seq[cursor
+//                    + 1]].head_node];
+//        }
+//        candidate_delta -= mcgrp.inst_tasks[candidate_seq.back()].serv_cost;
+//        candidate_delta -=
+//            mcgrp.min_cost[mcgrp.inst_tasks[candidate_seq.back()].tail_node][mcgrp.inst_tasks[post_candidate_end]
+//                .head_node];
+//
+//        candidate_delta +=
+//            mcgrp.min_cost[mcgrp.inst_tasks[pre_candidate_start].tail_node][mcgrp.inst_tasks[chosen_seq.back()]
+//                .head_node];
+//        for (auto cursor = chosen_seq.size() - 1; cursor > 0; --cursor) {
+//            candidate_delta += mcgrp.inst_tasks[chosen_seq[cursor]].serv_cost;
+//            candidate_delta +=
+//                mcgrp.min_cost[mcgrp.inst_tasks[chosen_seq[cursor]].tail_node][mcgrp.inst_tasks[chosen_seq[cursor - 1]]
+//                    .head_node];
+//        }
+//        candidate_delta += mcgrp.inst_tasks[chosen_seq.front()].serv_cost;
+//        candidate_delta +=
+//            mcgrp.min_cost[mcgrp.inst_tasks[chosen_seq.front()].tail_node][mcgrp.inst_tasks[post_candidate_end]
+//                .head_node];
+//
+//        actual_chosen_seq = chosen_seq;
+//        actual_candidate_seq = candidate_seq;
+//    }
+//    else {
+//        //chose the one will lead to less cost
+//        //connect original candidate seq
+//        double original_chosen_delta = 0;
+//        original_chosen_delta -=
+//            mcgrp.min_cost[mcgrp.inst_tasks[pre_chosen_start].tail_node][mcgrp.inst_tasks[chosen_seq.front()]
+//                .head_node];
+//
+//        for (auto cursor = 0; cursor < chosen_seq.size() - 1; cursor++) {
+//            original_chosen_delta -= mcgrp.inst_tasks[chosen_seq[cursor]].serv_cost;
+//            original_chosen_delta -=
+//                mcgrp.min_cost[mcgrp.inst_tasks[chosen_seq[cursor]].tail_node][mcgrp.inst_tasks[chosen_seq[cursor + 1]]
+//                    .head_node];
+//        }
+//        original_chosen_delta -= mcgrp.inst_tasks[chosen_seq.back()].serv_cost;
+//        original_chosen_delta -=
+//            mcgrp.min_cost[mcgrp.inst_tasks[chosen_seq.back()].tail_node][mcgrp.inst_tasks[post_chosen_end].head_node];
+//
+//        original_chosen_delta +=
+//            mcgrp.min_cost[mcgrp.inst_tasks[pre_chosen_start].tail_node][mcgrp.inst_tasks[candidate_seq.back()]
+//                .head_node];
+//        for (auto cursor = candidate_seq.size() - 1; cursor > 0; --cursor) {
+//            original_chosen_delta += mcgrp.inst_tasks[candidate_seq[cursor]].serv_cost;
+//            original_chosen_delta +=
+//                mcgrp.min_cost[mcgrp.inst_tasks[candidate_seq[cursor]].tail_node][mcgrp.inst_tasks[candidate_seq[cursor
+//                    - 1]].head_node];
+//        }
+//        original_chosen_delta += mcgrp.inst_tasks[candidate_seq.front()].serv_cost;
+//        original_chosen_delta +=
+//            mcgrp.min_cost[mcgrp.inst_tasks[candidate_seq.front()].tail_node][mcgrp.inst_tasks[post_chosen_end]
+//                .head_node];
+//
+//
+//        ////////////////////////////////////////////////////////////////////////////////////////////////
+//        //connect original chosen seq
+//        double original_candidate_delta = 0;
+//
+//        original_candidate_delta -=
+//            mcgrp.min_cost[mcgrp.inst_tasks[pre_candidate_start].tail_node][mcgrp.inst_tasks[candidate_seq.front()]
+//                .head_node];
+//
+//        for (auto cursor = 0; cursor < candidate_seq.size() - 1; cursor++) {
+//            original_candidate_delta -= mcgrp.inst_tasks[candidate_seq[cursor]].serv_cost;
+//            original_candidate_delta -=
+//                mcgrp.min_cost[mcgrp.inst_tasks[candidate_seq[cursor]].tail_node][mcgrp.inst_tasks[candidate_seq[cursor
+//                    + 1]].head_node];
+//        }
+//        original_candidate_delta -= mcgrp.inst_tasks[candidate_seq.back()].serv_cost;
+//        original_candidate_delta -=
+//            mcgrp.min_cost[mcgrp.inst_tasks[candidate_seq.back()].tail_node][mcgrp.inst_tasks[post_candidate_end]
+//                .head_node];
+//
+//        original_candidate_delta +=
+//            mcgrp.min_cost[mcgrp.inst_tasks[pre_candidate_start].tail_node][mcgrp.inst_tasks[chosen_seq.back()]
+//                .head_node];
+//        for (auto cursor = chosen_seq.size() - 1; cursor > 0; --cursor) {
+//            original_candidate_delta += mcgrp.inst_tasks[chosen_seq[cursor]].serv_cost;
+//            original_candidate_delta +=
+//                mcgrp.min_cost[mcgrp.inst_tasks[chosen_seq[cursor]].tail_node][mcgrp.inst_tasks[chosen_seq[cursor - 1]]
+//                    .head_node];
+//        }
+//        original_candidate_delta += mcgrp.inst_tasks[chosen_seq.front()].serv_cost;
+//        original_candidate_delta +=
+//            mcgrp.min_cost[mcgrp.inst_tasks[chosen_seq.front()].tail_node][mcgrp.inst_tasks[post_candidate_end]
+//                .head_node];
+//
+//        ////////////////////////////////////////////////////////////////////////////////////////////////
+//        //connect potential candidate seq
+//        double potential_chosen_delta = 0;
+//        potential_chosen_delta -=
+//            mcgrp.min_cost[mcgrp.inst_tasks[pre_chosen_start].tail_node][mcgrp.inst_tasks[chosen_seq.front()]
+//                .head_node];
+//
+//        for (auto cursor = 0; cursor < chosen_seq.size() - 1; cursor++) {
+//            potential_chosen_delta -= mcgrp.inst_tasks[chosen_seq[cursor]].serv_cost;
+//            potential_chosen_delta -= mcgrp.min_cost[mcgrp.inst_tasks[chosen_seq[cursor]].tail_node][mcgrp
+//                .inst_tasks[chosen_seq[cursor + 1]].head_node];
+//        }
+//        potential_chosen_delta -= mcgrp.inst_tasks[chosen_seq.back()].serv_cost;
+//        potential_chosen_delta -=
+//            mcgrp.min_cost[mcgrp.inst_tasks[chosen_seq.back()].tail_node][mcgrp.inst_tasks[post_chosen_end]
+//                .head_node];
+//
+//        potential_chosen_delta +=
+//            mcgrp.min_cost[mcgrp.inst_tasks[pre_chosen_start].tail_node][mcgrp.inst_tasks[potential_candidate_seq
+//                .back()].head_node];
+//        for (auto cursor = potential_candidate_seq.size() - 1; cursor > 0; --cursor) {
+//            potential_chosen_delta += mcgrp.inst_tasks[potential_candidate_seq[cursor]].serv_cost;
+//            potential_chosen_delta += mcgrp.min_cost[mcgrp.inst_tasks[potential_candidate_seq[cursor]].tail_node][mcgrp
+//                .inst_tasks[potential_candidate_seq[cursor - 1]].head_node];
+//        }
+//        potential_chosen_delta += mcgrp.inst_tasks[potential_candidate_seq.front()].serv_cost;
+//        potential_chosen_delta += mcgrp.min_cost[mcgrp.inst_tasks[potential_candidate_seq.front()].tail_node][mcgrp
+//            .inst_tasks[post_chosen_end].head_node];
+//
+//        ////////////////////////////////////////////////////////////////////////////////////////////////
+//        //connect potential chosen seq
+//        double potential_candidate_delta = 0;
+//
+//        potential_candidate_delta -=
+//            mcgrp.min_cost[mcgrp.inst_tasks[pre_candidate_start].tail_node][mcgrp.inst_tasks[candidate_seq
+//                .front()].head_node];
+//
+//        for (auto cursor = 0; cursor < candidate_seq.size() - 1; cursor++) {
+//            potential_candidate_delta -= mcgrp.inst_tasks[candidate_seq[cursor]].serv_cost;
+//            potential_candidate_delta -=
+//                mcgrp.min_cost[mcgrp.inst_tasks[candidate_seq[cursor]].tail_node][mcgrp
+//                    .inst_tasks[candidate_seq[cursor + 1]].head_node];
+//        }
+//        potential_candidate_delta -= mcgrp.inst_tasks[candidate_seq.back()].serv_cost;
+//        potential_candidate_delta -= mcgrp.min_cost[mcgrp.inst_tasks[candidate_seq.back()].tail_node][mcgrp
+//            .inst_tasks[post_candidate_end].head_node];
+//
+//        potential_candidate_delta +=
+//            mcgrp.min_cost[mcgrp.inst_tasks[pre_candidate_start].tail_node][mcgrp.inst_tasks[potential_chosen_seq
+//                .back()].head_node];
+//        for (auto cursor = potential_chosen_seq.size() - 1; cursor > 0; --cursor) {
+//            potential_candidate_delta += mcgrp.inst_tasks[potential_chosen_seq[cursor]].serv_cost;
+//            potential_candidate_delta += mcgrp.min_cost[mcgrp.inst_tasks[potential_chosen_seq[cursor]].tail_node][mcgrp
+//                .inst_tasks[potential_chosen_seq[cursor - 1]].head_node];
+//        }
+//        potential_candidate_delta += mcgrp.inst_tasks[potential_chosen_seq.front()].serv_cost;
+//        potential_candidate_delta += mcgrp.min_cost[mcgrp.inst_tasks[potential_chosen_seq.front()].tail_node][mcgrp
+//            .inst_tasks[post_candidate_end].head_node];
+//
+//        ////////////////////////////////////////////////////////////////////////////////////////////////
+//        if(original_chosen_delta <= potential_chosen_delta){
+//            chosen_delta = original_chosen_delta;
+//            actual_candidate_seq = candidate_seq;
+//        }
+//        else{
+//            chosen_delta = potential_chosen_delta;
+//            actual_candidate_seq = potential_candidate_seq;
+//        }
+//
+//        if(original_candidate_delta <= potential_candidate_delta){
+//            candidate_delta = original_candidate_delta;
+//            actual_chosen_seq = chosen_seq;
+//        }
+//        else{
+//            candidate_delta = potential_candidate_delta;
+//            actual_chosen_seq = potential_chosen_seq;
+//        }
+//    }
+//
+//    move_result.num_affected_routes = 2;
+//
+//    move_result.route_id.push_back(chosen_route);
+//    move_result.route_id.push_back(candidate_route);
+//
+//    move_result.delta = chosen_delta + candidate_delta;
+//
+//    move_result.seq1_cus_num = chosen_seq.size();
+//    move_result.seq2_cus_num = candidate_seq.size();
+//
+//    move_result.route_lens.push_back(ns.routes[chosen_route].length + chosen_delta);
+//    move_result.route_lens.push_back(ns.routes[candidate_route].length + candidate_delta);
+//
+//
+//    move_result.route_loads.push_back(ns.routes[chosen_route].load - chosen_seq_load + candidate_seq_load);
+//    move_result.route_loads.push_back(ns.routes[candidate_route].load - candidate_seq_load + chosen_seq_load);
+//
+//
+//    move_result.route_custs_num
+//        .push_back(ns.routes[chosen_route].num_customers - actual_chosen_seq.size() + actual_candidate_seq.size());
+//    move_result.route_custs_num
+//        .push_back(ns.routes[candidate_route].num_customers - actual_candidate_seq.size() + actual_chosen_seq.size());
+//
+//
+//    reverse(actual_chosen_seq.begin(), actual_chosen_seq.end());
+//    move_result.move_arguments
+//        .insert(move_result.move_arguments.end(), actual_chosen_seq.begin(), actual_chosen_seq.end());
+//    reverse(actual_candidate_seq.begin(), actual_candidate_seq.end());
+//    move_result.move_arguments
+//        .insert(move_result.move_arguments.end(), actual_candidate_seq.begin(), actual_candidate_seq.end());
+//
+//
+//    move_result.new_total_route_length = ns.cur_solution_cost + move_result.delta;
+//    move_result.considerable = true;
+//
+//    return true;
+//}
+//
+//void SwapEnds::move(NeighBorSearch &ns, const MCGRP &mcgrp)
+//{
+//    My_Assert(move_result.move_arguments.size() == (move_result.seq1_cus_num + move_result.seq2_cus_num) * 2,
+//              "move arguments number is not correct!");
+//
+//    //extract move arguments
+//    vector<int> original_chosen_seq(move_result.move_arguments.begin(),
+//                                    move_result.move_arguments.begin() + move_result.seq1_cus_num);
+//
+//    vector<int> original_candidate_seq(move_result.move_arguments.begin() + move_result.seq1_cus_num,
+//                                       move_result.move_arguments.begin() + move_result.seq1_cus_num
+//                                           + move_result.seq2_cus_num);
+//
+//    vector<int> actual_chosen_seq(move_result.move_arguments.begin() + move_result.seq1_cus_num + move_result.seq2_cus_num,
+//                                  move_result.move_arguments.begin() + 2 * move_result.seq1_cus_num + move_result.seq2_cus_num);
+//
+//    vector<int>
+//        actual_candidate_seq(move_result.move_arguments.begin() + 2 * move_result.seq1_cus_num + move_result.seq2_cus_num,
+//                             move_result.move_arguments.end());
+//
+//    My_Assert(original_chosen_seq.size() == actual_chosen_seq.size()
+//                  && original_candidate_seq.size() == actual_candidate_seq.size(),
+//              "move sequence is not consistent!");
+//
+//    const int chosen_start_task = original_chosen_seq.front();
+//    const int chosen_end_task = original_chosen_seq.back();
+//    const int candidate_start_task = original_candidate_seq.front();
+//    const int candidate_end_task = original_candidate_seq.back();
+//
+//    Individual individual;
+//    ns.create_individual(mcgrp, individual);
+//
+//    My_Assert(ns.delimiter_coding_sol == individual.sequence,
+//              "Inconsistency between negative coding and delimiter coding.");
+//
+//    const auto chosen_ite_start = std::find(individual.sequence.begin(), individual.sequence.end(), chosen_start_task);
+//    const auto chosen_ite_end = std::find(individual.sequence.begin(), individual.sequence.end(), chosen_end_task);
+//
+//    My_Assert(chosen_ite_start != individual.sequence.end() && chosen_ite_end != individual.sequence.end(),
+//              "Can't find corresponding chosen tasks in sequence!");
+//
+//    const auto original_candidate_ite_start =
+//        std::find(individual.sequence.begin(), individual.sequence.end(), candidate_start_task);
+//    const auto original_candidate_ite_end =
+//        std::find(individual.sequence.begin(), individual.sequence.end(), candidate_end_task);
+//
+//    My_Assert(original_candidate_ite_start != individual.sequence.end()
+//                  && original_candidate_ite_end != individual.sequence.end(),
+//              "Can't find corresponding candidate tasks in sequence!");
+//
+//
+//    individual.sequence.erase(chosen_ite_start, chosen_ite_end + 1);
+//    individual.sequence.insert(chosen_ite_start, actual_candidate_seq.begin(), actual_candidate_seq.end());
+//
+//    //The location info has been updated
+//    auto updated_candidate_ite_start = individual.sequence.end();
+//    auto updated_candidate_ite_end = individual.sequence.end();
+//
+//    //rescale the searching range
+//    if (original_candidate_ite_start < chosen_ite_start) {
+//        updated_candidate_ite_start = std::find(individual.sequence.begin(), chosen_ite_start, candidate_start_task);
+//        updated_candidate_ite_end = updated_candidate_ite_start + original_candidate_seq.size() - 1;
+//    }
+//    else if (original_candidate_ite_start > chosen_ite_start) {
+//        updated_candidate_ite_start =
+//            std::find(chosen_ite_start + actual_candidate_seq.size(), individual.sequence.end(), candidate_start_task);
+//        updated_candidate_ite_end = updated_candidate_ite_start + original_candidate_seq.size() - 1;
+//    }
+//    else {
+//        cerr << "can't handle two same sequence!/n";
+//        abort();
+//    }
+//
+//    My_Assert(updated_candidate_ite_start != individual.sequence.end()
+//                  && updated_candidate_ite_end != individual.sequence.end(),
+//              "Can't find corresponding candidate tasks in sequence!");
+//
+//    individual.sequence.erase(updated_candidate_ite_start, updated_candidate_ite_end + 1);
+//    individual.sequence.insert(updated_candidate_ite_start, actual_chosen_seq.begin(), actual_chosen_seq.end());
+//
+//
+//    auto prior_cost = ns.cur_solution_cost;
+//
+//    //Update neighbor search info
+//    ns.unpack_seq(individual.sequence, mcgrp);
+////    ns.create_individual(mcgrp, ns.ns_indi);
+//    ns.delimiter_coding_sol = get_delimiter_coding(ns.negative_coding_sol);
+//
+//    My_Assert(prior_cost + move_result.delta == ns.cur_solution_cost,"Wrong prediction!");
+//
+//
+//    if(ns.cur_solution_cost == prior_cost){
+//        ns.equal_step++;
+//    }
+//
+////    if(ns.cur_solution_cost < ns.policy.cost_benchmark){
+////        ns.policy.cost_benchmark = ns.cur_solution_cost;
+////    }
+//
+//    move_result.reset();
+//    move_result.move_type = NeighborOperator::SWAP_ENDS;
+//
+//    ns.search_step++;
+//}
 
 
 struct RouteSegment
@@ -519,8 +519,8 @@ RouteSegment get_segment_info(const MCGRP &mcgrp,const NeighBorSearch &ns,const 
 }
 
 bool NewSwapEnds::considerable_move(NeighBorSearch &ns, const MCGRP &mcgrp, const int chosen_task, const int neighbor_task){
-    /// Example: ( a & v input): VRPH_DEPOT-i-a-b-j-k-l-VRPH_DEPOT and VRPH_DEPOT-t-u-v-w-x-y-z-VRPH_DEPOT becomes
-    /// VRPH_DEPOT-i-a-w-x-y-z-VRPH_DEPOT and VRPH_DEPOT-t-u-v-b-j-k-l-VRPH_DEPOT
+    /// Example: ( a & v input): VRP_DEPOT-i-a-b-j-k-l-VRP_DEPOT and VRP_DEPOT-t-u-v-w-x-y-z-VRP_DEPOT becomes
+    /// VRP_DEPOT-i-a-w-x-y-z-VRP_DEPOT and VRP_DEPOT-t-u-v-b-j-k-l-VRP_DEPOT
 
     const int a = chosen_task;
     const int v = neighbor_task;
@@ -731,7 +731,7 @@ void NewSwapEnds::move(NeighBorSearch &ns, const MCGRP &mcgrp){
         DEBUG_PRINT("a sequence is empty");
         My_Assert(a != mcgrp.sentinel,"Invalid arguments!");
 
-        //task a doesn't have subsequence, just need to concate v's sequence after a
+        //task a doesn't have subsequence, just need to concatenate v's sequence after a
         const auto v_ite_start = std::find(individual.sequence.begin(), individual.sequence.end(), v_seq.front());
         const auto v_ite_end = std::find(individual.sequence.begin(), individual.sequence.end(), v_seq.back());
 
@@ -752,7 +752,7 @@ void NewSwapEnds::move(NeighBorSearch &ns, const MCGRP &mcgrp){
         DEBUG_PRINT("v sequence is empty");
         My_Assert(v != mcgrp.sentinel,"Invalid arguments!");
 
-        //task v doesn't have subsequence, just need to concate a's sequence after v
+        //task v doesn't have subsequence, just need to concatenate a's sequence after v
         const auto a_ite_start = std::find(individual.sequence.begin(), individual.sequence.end(), a_seq.front());
         const auto a_ite_end = std::find(individual.sequence.begin(), individual.sequence.end(), a_seq.back());
 
@@ -770,7 +770,7 @@ void NewSwapEnds::move(NeighBorSearch &ns, const MCGRP &mcgrp){
         individual.sequence.insert(v_ite_start+1, a_seq.begin(), a_seq.end());
     }
     else{
-        My_Assert(false,"Both seqences are empty this make no sense!");
+        My_Assert(false,"Both sequences are empty this make no sense!");
     }
 
     auto prior_cost = ns.cur_solution_cost;
@@ -858,8 +858,8 @@ RouteSegment get_segment_info(const MCGRP &mcgrp,HighSpeedNeighBorSearch &ns,con
 
 
 bool NewSwapEnds::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, const int chosen_task, const int neighbor_task,const int chosen_route,const int neighbor_route){
-    /// Example: ( a & v input): VRPH_DEPOT-i-a-b-j-k-l-VRPH_DEPOT and VRPH_DEPOT-t-u-v-w-x-y-z-VRPH_DEPOT becomes
-    /// VRPH_DEPOT-i-a-w-x-y-z-VRPH_DEPOT and VRPH_DEPOT-t-u-v-b-j-k-l-VRPH_DEPOT
+    /// Example: ( a & v input): VRP_DEPOT-i-a-b-j-k-l-VRP_DEPOT and VRP_DEPOT-t-u-v-w-x-y-z-VRP_DEPOT becomes
+    /// VRP_DEPOT-i-a-w-x-y-z-VRP_DEPOT and VRP_DEPOT-t-u-v-b-j-k-l-VRP_DEPOT
 
     move_result.reset();
 

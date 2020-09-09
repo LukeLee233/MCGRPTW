@@ -14,7 +14,7 @@
 //    static MCGRPMOVE move_result;
 //public:
 //    /*!
-//     * @details get the seccessor of the chosen task within the same route,exclude dummy task
+//     * @details get the successor of the chosen task within the same route,exclude dummy task
 //     * @param ns
 //     * @param chosen_task
 //     * @param length

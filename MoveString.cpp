@@ -8,7 +8,7 @@
 
 bool MoveString::considerable_move(NeighBorSearch &ns,
                                    const class MCGRP &mcgrp,
-                                   vector<int> distrubance_seq,
+                                   vector<int> disturbance_seq,
                                    const int u)
 {
 
@@ -23,7 +23,7 @@ bool MoveString::considerable_move(NeighBorSearch &ns,
 
 
 
-    const int i_route = ns.route_id[distrubance_seq.front()];
+    const int i_route = ns.route_id[disturbance_seq.front()];
     const int u_route = ns.route_id[u];
 
     int v = max(ns.next_array[u], DUMMY);
@@ -33,14 +33,14 @@ bool MoveString::considerable_move(NeighBorSearch &ns,
     }
 
     //of course, disturbance sequence can't has task u and v, is can't insert itself!
-    //forbbid overlap
+    //forbid overlap
     My_Assert(find(distrubance_seq.begin(), distrubance_seq.end(), u) == distrubance_seq.end()
     && find(distrubance_seq.begin(), distrubance_seq.end(), v) == distrubance_seq.end(),"overlapping!");
 
 
 
-    const int h = max(ns.pred_array[distrubance_seq.front()], DUMMY);
-    const int l = max(ns.next_array[distrubance_seq.back()], DUMMY);
+    const int h = max(ns.pred_array[disturbance_seq.front()], DUMMY);
+    const int l = max(ns.next_array[disturbance_seq.back()], DUMMY);
 
     // Now check loads;
     int i_load_delta = 0;
@@ -48,7 +48,7 @@ bool MoveString::considerable_move(NeighBorSearch &ns,
     double vio_load_delta = 0;
     //not the same route
     if (i_route != u_route) {
-        for (auto task : distrubance_seq) {
+        for (auto task : disturbance_seq) {
             u_load_delta += mcgrp.inst_tasks[task].demand;
         }
 
@@ -92,69 +92,69 @@ bool MoveString::considerable_move(NeighBorSearch &ns,
     end_i = ns.routes[i_route].end;
 
     double i_route_length_delta = 0;
-    double hi = mcgrp.min_cost[mcgrp.inst_tasks[h].tail_node][mcgrp.inst_tasks[distrubance_seq.front()].head_node];
-    double kl = mcgrp.min_cost[mcgrp.inst_tasks[distrubance_seq.back()].tail_node][mcgrp.inst_tasks[l].head_node];
+    double hi = mcgrp.min_cost[mcgrp.inst_tasks[h].tail_node][mcgrp.inst_tasks[disturbance_seq.front()].head_node];
+    double kl = mcgrp.min_cost[mcgrp.inst_tasks[disturbance_seq.back()].tail_node][mcgrp.inst_tasks[l].head_node];
     double hl = mcgrp.min_cost[mcgrp.inst_tasks[h].tail_node][mcgrp.inst_tasks[l].head_node];
     i_route_length_delta = hl - (hi + kl);
-    for (int cursor = 0; cursor < distrubance_seq.size() - 1; cursor++) {
+    for (int cursor = 0; cursor < disturbance_seq.size() - 1; cursor++) {
         i_route_length_delta -=
-            mcgrp.min_cost[mcgrp.inst_tasks[distrubance_seq[cursor]].tail_node][mcgrp.inst_tasks[distrubance_seq[cursor
+            mcgrp.min_cost[mcgrp.inst_tasks[disturbance_seq[cursor]].tail_node][mcgrp.inst_tasks[disturbance_seq[cursor
                 + 1]].head_node];
-        i_route_length_delta -= mcgrp.inst_tasks[distrubance_seq[cursor]].serv_cost;
+        i_route_length_delta -= mcgrp.inst_tasks[disturbance_seq[cursor]].serv_cost;
     }
-    i_route_length_delta -= mcgrp.inst_tasks[distrubance_seq.back()].serv_cost;
+    i_route_length_delta -= mcgrp.inst_tasks[disturbance_seq.back()].serv_cost;
 
-    //If you consider all possible situations of edge_tasks, you will have to compare 2^disturbacen_seq.size() potential moves
+    //If you consider all possible situations of edge_tasks, you will have to compare 2^disturbance_seq.size() potential moves
     //which is costly, so I random invert the edge tasks given the prob as a sample to compare with the original task;
     double u_route_length_delta = 0;
     double uv = mcgrp.min_cost[mcgrp.inst_tasks[u].tail_node][mcgrp.inst_tasks[v].head_node];
     u_route_length_delta -= uv;
 
     vector<int> candidate_disturbance_seq;
-    for (auto cursor = 0; cursor < distrubance_seq.size(); cursor++) {
-        //Base on probobality
-        if (mcgrp.is_edge(distrubance_seq[cursor]) && mcgrp._rng.Randfloat(0, 1) > 0.5) {
-            candidate_disturbance_seq.push_back(mcgrp.inst_tasks[distrubance_seq[cursor]].inverse);
+    for (auto cursor = 0; cursor < disturbance_seq.size(); cursor++) {
+        //Base on probability
+        if (mcgrp.is_edge(disturbance_seq[cursor]) && mcgrp._rng.Randfloat(0, 1) > 0.5) {
+            candidate_disturbance_seq.push_back(mcgrp.inst_tasks[disturbance_seq[cursor]].inverse);
         }
         else {
-            candidate_disturbance_seq.push_back(distrubance_seq[cursor]);
+            candidate_disturbance_seq.push_back(disturbance_seq[cursor]);
         }
     }
 
     vector<int> actual_disturbance_seq;
     //means no inverse happen
-    if (candidate_disturbance_seq == distrubance_seq) {
-        for (auto cursor = 0; cursor < distrubance_seq.size() - 1; cursor++) {
+    if (candidate_disturbance_seq == disturbance_seq) {
+        for (auto cursor = 0; cursor < disturbance_seq.size() - 1; cursor++) {
             u_route_length_delta +=
-                mcgrp.min_cost[mcgrp.inst_tasks[distrubance_seq[cursor]].tail_node][mcgrp.inst_tasks[distrubance_seq[
+                mcgrp.min_cost[mcgrp.inst_tasks[disturbance_seq[cursor]].tail_node][mcgrp.inst_tasks[disturbance_seq[
                     cursor + 1]].head_node];
-            u_route_length_delta += mcgrp.inst_tasks[distrubance_seq[cursor]].serv_cost;
+            u_route_length_delta += mcgrp.inst_tasks[disturbance_seq[cursor]].serv_cost;
         }
-        u_route_length_delta += mcgrp.inst_tasks[distrubance_seq.back()].serv_cost;
+        u_route_length_delta += mcgrp.inst_tasks[disturbance_seq.back()].serv_cost;
         //handle ends
         u_route_length_delta +=
-            mcgrp.min_cost[mcgrp.inst_tasks[u].tail_node][mcgrp.inst_tasks[distrubance_seq.front()].head_node];
+            mcgrp.min_cost[mcgrp.inst_tasks[u].tail_node][mcgrp.inst_tasks[disturbance_seq.front()].head_node];
         u_route_length_delta +=
-            mcgrp.min_cost[mcgrp.inst_tasks[distrubance_seq.back()].tail_node][mcgrp.inst_tasks[v].head_node];
+            mcgrp.min_cost[mcgrp.inst_tasks[disturbance_seq.back()].tail_node][mcgrp.inst_tasks[v].head_node];
 
-        actual_disturbance_seq = distrubance_seq;
+        actual_disturbance_seq = disturbance_seq;
     }
         //inverse happens
     else {
         auto candidate_u_route_length_delta = u_route_length_delta;
 
-        for (auto cursor = 0; cursor < distrubance_seq.size() - 1; cursor++) {
+        for (auto cursor = 0; cursor < disturbance_seq.size() - 1; cursor++) {
             u_route_length_delta +=
-                mcgrp.min_cost[mcgrp.inst_tasks[distrubance_seq[cursor]].tail_node][mcgrp.inst_tasks[distrubance_seq[
+                mcgrp.min_cost[mcgrp.inst_tasks[disturbance_seq[cursor]].tail_node][mcgrp.inst_tasks[disturbance_seq[
                     cursor + 1]].head_node];
-            u_route_length_delta += mcgrp.inst_tasks[distrubance_seq[cursor]].serv_cost;
+            u_route_length_delta += mcgrp.inst_tasks[disturbance_seq[cursor]].serv_cost;
         }
-        u_route_length_delta += mcgrp.inst_tasks[distrubance_seq.back()].serv_cost;
+        u_route_length_delta += mcgrp.inst_tasks[disturbance_seq.back()].serv_cost;
         //handle ends
         u_route_length_delta +=
-            mcgrp.min_cost[mcgrp.inst_tasks[u].tail_node][mcgrp.inst_tasks[distrubance_seq.front()].head_node];
+            mcgrp.min_cost[mcgrp.inst_tasks[u].tail_node][mcgrp.inst_tasks[disturbance_seq.front()].head_node];
         u_route_length_delta +=
-            mcgrp.min_cost[mcgrp.inst_tasks[distrubance_seq.back()].tail_node][mcgrp.inst_tasks[v].head_node];
+            mcgrp.min_cost[mcgrp.inst_tasks[disturbance_seq.back()].tail_node][mcgrp.inst_tasks[v].head_node];
 
 
         for (auto cursor = 0; cursor < candidate_disturbance_seq.size() - 1; cursor++) {
@@ -177,18 +177,18 @@ bool MoveString::considerable_move(NeighBorSearch &ns,
             u_route_length_delta = candidate_u_route_length_delta;
         }
         else {
-            actual_disturbance_seq = distrubance_seq;
+            actual_disturbance_seq = disturbance_seq;
         }
     }
 
 
 
-    move_result.choose_tasks(distrubance_seq.front(), u);
+    move_result.choose_tasks(disturbance_seq.front(), u);
 
-    move_result.move_arguments = distrubance_seq;
+    move_result.move_arguments = disturbance_seq;
 
     // Check if we need to reduce the # of routes here
-    if (start_i == distrubance_seq.front() && end_i == distrubance_seq.back())
+    if (start_i == disturbance_seq.front() && end_i == disturbance_seq.back())
         move_result.total_number_of_routes = ns.routes.size() - 1;
     else
         move_result.total_number_of_routes = ns.routes.size();
@@ -263,15 +263,15 @@ void MoveString::move(NeighBorSearch &ns, const MCGRP &mcgrp)
 
     //extract move arguments
     const int u = move_result.move_arguments.back();
-    vector<int> original_disturbance_sequnece(move_result.move_arguments.begin(),
+    vector<int> original_disturbance_sequence(move_result.move_arguments.begin(),
                                               move_result.move_arguments.begin()
                                                   + (move_result.move_arguments.size() - 1) / 2);
 
     vector<int>
-        actual_disturbance_sequnece(move_result.move_arguments.begin() + (move_result.move_arguments.size() - 1) / 2,
+        actual_disturbance_sequence(move_result.move_arguments.begin() + (move_result.move_arguments.size() - 1) / 2,
                                     move_result.move_arguments.end() - 1);
 
-    My_Assert(original_disturbance_sequnece.size() == actual_disturbance_sequnece.size(),
+    My_Assert(original_disturbance_sequence.size() == actual_disturbance_sequence.size(),
               "Disturbance sequence should be equal!");
 
     Individual individual;
@@ -281,9 +281,9 @@ void MoveString::move(NeighBorSearch &ns, const MCGRP &mcgrp)
               "Inconsistency between negative coding and delimiter coding.");
 
     auto ite_i =
-        std::find(individual.sequence.begin(), individual.sequence.end(), original_disturbance_sequnece.front());
+        std::find(individual.sequence.begin(), individual.sequence.end(), original_disturbance_sequence.front());
     auto
-        ite_k = std::find(individual.sequence.begin(), individual.sequence.end(), original_disturbance_sequnece.back());
+        ite_k = std::find(individual.sequence.begin(), individual.sequence.end(), original_disturbance_sequence.back());
 
     My_Assert(ite_i != individual.sequence.end() && ite_k != individual.sequence.end(),
               "Can't find corresponding disturbance task in sequence!");
@@ -293,7 +293,7 @@ void MoveString::move(NeighBorSearch &ns, const MCGRP &mcgrp)
 
     My_Assert(ite_u != individual.sequence.end(),
               "Can't find corresponding task in sequence!");
-    individual.sequence.insert(ite_u + 1, actual_disturbance_sequnece.begin(), actual_disturbance_sequnece.end());
+    individual.sequence.insert(ite_u + 1, actual_disturbance_sequence.begin(), actual_disturbance_sequence.end());
 
 
     if (move_result.total_number_of_routes != ns.routes.size()) {
@@ -327,19 +327,19 @@ void MoveString::move(NeighBorSearch &ns, const MCGRP &mcgrp)
 
 
 
-bool PostMoveString::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, vector<int> distrubance_seq, const int u)
+bool PostMoveString::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, vector<int> disturbance_seq, const int u)
 {
     // task u cannot be dummy task
     My_Assert(u>=1 && u<=mcgrp.actual_task_num,"Wrong task");
     My_Assert(all_of(distrubance_seq.begin(),distrubance_seq.end(),[&](int i){return i>=1 && i<=mcgrp.actual_task_num;}),"Wrong task");
 
-    if(u == ns.solution[distrubance_seq.back()]->next->ID){
+    if(u == ns.solution[disturbance_seq.back()]->next->ID){
         // Nothing to do
         move_result.reset();
         return false;
     }
 
-    const int i_route = ns.solution[distrubance_seq.front()]->route_id;
+    const int i_route = ns.solution[disturbance_seq.front()]->route_id;
     const int u_route = ns.solution[u]->route_id;
 
     // Check load feasibility easily
@@ -347,7 +347,7 @@ bool PostMoveString::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP 
     double vio_load_delta = 0;
     //not the same route
     if (i_route != u_route) {
-        for (auto task : distrubance_seq) {
+        for (auto task : disturbance_seq) {
             load_delta += mcgrp.inst_tasks[task].demand;
         }
 
@@ -388,49 +388,49 @@ bool PostMoveString::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP 
 
     const int v = max(ns.solution[u]->next->ID, 0);
 
-    const int h = max(ns.solution[distrubance_seq.front()]->pre->ID, 0);
-    const int l = max(ns.solution[distrubance_seq.back()]->next->ID, 0);
+    const int h = max(ns.solution[disturbance_seq.front()]->pre->ID, 0);
+    const int l = max(ns.solution[disturbance_seq.back()]->next->ID, 0);
 
-    const double hi = mcgrp.min_cost[mcgrp.inst_tasks[h].tail_node][mcgrp.inst_tasks[distrubance_seq.front()].head_node];
-    const double kl = mcgrp.min_cost[mcgrp.inst_tasks[distrubance_seq.back()].tail_node][mcgrp.inst_tasks[l].head_node];
+    const double hi = mcgrp.min_cost[mcgrp.inst_tasks[h].tail_node][mcgrp.inst_tasks[disturbance_seq.front()].head_node];
+    const double kl = mcgrp.min_cost[mcgrp.inst_tasks[disturbance_seq.back()].tail_node][mcgrp.inst_tasks[l].head_node];
     const double hl = mcgrp.min_cost[mcgrp.inst_tasks[h].tail_node][mcgrp.inst_tasks[l].head_node];
 
     double i_route_length_delta = hl - (hi + kl);
-    for (int cursor = 0; cursor < distrubance_seq.size() - 1; cursor++) {
+    for (int cursor = 0; cursor < disturbance_seq.size() - 1; cursor++) {
         i_route_length_delta -=
-            mcgrp.min_cost[mcgrp.inst_tasks[distrubance_seq[cursor]].tail_node][mcgrp.inst_tasks[distrubance_seq[cursor
+            mcgrp.min_cost[mcgrp.inst_tasks[disturbance_seq[cursor]].tail_node][mcgrp.inst_tasks[disturbance_seq[cursor
                 + 1]].head_node];
-        i_route_length_delta -= mcgrp.inst_tasks[distrubance_seq[cursor]].serv_cost;
+        i_route_length_delta -= mcgrp.inst_tasks[disturbance_seq[cursor]].serv_cost;
     }
-    i_route_length_delta -= mcgrp.inst_tasks[distrubance_seq.back()].serv_cost;
+    i_route_length_delta -= mcgrp.inst_tasks[disturbance_seq.back()].serv_cost;
 
 
     const double uv = mcgrp.min_cost[mcgrp.inst_tasks[u].tail_node][mcgrp.inst_tasks[v].head_node];
     double u_route_length_delta = -uv;
 
-    for (auto cursor = 0; cursor < distrubance_seq.size() - 1; cursor++) {
+    for (auto cursor = 0; cursor < disturbance_seq.size() - 1; cursor++) {
         u_route_length_delta +=
-            mcgrp.min_cost[mcgrp.inst_tasks[distrubance_seq[cursor]].tail_node][mcgrp.inst_tasks[distrubance_seq[
+            mcgrp.min_cost[mcgrp.inst_tasks[disturbance_seq[cursor]].tail_node][mcgrp.inst_tasks[disturbance_seq[
                 cursor + 1]].head_node];
-        u_route_length_delta += mcgrp.inst_tasks[distrubance_seq[cursor]].serv_cost;
+        u_route_length_delta += mcgrp.inst_tasks[disturbance_seq[cursor]].serv_cost;
     }
-    u_route_length_delta += mcgrp.inst_tasks[distrubance_seq.back()].serv_cost;
+    u_route_length_delta += mcgrp.inst_tasks[disturbance_seq.back()].serv_cost;
     //handle ends
     u_route_length_delta +=
-        mcgrp.min_cost[mcgrp.inst_tasks[u].tail_node][mcgrp.inst_tasks[distrubance_seq.front()].head_node];
+        mcgrp.min_cost[mcgrp.inst_tasks[u].tail_node][mcgrp.inst_tasks[disturbance_seq.front()].head_node];
     u_route_length_delta +=
-        mcgrp.min_cost[mcgrp.inst_tasks[distrubance_seq.back()].tail_node][mcgrp.inst_tasks[v].head_node];
+        mcgrp.min_cost[mcgrp.inst_tasks[disturbance_seq.back()].tail_node][mcgrp.inst_tasks[v].head_node];
 
 
-    move_result.choose_tasks(distrubance_seq.front(), u);
+    move_result.choose_tasks(disturbance_seq.front(), u);
 
-    move_result.move_arguments = distrubance_seq;
+    move_result.move_arguments = disturbance_seq;
     move_result.move_arguments.push_back(u);
 
     // Check if we need to reduce the # of routes here
     const int start_i = ns.routes[i_route]->start;
     const int end_i = ns.routes[i_route]->end;
-    if (start_i == distrubance_seq.front() && end_i == distrubance_seq.back())
+    if (start_i == disturbance_seq.front() && end_i == disturbance_seq.back())
         move_result.total_number_of_routes = ns.routes.activated_route_id.size() - 1;
     else
         move_result.total_number_of_routes = ns.routes.activated_route_id.size();
@@ -471,8 +471,8 @@ bool PostMoveString::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP 
         move_result.route_loads.push_back(ns.routes[i_route]->load - load_delta);
         move_result.route_loads.push_back(ns.routes[u_route]->load + load_delta);
 
-        move_result.route_custs_num.push_back(ns.routes[i_route]->num_customers - distrubance_seq.size());
-        move_result.route_custs_num.push_back(ns.routes[u_route]->num_customers + distrubance_seq.size());
+        move_result.route_custs_num.push_back(ns.routes[i_route]->num_customers - disturbance_seq.size());
+        move_result.route_custs_num.push_back(ns.routes[u_route]->num_customers + disturbance_seq.size());
 
         move_result.new_total_route_length = ns.cur_solution_cost + move_result.delta;
 
@@ -639,20 +639,20 @@ void PostMoveString::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
 
 
 
-bool PreMoveString::considerable_move(HighSpeedNeighBorSearch &ns,const class MCGRP &mcgrp,vector<int> distrubance_seq,const int u)
+bool PreMoveString::considerable_move(HighSpeedNeighBorSearch &ns, const class MCGRP &mcgrp, vector<int> disturbance_seq, const int u)
 {
 
     // task u cannot be dummy task
     My_Assert(u >= 1 && u <= mcgrp.actual_task_num,"Wrong task");
-    My_Assert(all_of(distrubance_seq.begin(),distrubance_seq.end(),[&](int i){return i>=1 && i<=mcgrp.actual_task_num;}),"Wrong task");
+    My_Assert(all_of(disturbance_seq.begin(), disturbance_seq.end(), [&](int i){return i>=1 && i<=mcgrp.actual_task_num;}), "Wrong task");
 
-    if(u == ns.solution[distrubance_seq.front()]->pre->ID){
+    if(u == ns.solution[disturbance_seq.front()]->pre->ID){
         // Nothing to do
         move_result.reset();
         return false;
     }
 
-    const int i_route = ns.solution[distrubance_seq.front()]->route_id;
+    const int i_route = ns.solution[disturbance_seq.front()]->route_id;
     const int u_route = ns.solution[u]->route_id;
 
     // Check load feasibility easily
@@ -660,7 +660,7 @@ bool PreMoveString::considerable_move(HighSpeedNeighBorSearch &ns,const class MC
     double vio_load_delta = 0;
     //not the same route
     if (i_route != u_route) {
-        for (auto task : distrubance_seq) {
+        for (auto task : disturbance_seq) {
             load_delta += mcgrp.inst_tasks[task].demand;
         }
 
@@ -701,52 +701,52 @@ bool PreMoveString::considerable_move(HighSpeedNeighBorSearch &ns,const class MC
 
     const int t = max(ns.solution[u]->pre->ID, 0);
 
-    const int h = max(ns.solution[distrubance_seq.front()]->pre->ID, 0);
-    const int l = max(ns.solution[distrubance_seq.back()]->next->ID, 0);
+    const int h = max(ns.solution[disturbance_seq.front()]->pre->ID, 0);
+    const int l = max(ns.solution[disturbance_seq.back()]->next->ID, 0);
 
-    const double hi = mcgrp.min_cost[mcgrp.inst_tasks[h].tail_node][mcgrp.inst_tasks[distrubance_seq.front()].head_node];
-    const double kl = mcgrp.min_cost[mcgrp.inst_tasks[distrubance_seq.back()].tail_node][mcgrp.inst_tasks[l].head_node];
+    const double hi = mcgrp.min_cost[mcgrp.inst_tasks[h].tail_node][mcgrp.inst_tasks[disturbance_seq.front()].head_node];
+    const double kl = mcgrp.min_cost[mcgrp.inst_tasks[disturbance_seq.back()].tail_node][mcgrp.inst_tasks[l].head_node];
     const double hl = mcgrp.min_cost[mcgrp.inst_tasks[h].tail_node][mcgrp.inst_tasks[l].head_node];
 
     double i_route_length_delta = hl - (hi + kl);
 
-    for (int cursor = 0; cursor < distrubance_seq.size() - 1; cursor++) {
+    for (int cursor = 0; cursor < disturbance_seq.size() - 1; cursor++) {
         i_route_length_delta -=
-            mcgrp.min_cost[mcgrp.inst_tasks[distrubance_seq[cursor]].tail_node][mcgrp.inst_tasks[distrubance_seq[cursor
+            mcgrp.min_cost[mcgrp.inst_tasks[disturbance_seq[cursor]].tail_node][mcgrp.inst_tasks[disturbance_seq[cursor
                 + 1]].head_node];
-        i_route_length_delta -= mcgrp.inst_tasks[distrubance_seq[cursor]].serv_cost;
+        i_route_length_delta -= mcgrp.inst_tasks[disturbance_seq[cursor]].serv_cost;
     }
-    i_route_length_delta -= mcgrp.inst_tasks[distrubance_seq.back()].serv_cost;
+    i_route_length_delta -= mcgrp.inst_tasks[disturbance_seq.back()].serv_cost;
 
 
     const double tu = mcgrp.min_cost[mcgrp.inst_tasks[t].tail_node][mcgrp.inst_tasks[u].head_node];
     double u_route_length_delta = -tu;
 
-    for (auto cursor = 0; cursor < distrubance_seq.size() - 1; cursor++) {
+    for (auto cursor = 0; cursor < disturbance_seq.size() - 1; cursor++) {
         u_route_length_delta +=
-            mcgrp.min_cost[mcgrp.inst_tasks[distrubance_seq[cursor]].tail_node][mcgrp.inst_tasks[distrubance_seq[
+            mcgrp.min_cost[mcgrp.inst_tasks[disturbance_seq[cursor]].tail_node][mcgrp.inst_tasks[disturbance_seq[
                 cursor + 1]].head_node];
-        u_route_length_delta += mcgrp.inst_tasks[distrubance_seq[cursor]].serv_cost;
+        u_route_length_delta += mcgrp.inst_tasks[disturbance_seq[cursor]].serv_cost;
     }
 
-    u_route_length_delta += mcgrp.inst_tasks[distrubance_seq.back()].serv_cost;
+    u_route_length_delta += mcgrp.inst_tasks[disturbance_seq.back()].serv_cost;
     //handle ends
     u_route_length_delta +=
-        mcgrp.min_cost[mcgrp.inst_tasks[t].tail_node][mcgrp.inst_tasks[distrubance_seq.front()].head_node];
+        mcgrp.min_cost[mcgrp.inst_tasks[t].tail_node][mcgrp.inst_tasks[disturbance_seq.front()].head_node];
     u_route_length_delta +=
-        mcgrp.min_cost[mcgrp.inst_tasks[distrubance_seq.back()].tail_node][mcgrp.inst_tasks[u].head_node];
+        mcgrp.min_cost[mcgrp.inst_tasks[disturbance_seq.back()].tail_node][mcgrp.inst_tasks[u].head_node];
 
 
-    move_result.choose_tasks(distrubance_seq.front(), u);
+    move_result.choose_tasks(disturbance_seq.front(), u);
 
-    move_result.move_arguments = distrubance_seq;
+    move_result.move_arguments = disturbance_seq;
     move_result.move_arguments.push_back(u);
 
 
     // Check if we need to reduce the # of routes here
     const int start_i = ns.routes[i_route]->start;
     const int end_i = ns.routes[i_route]->end;
-    if (start_i == distrubance_seq.front() && end_i == distrubance_seq.back())
+    if (start_i == disturbance_seq.front() && end_i == disturbance_seq.back())
         move_result.total_number_of_routes = ns.routes.activated_route_id.size() - 1;
     else
         move_result.total_number_of_routes = ns.routes.activated_route_id.size();
@@ -787,8 +787,8 @@ bool PreMoveString::considerable_move(HighSpeedNeighBorSearch &ns,const class MC
         move_result.route_loads.push_back(ns.routes[i_route]->load - load_delta);
         move_result.route_loads.push_back(ns.routes[u_route]->load + load_delta);
 
-        move_result.route_custs_num.push_back(ns.routes[i_route]->num_customers - distrubance_seq.size());
-        move_result.route_custs_num.push_back(ns.routes[u_route]->num_customers + distrubance_seq.size());
+        move_result.route_custs_num.push_back(ns.routes[i_route]->num_customers - disturbance_seq.size());
+        move_result.route_custs_num.push_back(ns.routes[u_route]->num_customers + disturbance_seq.size());
 
         move_result.new_total_route_length = ns.cur_solution_cost + move_result.delta;
 

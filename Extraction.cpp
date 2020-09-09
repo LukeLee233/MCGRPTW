@@ -10,7 +10,7 @@ using namespace std;
 
 
 bool Extraction::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_task){
-    //No seach space in Extraction operator, No accept rule for invert operator
+    //No search space in Extraction operator, No accept rule for invert operator
 
     My_Assert(chosen_task != DUMMY, "Chosen task can't be dummy");
 

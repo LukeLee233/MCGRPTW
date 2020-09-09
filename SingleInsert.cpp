@@ -543,7 +543,7 @@ void SingleInsert::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
         postsert.move(ns, mcgrp);
     }
     else{
-        My_Assert(false,"Uknown operator");
+        My_Assert(false,"Unknown operator");
     }
 
     ns.trace(mcgrp);
