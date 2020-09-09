@@ -2028,7 +2028,7 @@ void HighSpeedNeighBorSearch::create_search_neighborhood(const MCGRP &mcgrp, con
     search_space.clear();
 
     for(auto chosen_task:mcgrp.task_neigh_list[task]){
-        //chose the task which in the current soluiton
+        //chose the task which in the current solution
         auto task_id = chosen_task.task_id;
         if(solution.tasks[task_id].next != nullptr){
             search_space.push_back(task_id);

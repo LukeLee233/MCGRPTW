@@ -332,7 +332,7 @@ private:
     struct SOLUTION{
         DUMMYPOOL dummypool;
 
-        //for better memory management, use vector to implement bidirection linked list
+        //for better memory management, use vector to implement double linked list
         vector<TASK_NODE> tasks;
 
         TASK_NODE *very_start;
