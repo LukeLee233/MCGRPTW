@@ -4,9 +4,12 @@
 #include <algorithm>
 #include <string>
 #include <sys/timeb.h>
+#include <iomanip>
 #include "utils.h"
+#include "json.hpp"
 
 using namespace std;
+using json = nlohmann::json;
 
 extern timeb epoch_start_time;
 
@@ -374,48 +377,42 @@ void MCGRP::dijkstra()
         }
     }
 
-    //cout << "Initial min cost matrix:\n\n\t";
-    //for (int i = 1; i <= node_num; i++) cout << i << '\t';
-    //cout << endl << endl;
-    //for (int i = 1; i <= node_num; i++)
-    //{
-    //	cout << i << '\t';
-    //	for (int j = 1; j <= node_num; j++)
-    //	{
-    //		if (min_cost[i][j] == INF) cout << "INF\t";
-    //		else cout << min_cost[i][j] << '\t';
-    //	}
-    //	cout << endl << endl;
-    //}
-
-
-    //cout << "Initial shortest path information:\n\n\t";
-    //for (int i = 1; i <= node_num; i++) cout << i << '\t';
-    //cout << endl << endl;
-    //for (int i = 1; i <= node_num; i++)
-    //{
-    //	for (int j = 1; j <= node_num; j++)
-    //	{
-    //		if (min_cost[i][j] == INF)
-    //		{
-    //			cout << i << "->" << j << ": no path\n";
-    //			continue;
-    //		}
-    //		else if (min_cost[i][j] == 0)
-    //		{
-    //			cout << i << "->" << j << ": node \n";
-    //			continue;
-    //		}
-
-    //		cout << i << "->" << j << "(through "<<shortest_path[i][j][0]<<" nodes): ";
-    //		for (int k = 1; k <= shortest_path[i][j][0]; k++)
-    //		{
-    //			cout << shortest_path[i][j][k]<<"->";
-    //		}
-    //		cout << "\b\b  "<< endl;
-    //	}
-    //	cout << endl << endl;
-    //}
+//    cout << "Initial min cost matrix:\n\n\t";
+//    for (int i = 1; i <= node_num; i++) cout << i << '\t';
+//    cout << endl << endl;
+//    for (int i = 1; i <= node_num; i++) {
+//        cout << i << '\t';
+//        for (int j = 1; j <= node_num; j++) {
+//            if (min_cost[i][j] == std::numeric_limits<std::remove_reference<decltype(min_cost[i][j])>::type>::max())
+//                cout << "INF\t";
+//            else cout << min_cost[i][j] << '\t';
+//        }
+//        cout << endl << endl;
+//    }
+//
+//
+//    cout << "Initial shortest path information:\n\n\t";
+//    for (int i = 1; i <= node_num; i++) cout << i << '\t';
+//    cout << endl << endl;
+//    for (int i = 1; i <= node_num; i++) {
+//        for (int j = 1; j <= node_num; j++) {
+//            if (min_cost[i][j] == std::numeric_limits<std::remove_reference<decltype(min_cost[i][j])>::type>::max()) {
+//                cout << i << "->" << j << ": no path\n";
+//                continue;
+//            }
+//            else if (min_cost[i][j] == 0) {
+//                cout << i << "->" << j << ": node \n";
+//                continue;
+//            }
+//
+//            cout << i << "->" << j << "(through " << shortest_path[i][j].size() << " nodes): ";
+//            for (int k = 0; k < shortest_path[i][j].size(); k++) {
+//                cout << shortest_path[i][j][k] << "->";
+//            }
+//            cout << "\b\b  " << endl;
+//        }
+//        cout << endl << endl;
+//    }
 
     std::vector<bool> mark(node_num + 1, false);
     std::vector<int> dist(node_num + 1, 0);
@@ -502,41 +499,61 @@ void MCGRP::dijkstra()
         }
     }
 
+//    json js;
+//    int columnIndex = 0;
+//
+//    auto min_cost_bak = min_cost;
+//    min_cost_bak.erase(min_cost_bak.begin());
+//    for_each(min_cost_bak.begin(), min_cost_bak.end(),
+//             [&](vector<int>& row){
+//        row.erase(next(row.begin(),columnIndex));
+//    });
+//    js["distance"] = min_cost_bak;
+//
+//
+//    auto shortest_path_bak = shortest_path;
+//    shortest_path_bak.erase(shortest_path_bak.begin());
+//    for_each(shortest_path_bak.begin(), shortest_path_bak.end(),
+//             [&](vector<vector<int>>& row){
+//                 row.erase(next(row.begin(),columnIndex));
+//             });
+//    js["path"] = shortest_path_bak;
+//
+//
+//    string output = "result.json";
+//    ofstream fout(output);
+//    fout << setw(4) << js << endl;
+//    fout.close();
 
-    //cout << "Final min cost matrix:\n\n\t";
-    //for (int i = 1; i <= node_num; i++) cout << i << '\t';
-    //cout << endl << endl;
-    //for (int i = 1; i <= node_num; i++)
-    //{
-    //	cout << i << '\t';
-    //	for (int j = 1; j <= node_num; j++)
-    //	{
-    //		if (min_cost[i][j] == INF) cout << "INF\t";
-    //		else cout << min_cost[i][j] << '\t';
-    //	}
-    //	cout << endl << endl;
-    //}
-
-    //cout << "Final shortest path information:\n\n";
-    //for (int i = 1; i <= node_num; i++)
-    //{
-    //	for (int j = 1; j <= node_num; j++)
-    //	{
-    //		if (min_cost[i][j] == INF)
-    //		{
-    //			cout << i << "->" << j << ": no path\n";
-    //			continue;
-    //		}
-
-    //		cout << i << "->" << j << "(through "<<shortest_path[i][j][0]<<" nodes): ";
-    //		for (int k = 1; k <= shortest_path[i][j][0]; k++)
-    //		{
-    //			cout << shortest_path[i][j][k]<<"->";
-    //		}
-    //		cout << "\b\b  "<< endl;
-    //	}
-    //	cout << endl << endl;
-    //}
+//    cout << "Final min cost matrix:\n\n\t";
+//    for (int i = 1; i <= node_num; i++) cout << i << '\t';
+//    cout << endl << endl;
+//    for (int i = 1; i <= node_num; i++) {
+//        cout << i << '\t';
+//        for (int j = 1; j <= node_num; j++) {
+//            if (min_cost[i][j] == std::numeric_limits<std::remove_reference<decltype(min_cost[i][j])>::type>::max())
+//                cout << "INF\t";
+//            else cout << min_cost[i][j] << '\t';
+//        }
+//        cout << endl << endl;
+//    }
+//
+//    cout << "Final shortest path information:\n\n";
+//    for (int i = 1; i <= node_num; i++) {
+//        for (int j = 1; j <= node_num; j++) {
+//            if (min_cost[i][j] == std::numeric_limits<std::remove_reference<decltype(min_cost[i][j])>::type>::max()) {
+//                cout << i << "->" << j << ": no path\n";
+//                continue;
+//            }
+//
+//            cout << i << "->" << j << "(through " << shortest_path[i][j].size() << " nodes): ";
+//            for (int k = 0; k < shortest_path[i][j].size(); k++) {
+//                cout << shortest_path[i][j][k] << "->";
+//            }
+//            cout << "\b\b  " << endl;
+//        }
+//        cout << endl << endl;
+//    }
 }
 
 void MCGRP::create_neighbor_lists(const int neighbor_size)
@@ -611,8 +628,8 @@ void MCGRP::create_neighbor_lists(const int neighbor_size)
 //        std::unordered_set<int> duplicate;
 //        duplicate.clear();
 
-        for(int j = 1;j<=actual_task_num;j++){
-            if(j == i)
+        for (int j = 1; j <= actual_task_num; j++) {
+            if (j == i)
                 continue;
             else if (is_edge(j)) {
                 if (j == inst_tasks[i].inverse)
