@@ -158,8 +158,7 @@ void MCGRP::load_file_info(std::string input_file, const instance_num_informatio
         }
         else if (dummy_string == "ReE.") {
             //edge task
-            for (int i = 0; i < 9; i++)
-                fin >> dummy_string;
+            getline(fin,dummy_string);
             for (int i = 1; i <= req_edge_num; i++) {
                 fin >> dummy_string;
 
@@ -179,30 +178,35 @@ void MCGRP::load_file_info(std::string input_file, const instance_num_informatio
                 //inst_tasks[i].serv_cost = stoi(dummy_string);
                 inst_tasks[i].serv_cost = inst_tasks[i].trave_cost;
 
+                fin >> dummy_string;
+                inst_tasks[i].trave_time = stoi(dummy_string);
+
+                fin >> dummy_string;
+                inst_tasks[i].serve_time = stoi(dummy_string);
+
+                task::Window window;
+                fin >> dummy_string;
+                window.first = stoi(dummy_string);
+                fin >> dummy_string;
+                window.second = stoi(dummy_string);
+                inst_tasks[i].time_window = window;
 
                 inst_tasks[i].inverse = i + req_edge_num;
-                inst_tasks[i + req_edge_num].head_node = inst_tasks[i].tail_node;
-                inst_tasks[i + req_edge_num].tail_node = inst_tasks[i].head_node;
-                inst_tasks[i + req_edge_num].trave_cost = inst_tasks[i].trave_cost;
 
-//				inst_tasks[i + req_edge_num].serv_cost = inst_tasks[i].serv_cost;
-                inst_tasks[i + req_edge_num].serv_cost = inst_tasks[i + req_edge_num].trave_cost;
-
-
-                inst_tasks[i + req_edge_num].demand = inst_tasks[i].demand;
+                inst_tasks[i + req_edge_num] = inst_tasks[i];
+                swap(inst_tasks[i + req_edge_num].head_node,inst_tasks[i + req_edge_num].tail_node);
                 inst_tasks[i + req_edge_num].inverse = i;
 
                 inst_arcs[i].head_node = inst_tasks[i].head_node;
                 inst_arcs[i].tail_node = inst_tasks[i].tail_node;
                 inst_arcs[i].trav_cost = inst_tasks[i].trave_cost;
-                inst_arcs[i + req_edge_num].head_node = inst_arcs[i].tail_node;
-                inst_arcs[i + req_edge_num].tail_node = inst_arcs[i].head_node;
-                inst_arcs[i + req_edge_num].trav_cost = inst_arcs[i].trav_cost;
+
+                inst_arcs[i + req_edge_num] = inst_arcs[i];
+                swap(inst_arcs[i + req_edge_num].head_node,inst_arcs[i + req_edge_num].tail_node);
             }
         }
         else if (dummy_string == "EDGE") {
-            for (int i = 0; i < 6; i++)
-                fin >> dummy_string;
+            getline(fin,dummy_string);
             for (int i = 2 * req_edge_num + 1; i <= 2 * req_edge_num + nonreq_edge_num; i++) {
                 fin >> dummy_string;
 

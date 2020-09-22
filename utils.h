@@ -121,12 +121,16 @@ public:
 
 struct task
 {
+    typedef pair<int,int> Window;
     int head_node;
     int tail_node;
     int trave_cost;
     int serv_cost;
     int demand;
     int inverse;
+    int trave_time;
+    int serve_time;
+    Window time_window;
 };
 
 struct arc

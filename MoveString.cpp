@@ -17,7 +17,7 @@ bool MoveString::considerable_move(NeighBorSearch &ns,
     // task u cannot be dummy task
     My_Assert(u != DUMMY, "Move string cannot handle situation when u is dummy");
 
-    My_Assert(std::find(distrubance_seq.begin(), distrubance_seq.end(), DUMMY) == distrubance_seq.end(),
+    My_Assert(std::find(disturbance_seq.begin(), disturbance_seq.end(), DUMMY) == disturbance_seq.end(),
               "Disturbance sequence can't cross routes!");
 
 
@@ -34,8 +34,8 @@ bool MoveString::considerable_move(NeighBorSearch &ns,
 
     //of course, disturbance sequence can't has task u and v, is can't insert itself!
     //forbid overlap
-    My_Assert(find(distrubance_seq.begin(), distrubance_seq.end(), u) == distrubance_seq.end()
-    && find(distrubance_seq.begin(), distrubance_seq.end(), v) == distrubance_seq.end(),"overlapping!");
+    My_Assert(find(disturbance_seq.begin(), disturbance_seq.end(), u) == disturbance_seq.end()
+    && find(disturbance_seq.begin(), disturbance_seq.end(), v) == disturbance_seq.end(),"overlapping!");
 
 
 
@@ -331,7 +331,7 @@ bool PostMoveString::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP 
 {
     // task u cannot be dummy task
     My_Assert(u>=1 && u<=mcgrp.actual_task_num,"Wrong task");
-    My_Assert(all_of(distrubance_seq.begin(),distrubance_seq.end(),[&](int i){return i>=1 && i<=mcgrp.actual_task_num;}),"Wrong task");
+    My_Assert(all_of(disturbance_seq.begin(),disturbance_seq.end(),[&](int i){return i>=1 && i<=mcgrp.actual_task_num;}),"Wrong task");
 
     if(u == ns.solution[disturbance_seq.back()]->next->ID){
         // Nothing to do
