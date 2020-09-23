@@ -40,7 +40,7 @@ def transfer(input_file: str, output_file: str):
         if lower_bound == upper_bound:
             fp.write(f"Optimal value:\t{lower_bound}\n", )
         else:
-            fp.write(f"Optimal value:\n")
+            fp.write(f"Optimal value:\t{-1}\n")
 
         fp.write("#Vehicles:\t-1\n")
         fp.write(f'Capacity:\t{capacity}\n')
