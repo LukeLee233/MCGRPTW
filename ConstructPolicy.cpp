@@ -88,13 +88,12 @@ void nearest_scanning(const MCGRP &mcgrp, Individual &rs_indi)
         int k = (int) mcgrp._rng.Randint(0, nearest_task_set.size() - 1);
         chosen_task = nearest_task_set[k];
 
-
-        trial++;
-        rs_indi.sequence.push_back(chosen_task);
-
         load += mcgrp.inst_tasks[chosen_task].demand;
         drive_time += (mcgrp.get_travel_time(rs_indi.sequence.back(),chosen_task)
             + mcgrp.inst_tasks[chosen_task].serve_time);
+
+        trial++;
+        rs_indi.sequence.push_back(chosen_task);
 
         unserved_task_id_set.erase(std::find_if(unserved_task_id_set.begin(),
                                                 unserved_task_id_set.end(),
