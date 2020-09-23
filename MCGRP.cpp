@@ -35,9 +35,24 @@ MCGRP::MCGRP(const instance_num_information &instance_info, RNG &rng)
         serve_cost[i].resize(offset_node_num);
     }
 
+    trave_time.resize(offset_node_num);
+    for (int i = 1; i < offset_node_num; i++) {
+        trave_time[i].resize(offset_node_num);
+    }
+
+    serve_time.resize(offset_node_num);
+    for (int i = 1; i < offset_node_num; ++i) {
+        serve_time[i].resize(offset_node_num);
+    }
+
     min_cost.resize(offset_node_num);
     for (int i = 1; i < offset_node_num; ++i) {
         min_cost[i].resize(offset_node_num);
+    }
+
+    min_time.resize(offset_node_num);
+    for (int i = 1; i < offset_node_num; ++i) {
+        min_time[i].resize(offset_node_num);
     }
 
     My_Assert(serve_cost[0].empty() && min_cost[0].empty() && trav_cost[0].empty()
@@ -200,6 +215,7 @@ void MCGRP::load_file_info(std::string input_file, const instance_num_informatio
                 inst_arcs[i].head_node = inst_tasks[i].head_node;
                 inst_arcs[i].tail_node = inst_tasks[i].tail_node;
                 inst_arcs[i].trav_cost = inst_tasks[i].trave_cost;
+                inst_arcs[i].trav_time = inst_tasks[i].trave_time;
 
                 inst_arcs[i + req_edge_num] = inst_arcs[i];
                 swap(inst_arcs[i + req_edge_num].head_node,inst_arcs[i + req_edge_num].tail_node);
@@ -219,9 +235,11 @@ void MCGRP::load_file_info(std::string input_file, const instance_num_informatio
                 fin >> dummy_string;
                 inst_arcs[i].trav_cost = stoi(dummy_string);
 
-                inst_arcs[i + nonreq_edge_num].head_node = inst_arcs[i].tail_node;
-                inst_arcs[i + nonreq_edge_num].tail_node = inst_arcs[i].head_node;
-                inst_arcs[i + nonreq_edge_num].trav_cost = inst_arcs[i].trav_cost;
+                fin >> dummy_string;
+                inst_arcs[i].trav_time = stoi(dummy_string);
+
+                inst_arcs[i + nonreq_edge_num] = inst_arcs[i];
+                swap(inst_arcs[i + nonreq_edge_num].head_node,inst_arcs[i + nonreq_edge_num].tail_node);
             }
         }
         else if (dummy_string == "ReA.") {
@@ -330,20 +348,27 @@ void MCGRP::load_file_info(std::string input_file, const instance_num_informatio
         for (int j = 1; j <= node_num; j++) {
             trav_cost[i][j] = std::numeric_limits<std::remove_reference<decltype(trav_cost[i][j])>::type>::max();
             serve_cost[i][j] = 0;
+            trave_time[i][j] = std::numeric_limits<std::remove_reference<decltype(trave_time[i][j])>::type>::max();
+            serve_time[i][j] = 0;
         }
     }
 
     My_Assert(total_arc_num == 2 * req_edge_num + 2 * nonreq_edge_num + req_arc_num + nonreq_arc_num,
               "arc number is not right!");
-    for (int i = 1; i <= total_arc_num; i++)
+    for (int i = 1; i <= total_arc_num; i++){
         trav_cost[inst_arcs[i].head_node][inst_arcs[i].tail_node] = inst_arcs[i].trav_cost;
+        trave_time[inst_arcs[i].head_node][inst_arcs[i].tail_node] = inst_arcs[i].trav_time;
+    }
 
     My_Assert(actual_task_num == 2 * req_edge_num + req_arc_num + req_node_num,
               "tasks number is not right!");
-    for (int i = 1; i <= actual_task_num; i++)
+    for (int i = 1; i <= actual_task_num; i++){
         serve_cost[inst_tasks[i].head_node][inst_tasks[i].tail_node] = inst_tasks[i].serv_cost;
+        serve_time[inst_tasks[i].head_node][inst_tasks[i].tail_node] = inst_tasks[i].serve_time;
+    }
 
     dijkstra();
+    get_trave_matrix();
 
     // pairwise distance matrix between tasks
     // dist(i,j) is the average distance between the vertices of the tasks
@@ -800,10 +825,12 @@ Individual MCGRP::parse_delimiter_seq(const vector<int> &seq) const
     return buffer;
 }
 
-bool MCGRP::valid_sol(const vector<int> &neg_seq, const double sol_cost)
+bool MCGRP::valid_sol(const vector<int> &neg_seq, const double sol_cost) const
 {
     //cout << "sol cost is " << sol_cost << endl;
     int valid_length = 0;
+    int load = 0;
+    int drive_time = 0;
 
     for (int j = 0; j < neg_seq.size() - 1; j++) {
         if (neg_seq[j] == 0) {
@@ -812,35 +839,92 @@ bool MCGRP::valid_sol(const vector<int> &neg_seq, const double sol_cost)
         }
         else if (neg_seq[j] < 0) {
             valid_length += min_cost[inst_tasks[DUMMY].tail_node][inst_tasks[abs(neg_seq[j])].head_node];
+            load = inst_tasks[abs(neg_seq[j])].demand;
+
+            drive_time = get_travel_time(DUMMY,abs(neg_seq[j]));
+            if(load > capacity || drive_time > inst_tasks[abs(neg_seq[j])].time_window.second){
+                cerr << "solution violate constraints\n";
+                exit(-1);
+            }
         }
         else {
             assert(j != 0);
             valid_length += min_cost[inst_tasks[abs(neg_seq[j - 1])].tail_node][inst_tasks[neg_seq[j]].head_node];
+            load += inst_tasks[j].demand;
+            drive_time += get_travel_time(abs(neg_seq[j-1]),neg_seq[j]);
+            if(load > capacity || drive_time > inst_tasks[abs(neg_seq[j])].time_window.second){
+                cerr << "solution violate constraints\n";
+                exit(-1);
+            }
         }
 
         valid_length += inst_tasks[abs(neg_seq[j])].serv_cost;
+        drive_time += inst_tasks[abs(neg_seq[j])].serve_time;
 
         if (neg_seq[j + 1] < 0) {
             valid_length += min_cost[inst_tasks[abs(neg_seq[j])].tail_node][inst_tasks[DUMMY].head_node];
         }
     }
 
-    int j = neg_seq.back();
+    int j = neg_seq.size() - 1;
     if (neg_seq[j] == 0) {
         cerr << "Solution can't has dummy task!\n";
         exit(-1);
     }
     if (neg_seq[j] < 0) {
+        load = inst_tasks[abs(neg_seq[j])].demand;
+
+        drive_time = get_travel_time(DUMMY,abs(neg_seq[j]));
+
         valid_length += min_cost[inst_tasks[DUMMY].tail_node][inst_tasks[abs(neg_seq[j])].head_node];
+        if(load > capacity || drive_time > inst_tasks[abs(neg_seq[j])].time_window.second){
+            cerr << "solution violate constraints\n";
+            exit(-1);
+        }
     }
     else {
         valid_length += min_cost[inst_tasks[abs(neg_seq[j - 1])].tail_node][inst_tasks[neg_seq[j]].head_node];
+
+        load += inst_tasks[j].demand;
+        drive_time += get_travel_time(abs(neg_seq[j-1]),neg_seq[j]);
+        if(load > capacity || drive_time > inst_tasks[abs(neg_seq[j])].time_window.second){
+            cerr << "solution violate constraints\n";
+            exit(-1);
+        }
     }
 
     valid_length += inst_tasks[abs(neg_seq[j])].serv_cost;
+    drive_time += inst_tasks[abs(neg_seq[j])].serve_time;
 
     valid_length += min_cost[inst_tasks[abs(neg_seq[j])].tail_node][inst_tasks[DUMMY].head_node];
     //cout << "valid length is: " << valid_length << endl;
 
     return valid_length == sol_cost;
 }
+
+void MCGRP::get_trave_matrix()
+{
+    for(int i = 1;i<=node_num;i++){
+        for(int j = 1;j<=node_num;j++){
+            if(shortest_path[i][j].empty()){
+                min_time[i][j] = 0;
+            }else{
+                vector<int> start = shortest_path[i][j];
+                vector<int> end = vector<int>(start.begin() + 1,start.end());
+                start.pop_back();
+                int sum = 0;
+                for(int k = 0; k<start.size(); k++)
+                    sum += trave_time[start[k]][end[k]];
+                My_Assert(sum % min_cost[i][j] == 0,
+                          "shortest path cost and shortest path time have wrong relationship");
+                min_time[i][j] = sum;
+            }
+        }
+    }
+
+
+
+}
+
+
+

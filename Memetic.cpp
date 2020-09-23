@@ -160,7 +160,7 @@ bool Memetic::poolUpdate(const MCGRP &mcgrp, const vector<int> new_sol, const do
         qdf[distVec[i].posi] += (1 - QNDF_weight) * i;
     }
 
-    double max_qdf = numeric_limits<decltype(max_qdf)>::min();
+    double max_qdf = MIN(max_qdf);
     int max_qdf_id = -1;
     for (int i = 0; i <= popSize; ++i) {
         if (qdf[i] > max_qdf) {
@@ -931,7 +931,7 @@ bool HighSpeedMemetic::poolUpdate(const MCGRP &mcgrp, const vector<int> new_sol,
         quality_distance_fitness[distVec[i].posi] += (1 - QNDF_weight) * i;
     }
 
-    double max_qdf = numeric_limits<decltype(max_qdf)>::min();
+    double max_qdf = MIN(max_qdf);
     int max_qdf_id = -1;
     for (int i = 0; i <= population.size(); ++i) {
         if (quality_distance_fitness[i] > max_qdf) {

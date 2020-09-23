@@ -16,7 +16,8 @@ void nearest_scanning(const MCGRP &mcgrp, Individual &rs_indi)
 
     int load;
     int trial;
-    int mindist;
+    int min_dist;
+    int drive_time;
 
     std::vector<int> unserved_task_id_set;
 
@@ -42,39 +43,42 @@ void nearest_scanning(const MCGRP &mcgrp, Individual &rs_indi)
 
     load = 0;
     trial = 0;
+    drive_time = 0;
     while (trial < serve_task_num) {
         current_task = rs_indi.sequence.back();
 
         //Find all the tasks that satisfy the capacity constraint
         candidate_task_set.clear();
         for (auto unserved_task : unserved_task_id_set) {
-            if (mcgrp.inst_tasks[unserved_task].demand <= mcgrp.capacity - load) {
+            if (mcgrp.inst_tasks[unserved_task].demand <= mcgrp.capacity - load
+            && drive_time + mcgrp.get_travel_time(rs_indi.sequence.back(),unserved_task) <= mcgrp.inst_tasks[unserved_task].time_window.second) {
                 candidate_task_set.push_back(unserved_task);
             }
         }
 
-
         if (candidate_task_set.empty()) {
             rs_indi.sequence.push_back(DUMMY);
             rs_indi.route_seg_load.push_back(load);
+            rs_indi.route_seg_time.push_back(drive_time);
             load = 0;
+            drive_time = 0;
             continue;
         }
 
-        mindist = std::numeric_limits<decltype(mindist)>::max();
+        min_dist = MAX(min_dist);
 
-        //Find the nearest task from the current cndidate task set
+        //Find the nearest task from the current candidate task set
         for (auto candidate_task : candidate_task_set) {
             if (mcgrp.min_cost[mcgrp.inst_tasks[current_task].tail_node][mcgrp.inst_tasks[candidate_task].head_node]
-                < mindist) {
-                mindist = mcgrp.min_cost[mcgrp.inst_tasks[current_task].tail_node][mcgrp.inst_tasks[candidate_task]
+                < min_dist) {
+                min_dist = mcgrp.min_cost[mcgrp.inst_tasks[current_task].tail_node][mcgrp.inst_tasks[candidate_task]
                     .head_node];
                 nearest_task_set.clear();
                 nearest_task_set.push_back(candidate_task);
             }
             else if (
                 mcgrp.min_cost[mcgrp.inst_tasks[current_task].tail_node][mcgrp.inst_tasks[candidate_task].head_node]
-                    == mindist) {
+                    == min_dist) {
                 nearest_task_set.push_back(candidate_task);
             }
         }
@@ -89,6 +93,8 @@ void nearest_scanning(const MCGRP &mcgrp, Individual &rs_indi)
         rs_indi.sequence.push_back(chosen_task);
 
         load += mcgrp.inst_tasks[chosen_task].demand;
+        drive_time += (mcgrp.get_travel_time(rs_indi.sequence.back(),chosen_task)
+            + mcgrp.inst_tasks[chosen_task].serve_time);
 
         unserved_task_id_set.erase(std::find_if(unserved_task_id_set.begin(),
                                                 unserved_task_id_set.end(),
@@ -108,11 +114,12 @@ void nearest_scanning(const MCGRP &mcgrp, Individual &rs_indi)
     if (rs_indi.sequence.back() != DUMMY) {
         rs_indi.sequence.push_back(DUMMY);
         rs_indi.route_seg_load.push_back(load);
+        rs_indi.route_seg_time.push_back(drive_time);
     }
 
     rs_indi.total_cost = mcgrp.get_task_seq_total_cost(rs_indi.sequence);
     rs_indi.total_vio_load = mcgrp.get_total_vio_load(rs_indi.route_seg_load);
-    My_Assert(rs_indi.total_vio_load == 0, "Should construct a feasible sequence here!");
+    My_Assert(mcgrp.valid_sol(get_negative_coding(rs_indi.sequence),rs_indi.total_cost),"Wrong outcome!\n");
 }
 
 const int max_merge_set_num = 20;
@@ -131,7 +138,7 @@ void merge_split(NeighBorSearch &ns, const MCGRP &mcgrp, const int merge_size, c
     int count = 0;
     vector<int> chosen_routes_id;
 
-    double best_choice = numeric_limits<decltype(best_choice)>::max();
+    double best_choice = MAX(best_choice);
     vector<int> best_buffer;
 
     while (count < max_merge_set_num && combination_manager.get_combinations(chosen_routes_id)) {
@@ -244,7 +251,7 @@ void merge_split(class HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, const in
     vector<int> permutation;
 
 
-    double best_choice = numeric_limits<decltype(best_choice)>::max();
+    double best_choice = MAX(best_choice);
     vector<int> best_buffer;
     vector<int> best_routes;
 
@@ -387,7 +394,7 @@ vector<int> nearest_growing(const MCGRP &mcgrp, vector<int> tasks, const int con
             continue;
         }
 
-        double min_dist = numeric_limits<decltype(min_dist)>::max();
+        double min_dist = MAX(min_dist);
         nearest_tasks.clear();
         for (auto task:candidate_tasks) {
             if (mcgrp.min_cost[mcgrp.inst_tasks[current_task].tail_node][mcgrp.inst_tasks[task].head_node] < min_dist) {
@@ -453,7 +460,7 @@ vector<int> nearest_depot_growing(const MCGRP &mcgrp, vector<int> tasks, const i
             continue;
         }
 
-        double min_dist = numeric_limits<decltype(min_dist)>::max();
+        double min_dist = MAX(min_dist);
         nearest_tasks.clear();
 
         for (auto task:candidate_tasks) {
@@ -585,7 +592,7 @@ vector<int> minimum_yield_growing(const MCGRP &mcgrp, vector<int> tasks, const i
             continue;
         }
 
-        double min_yield = numeric_limits<decltype(min_yield)>::max();
+        double min_yield = MAX(min_yield);
         minimum_tasks.clear();
 
         for (auto task:candidate_tasks) {
@@ -652,8 +659,8 @@ vector<int> mixtured_growing(const MCGRP &mcgrp, vector<int> tasks, const int co
         }
 
         if (current_load < constraint / 2) {
-            //minmum depot didtance
-            double min_dist = numeric_limits<decltype(min_dist)>::max();
+            //minimize depot distance
+            double min_dist = MAX(min_dist);
             potential_tasks.clear();
 
             for (auto task:candidate_tasks) {

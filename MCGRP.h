@@ -37,14 +37,19 @@ public:
 
 
     int neigh_size;
-    std::vector<std::vector<int> > trav_cost;        //travese cost(without loading), trav_cost[节点数+1][节点数+1]
+    std::vector<std::vector<int> > trav_cost;        //trave cost(without loading), trav_cost[节点数+1][节点数+1]
 
     std::vector<std::vector<int> > serve_cost;        //serve cost(with loading), serve_cost[节点数+1][节点数+1]
+
+    std::vector<std::vector<int> > trave_time;
+    std::vector<std::vector<int> > serve_time;
+
 
     std::vector<arc> inst_arcs;
 
     //L2-distance (dijkstra)min_cost[node+1][node+1]
     std::vector<std::vector<int>> min_cost;
+    std::vector<std::vector<int>> min_time;
 
 
     // shortest_path, 1st dimension: origin node; 2nd dimension: terminal node; 3rd dimension: sequence(the fisrt
@@ -116,6 +121,7 @@ public:
      * This will capable for asymmetric graph
      */
     void dijkstra();
+    void get_trave_matrix();
 
     /*!
      * 初始化各任务的邻域表（近该任务最近的几个任务）
@@ -155,7 +161,19 @@ public:
      */
     void create_individual(Individual &p) const;
 
-    /* validate solution */
-    bool valid_sol(const std::vector<int> &neg_seq, const double sol_cost);
+    /*!
+     * test the correctness of the given solution
+     * the solution is the negative coding style
+     * which is a sequence of tasks
+     * @param neg_seq
+     * @param sol_cost
+     * @return
+     */
+    bool valid_sol(const std::vector<int> &neg_seq, const double sol_cost) const;
+
+    int get_travel_time(int source_task,int sink_task) const;
 };
 
+inline int MCGRP::get_travel_time(int source_task, int sink_task) const {
+    return min_time[inst_tasks[source_task].tail_node][inst_tasks[sink_task].head_node];
+}

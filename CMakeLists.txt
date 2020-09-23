@@ -22,7 +22,7 @@ message(STATUS "Boost_LIBRARIES: ${Boost_LIBRARIES}")
 message(STATUS "Boost_VERSION: ${Boost_VERSION}")
 
 
-#add_definitions(-D DEBUG)
+add_definitions(-D DEBUG)
 
 include_directories(${Boost_INCLUDE_DIRS})
 include_directories(${GSL_INCLUDE_DIR})

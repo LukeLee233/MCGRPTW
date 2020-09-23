@@ -70,12 +70,13 @@ def transfer(input_file: str, output_file: str):
                      f'{edge.end_window}\n')
 
         fp.write('\n')
-        fp.write('EDGE	FROM N.	TO N.	T. COST\n')
+        fp.write('EDGE\tFROM N.\tTO N.\tT. COST\tT. TIME\n')
         for idx, edge in enumerate(non_req_edges, start=1):
             fp.write(f'NrE{idx}\t'
                      f'{edge.source + 1}\t'
                      f'{edge.sink + 1}\t'
-                     f'{edge.cost}\n')
+                     f'{edge.cost}\t'
+                     f'{phi * edge.cost}\n')
 
         fp.write('\n')
         fp.write('ReA.	FROM N.	TO N.	T. COST	DEMAND	S. COST\n')

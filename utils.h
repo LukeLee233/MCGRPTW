@@ -25,6 +25,9 @@
 #   define DEBUG_PRINT(stuff) ;
 #endif
 
+#define MAX(args) std::numeric_limits<decltype(args)>::max()
+#define MIN(args) std::numeric_limits<decltype(args)>::min()
+
 using std::ofstream;
 
 extern ofstream result_out;
@@ -138,12 +141,14 @@ struct arc
     int tail_node;
     int head_node;
     int trav_cost;
+    int trav_time;
 };
 
 struct Individual
 {
     std::vector<int> sequence;
     std::vector<int> route_seg_load;
+    std::vector<int> route_seg_time;
     double total_cost;
     int total_vio_load;
 };

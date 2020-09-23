@@ -37,7 +37,7 @@ bool Policy::check_move(const MCGRPMOVE &move_result)
 
     /*----------------------------Infeasible search policy------------------------------------*/
     else if (has_rule(FITNESS_ONLY)) {
-        My_Assert(beta != std::numeric_limits<decltype(beta)>::max(), "beta is undefined!");
+        My_Assert(beta != MAX(beta), "beta is undefined!");
         double delta_fitness;
 
         delta_fitness = move_result.delta + beta * move_result.vio_load_delta;
@@ -77,7 +77,7 @@ bool Policy::check_result(const MCGRPMOVE &M1, const MCGRPMOVE &M2)
         if(M2.considerable == false){
             return true;
         }
-        My_Assert(beta != std::numeric_limits<decltype(beta)>::max(), "beta is undefined!");
+        My_Assert(beta != MAX(beta), "beta is undefined!");
 
         double M1_fitness = M1.delta + beta * M1.vio_load_delta;
         double M2_fitness = M2.delta + beta * M2.vio_load_delta;
