@@ -845,7 +845,7 @@ bool MCGRP::valid_sol(const vector<int> &neg_seq, const double sol_cost) const
         else {
             My_Assert(j != 0,"First task must be negative!");
             valid_length += min_cost[inst_tasks[abs(neg_seq[j - 1])].tail_node][inst_tasks[neg_seq[j]].head_node];
-            load += inst_tasks[j].demand;
+            load += inst_tasks[neg_seq[j]].demand;
             drive_time += get_travel_time(abs(neg_seq[j-1]),neg_seq[j]);
             My_Assert(load <= capacity && drive_time <= inst_tasks[abs(neg_seq[j])].time_window.second,
                       "solution violate constraints!");
@@ -874,7 +874,7 @@ bool MCGRP::valid_sol(const vector<int> &neg_seq, const double sol_cost) const
     else {
         valid_length += min_cost[inst_tasks[abs(neg_seq[j - 1])].tail_node][inst_tasks[neg_seq[j]].head_node];
 
-        load += inst_tasks[j].demand;
+        load += inst_tasks[neg_seq[j]].demand;
         drive_time += get_travel_time(abs(neg_seq[j-1]),neg_seq[j]);
         My_Assert(load <= capacity && drive_time <= inst_tasks[abs(neg_seq[j])].time_window.second,
                   "solution violate constraints!");
