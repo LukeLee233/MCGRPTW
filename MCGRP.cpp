@@ -833,29 +833,22 @@ bool MCGRP::valid_sol(const vector<int> &neg_seq, const double sol_cost) const
     int drive_time = 0;
 
     for (int j = 0; j < neg_seq.size() - 1; j++) {
-        if (neg_seq[j] == 0) {
-            cerr << "solution can't has dummy task!\n";
-            exit(-1);
-        }
-        else if (neg_seq[j] < 0) {
+        My_Assert(neg_seq[j] != 0,"solution can't has dummy task!");
+        if (neg_seq[j] < 0) {
             valid_length += min_cost[inst_tasks[DUMMY].tail_node][inst_tasks[abs(neg_seq[j])].head_node];
             load = inst_tasks[abs(neg_seq[j])].demand;
 
             drive_time = get_travel_time(DUMMY,abs(neg_seq[j]));
-            if(load > capacity || drive_time > inst_tasks[abs(neg_seq[j])].time_window.second){
-                cerr << "solution violate constraints\n";
-                exit(-1);
-            }
+            My_Assert(load <= capacity && drive_time <= inst_tasks[abs(neg_seq[j])].time_window.second,
+                      "solution violate constraints!");
         }
         else {
-            assert(j != 0);
+            My_Assert(j != 0,"First task must be negative!");
             valid_length += min_cost[inst_tasks[abs(neg_seq[j - 1])].tail_node][inst_tasks[neg_seq[j]].head_node];
             load += inst_tasks[j].demand;
             drive_time += get_travel_time(abs(neg_seq[j-1]),neg_seq[j]);
-            if(load > capacity || drive_time > inst_tasks[abs(neg_seq[j])].time_window.second){
-                cerr << "solution violate constraints\n";
-                exit(-1);
-            }
+            My_Assert(load <= capacity && drive_time <= inst_tasks[abs(neg_seq[j])].time_window.second,
+                      "solution violate constraints!");
         }
 
         valid_length += inst_tasks[abs(neg_seq[j])].serv_cost;
@@ -867,30 +860,24 @@ bool MCGRP::valid_sol(const vector<int> &neg_seq, const double sol_cost) const
     }
 
     int j = neg_seq.size() - 1;
-    if (neg_seq[j] == 0) {
-        cerr << "Solution can't has dummy task!\n";
-        exit(-1);
-    }
+    My_Assert(neg_seq[j] != 0,"solution can't has dummy task!");
+
     if (neg_seq[j] < 0) {
         load = inst_tasks[abs(neg_seq[j])].demand;
 
         drive_time = get_travel_time(DUMMY,abs(neg_seq[j]));
 
         valid_length += min_cost[inst_tasks[DUMMY].tail_node][inst_tasks[abs(neg_seq[j])].head_node];
-        if(load > capacity || drive_time > inst_tasks[abs(neg_seq[j])].time_window.second){
-            cerr << "solution violate constraints\n";
-            exit(-1);
-        }
+        My_Assert(load <= capacity && drive_time <= inst_tasks[abs(neg_seq[j])].time_window.second,
+                  "solution violate constraints!");
     }
     else {
         valid_length += min_cost[inst_tasks[abs(neg_seq[j - 1])].tail_node][inst_tasks[neg_seq[j]].head_node];
 
         load += inst_tasks[j].demand;
         drive_time += get_travel_time(abs(neg_seq[j-1]),neg_seq[j]);
-        if(load > capacity || drive_time > inst_tasks[abs(neg_seq[j])].time_window.second){
-            cerr << "solution violate constraints\n";
-            exit(-1);
-        }
+        My_Assert(load <= capacity && drive_time <= inst_tasks[abs(neg_seq[j])].time_window.second,
+                  "solution violate constraints!");
     }
 
     valid_length += inst_tasks[abs(neg_seq[j])].serv_cost;
