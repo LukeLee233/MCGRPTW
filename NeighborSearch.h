@@ -489,6 +489,7 @@ private:
     vector<int> task_set;
 
     double total_vio_load;
+    int total_vio_time;
 
     //move operator
     unique_ptr<class SingleInsert> single_insert;
@@ -504,7 +505,7 @@ public:
     ~HighSpeedNeighBorSearch();
 
 
-    vector<int> get_solution();
+    vector<int> get_solution(string mode="dummy");
 
 
 

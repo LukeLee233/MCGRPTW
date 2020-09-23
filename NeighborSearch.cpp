@@ -244,7 +244,7 @@ void NeighBorSearch::unpack_seq(const std::vector<int> &del_seq, const MCGRP &mc
         total_vio_load += max((route.load - mcgrp.capacity), 0);
     }
 
-    cur_solution_cost = std::accumulate(routes.begin(), routes.end(), 0, MCGRPRoute::accumulate_load);
+    cur_solution_cost = std::accumulate(routes.begin(), routes.end(), 0, MCGRPRoute::accumulate_load_op);
     negative_coding_sol = get_negative_coding(del_seq);
     delimiter_coding_sol = del_seq;
 }
@@ -1759,6 +1759,7 @@ HighSpeedNeighBorSearch::HighSpeedNeighBorSearch(const MCGRP &mcgrp)
     equal_step = 0;
     cur_solution_cost = numeric_limits<decltype(best_solution_cost)>::max();
     total_vio_load = 0;
+    total_vio_time = 0;
     best_solution_cost = numeric_limits<decltype(best_solution_cost)>::max();
     std::generate(task_set.begin(), task_set.end(), Generator());
     solution.print();
@@ -1897,6 +1898,7 @@ void HighSpeedNeighBorSearch::unpack_seq(const std::vector<int> &del_seq, const 
     }
 
     total_vio_load = 0;
+    total_vio_time = 0;
     cur_solution_cost = 0;
     for (int i = 0; i < seg.size(); i++) {
         MCGRPRoute *new_route = routes[routes.allocate_route()];
@@ -1905,6 +1907,11 @@ void HighSpeedNeighBorSearch::unpack_seq(const std::vector<int> &del_seq, const 
         new_route->length = 0;
         new_route->load = 0;
         new_route->num_customers = seg[i].size();
+        new_route->arrive_time = move(mcgrp.cal_arrive_time(seg[i]));
+
+        for(int j = 0;j<new_route->arrive_time.size();j++){
+            total_vio_time += max(0, new_route->arrive_time[j] - mcgrp.inst_tasks[seg[i][j]].time_window.second);
+        }
 
         //0-a...
         new_route->length += mcgrp.min_cost[mcgrp.inst_tasks[DUMMY].tail_node][mcgrp.inst_tasks[new_route->start].head_node];
@@ -1937,18 +1944,30 @@ void HighSpeedNeighBorSearch::unpack_seq(const std::vector<int> &del_seq, const 
     My_Assert(valid_sol(mcgrp),"Wrong state");
 }
 
-vector<int> HighSpeedNeighBorSearch::get_solution(){
+vector<int> HighSpeedNeighBorSearch::get_solution(string mode){
     My_Assert(solution.very_start != nullptr,"Empty solution");
-
     vector<int> buffer;
 
-    TASK_NODE * tmp = solution.very_start;
-    do{
-        buffer.push_back(max(tmp->ID,0));
-        tmp = tmp->next;
-    }while(tmp != solution.very_end);
+    if(mode == "dummy"){
+        TASK_NODE * tmp = solution.very_start;
+        do{
+            buffer.push_back(max(tmp->ID,0));
+            tmp = tmp->next;
+        }while(tmp != solution.very_end);
 
-    buffer.push_back(max(tmp->ID,0));
+        buffer.push_back(max(tmp->ID,0));
+    }else if(mode == "negative"){
+        TASK_NODE* tmp = solution.very_start;
+        do{
+            buffer.push_back(tmp->ID);
+            tmp = tmp->next;
+        }while(tmp != solution.very_end);
+
+        buffer.push_back(tmp->ID);
+    }else{
+        cerr<<"Unknown output style!\n";
+        abort();
+    }
 
     return buffer;
 }
@@ -2052,7 +2071,8 @@ bool HighSpeedNeighBorSearch::valid_sol(const MCGRP& mcgrp) {
     double cost = 0;
     while(cur_task != solution.very_end){
         cost += mcgrp.inst_tasks[max(cur_task->ID, 0)].serv_cost;
-        cost += mcgrp.min_cost[mcgrp.inst_tasks[max(cur_task->ID, 0)].tail_node][mcgrp.inst_tasks[max(cur_task->next->ID, 0)].head_node];
+        cost += mcgrp.min_cost[mcgrp.inst_tasks[max(cur_task->ID, 0)].tail_node]
+            [mcgrp.inst_tasks[max(cur_task->next->ID, 0)].head_node];
         cur_task = cur_task->next;
     }
     cost += mcgrp.inst_tasks[max(cur_task->ID, 0)].serv_cost;

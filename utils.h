@@ -94,6 +94,7 @@ struct MCGRPRoute
     int load = 0;
     double length = 0;
     int num_customers = 0;
+    vector<int> arrive_time;
 
     void clear(){
         start = -1;
@@ -101,8 +102,9 @@ struct MCGRPRoute
         load = 0;
         length = 0;
         num_customers = 0;
+        arrive_time.clear();
     }
-    static double accumulate_load(double accumulator, const MCGRPRoute &a)
+    static double accumulate_load_op(double accumulator, const MCGRPRoute &a)
     {
         return accumulator + a.length;
     };

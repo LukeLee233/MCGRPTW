@@ -172,6 +172,8 @@ public:
     bool valid_sol(const std::vector<int> &neg_seq, const double sol_cost) const;
 
     int get_travel_time(int source_task,int sink_task) const;
+
+    vector<int> cal_arrive_time(const vector<int>& route) const;
 };
 
 inline int MCGRP::get_travel_time(int source_task, int sink_task) const {

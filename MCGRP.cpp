@@ -913,5 +913,22 @@ void MCGRP::get_trave_matrix()
 
 }
 
+vector<int> MCGRP::cal_arrive_time(const vector<int> &route) const
+{
+    if(route.empty())
+        return vector<int>();
 
+    vector<int> arrive_time;
+    My_Assert(route.front() != DUMMY && route.back() != DUMMY,
+              "invalid route!");
+
+    int drive_time = get_travel_time(DUMMY,route.front());
+    arrive_time.push_back(drive_time);
+    for(int i = 1;i<route.size();i++){
+        drive_time += inst_tasks[route[i-1]].serve_time + get_travel_time(route[i-1],route[i]);
+        arrive_time.push_back(drive_time);
+    }
+
+    return arrive_time;
+}
 
