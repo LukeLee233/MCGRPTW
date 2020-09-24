@@ -738,6 +738,7 @@ int MCGRP::get_total_vio_load(const std::vector<int> &route_seg_load) const
 
 bool MCGRP::check_best_solution(const double total_route_length, const vector<int> &sol_seq) const
 {
+    My_Assert(valid_sol(sol_seq, total_route_length),"Wrong solution!");
     lock_guard<mutex> lk(global_mut);
     // Determines if the current solution is the best found so far.
     if ((total_route_length < best_total_route_length)) {

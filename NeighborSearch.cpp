@@ -3285,3 +3285,8 @@ bool HighSpeedNeighBorSearch::check_duplicated(const MCGRP &mcgrp)
 
     return true;
 }
+
+int HighSpeedNeighBorSearch::getSearch_step() const
+{
+    return search_step;
+}

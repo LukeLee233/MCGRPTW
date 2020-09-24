@@ -632,6 +632,7 @@ public:
      */
     void _neigh_search(const MCGRP &mcgrp, int mode);
 
+    int getSearch_step() const;
 };
 
 #endif
