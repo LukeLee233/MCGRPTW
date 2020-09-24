@@ -88,13 +88,17 @@ enum NeighborOperator
 
 struct MCGRPRoute
 {
+    struct Timetable{
+        int task;
+        int arrive_time;
+    };
     int ID = -1;
     int start = -1;
     int end = -1;
     int load = 0;
     double length = 0;
     int num_customers = 0;
-    vector<int> arrive_time;
+    vector<Timetable> time_table;
 
     void clear(){
         start = -1;
@@ -102,7 +106,7 @@ struct MCGRPRoute
         load = 0;
         length = 0;
         num_customers = 0;
-        arrive_time.clear();
+        time_table.clear();
     }
     static double accumulate_load_op(double accumulator, const MCGRPRoute &a)
     {

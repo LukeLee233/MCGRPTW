@@ -1907,10 +1907,12 @@ void HighSpeedNeighBorSearch::unpack_seq(const std::vector<int> &dummy_seq, cons
         new_route->length = 0;
         new_route->load = 0;
         new_route->num_customers = seg[i].size();
-        new_route->arrive_time = move(mcgrp.cal_arrive_time(seg[i]));
+        vector<int> arrive_time = move(mcgrp.cal_arrive_time(seg[i]));
+        for(int j = 0; j < seg[i].size();j++)
+            new_route->time_table.push_back({seg[i][j],arrive_time[j]});
 
-        for(int j = 0;j<new_route->arrive_time.size();j++){
-            total_vio_time += max(0, new_route->arrive_time[j] - mcgrp.inst_tasks[seg[i][j]].time_window.second);
+        for(int j = 0;j<new_route->time_table.size();j++){
+            total_vio_time += max(0, new_route->time_table[j].arrive_time - mcgrp.inst_tasks[seg[i][j]].time_window.second);
         }
 
         //0-a...
@@ -2079,14 +2081,19 @@ bool HighSpeedNeighBorSearch::valid_sol(const MCGRP& mcgrp) {
 
     double vio_load = 0;
     double routes_cost_sum = 0;
+    int vio_time = 0;
     for(auto id : routes.activated_route_id){
         if(routes[id]->load > mcgrp.capacity){
             vio_load += routes[id]->load - mcgrp.capacity;
         }
         routes_cost_sum += routes[id]->length;
+        for(auto plan : routes[id]->time_table){
+            vio_time += max(0,plan.arrive_time - mcgrp.inst_tasks[plan.task].time_window.second);
+        }
     }
 
-    return routes_cost_sum == cost && cost == cur_solution_cost && vio_load == total_vio_load;
+    return routes_cost_sum == cost && cost == cur_solution_cost
+            && vio_load == total_vio_load && vio_time == total_vio_time;
 }
 
 void HighSpeedNeighBorSearch::threshold_exploration_version_0(const MCGRP &mcgrp)
