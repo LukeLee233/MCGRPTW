@@ -1959,13 +1959,21 @@ vector<int> HighSpeedNeighBorSearch::get_solution(string mode){
 
         buffer.push_back(max(tmp->ID,0));
     }else if(mode == "negative"){
+        int sign = 1;
         TASK_NODE* tmp = solution.very_start;
         do{
-            buffer.push_back(tmp->ID);
+            if(tmp->ID < 0){
+                sign = -1;
+                tmp = tmp->next;
+                continue;
+            }
+            buffer.push_back(sign * tmp->ID);
             tmp = tmp->next;
+            sign = 1;
         }while(tmp != solution.very_end);
 
-        buffer.push_back(tmp->ID);
+        if(tmp->ID > 0)
+            buffer.push_back(tmp->ID);
     }else{
         cerr<<"Unknown output style!\n";
         abort();
