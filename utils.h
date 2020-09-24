@@ -148,7 +148,7 @@ struct arc
 
 struct Individual
 {
-    std::vector<int> sequence;
+    std::vector<int> sequence;  // dummy sequence
     std::vector<int> route_seg_load;
     std::vector<int> route_seg_time;
     double total_cost;

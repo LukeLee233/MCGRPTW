@@ -1828,10 +1828,10 @@ void HighSpeedNeighBorSearch::_neigh_search(const MCGRP &mcgrp, int mode){
     }
 }
 
-void HighSpeedNeighBorSearch::unpack_seq(const std::vector<int> &del_seq, const MCGRP &mcgrp)
+void HighSpeedNeighBorSearch::unpack_seq(const std::vector<int> &dummy_seq, const MCGRP &mcgrp)
 {
 
-    My_Assert(del_seq.size() > 2, "You can't unpack an empty sequence!");
+    My_Assert(dummy_seq.size() > 2, "You can't unpack an empty sequence!");
 
     //parse solution
     TASK_NODE *dummy = nullptr;
@@ -1840,45 +1840,45 @@ void HighSpeedNeighBorSearch::unpack_seq(const std::vector<int> &del_seq, const 
     solution.very_start = dummy;
 
     //link first dummy
-    My_Assert(del_seq[0] == DUMMY && del_seq[1] != DUMMY, "sequence should start from dummy task!");
-    solution.very_start->next = &solution.tasks[del_seq[1]];
-    solution.tasks[del_seq[1]].pre = solution.very_start;
+    My_Assert(dummy_seq[0] == DUMMY && dummy_seq[1] != DUMMY, "sequence should start from dummy task!");
+    solution.very_start->next = &solution.tasks[dummy_seq[1]];
+    solution.tasks[dummy_seq[1]].pre = solution.very_start;
 
     int cursor = 1;
     while (true) {
-        if (del_seq[cursor] == DUMMY) {
-            if (cursor == del_seq.size() - 1) {
+        if (dummy_seq[cursor] == DUMMY) {
+            if (cursor == dummy_seq.size() - 1) {
                 //...0
                 My_Assert(dummy->next == nullptr, "This dummy task has been used!");
                 solution.very_end = dummy;
                 break;
             }
 
-            My_Assert(del_seq[cursor + 1] != DUMMY, "too much dummy seq!");
+            My_Assert(dummy_seq[cursor + 1] != DUMMY, "too much dummy seq!");
 
             //...0-a...
             My_Assert(dummy != nullptr, "null dummy task!");
             My_Assert(dummy->next == nullptr, "this dummy task has been used!");
-            dummy->next = &solution.tasks[del_seq[cursor + 1]];
-            solution.tasks[del_seq[cursor + 1]].pre = dummy;
+            dummy->next = &solution.tasks[dummy_seq[cursor + 1]];
+            solution.tasks[dummy_seq[cursor + 1]].pre = dummy;
 
             cursor++;
         }
         else {
-            if (del_seq[cursor + 1] == DUMMY) {
+            if (dummy_seq[cursor + 1] == DUMMY) {
                 //...a-0...
                 // a new dummy task is going to be created
                 dummy = solution.dummypool.get_new_dummy();
 
                 //connect dummy task;
-                solution.tasks[del_seq[cursor]].next = dummy;
-                dummy->pre = &solution.tasks[del_seq[cursor]];
+                solution.tasks[dummy_seq[cursor]].next = dummy;
+                dummy->pre = &solution.tasks[dummy_seq[cursor]];
                 cursor++;
             }
             else {
                 //...a-b...
-                solution.tasks[del_seq[cursor]].next = &solution.tasks[del_seq[cursor + 1]];
-                solution.tasks[del_seq[cursor + 1]].pre = &solution.tasks[del_seq[cursor]];
+                solution.tasks[dummy_seq[cursor]].next = &solution.tasks[dummy_seq[cursor + 1]];
+                solution.tasks[dummy_seq[cursor + 1]].pre = &solution.tasks[dummy_seq[cursor]];
                 cursor++;
             }
         }
@@ -1887,13 +1887,13 @@ void HighSpeedNeighBorSearch::unpack_seq(const std::vector<int> &del_seq, const 
 
     vector<vector<int>> seg;
     vector<int> buffer;
-    for (cursor = 1; cursor < del_seq.size(); cursor++) {
-        if (del_seq[cursor] == DUMMY) {
+    for (cursor = 1; cursor < dummy_seq.size(); cursor++) {
+        if (dummy_seq[cursor] == DUMMY) {
             seg.push_back(buffer);
             buffer.clear();
         }
         else {
-            buffer.push_back(del_seq[cursor]);
+            buffer.push_back(dummy_seq[cursor]);
         }
     }
 

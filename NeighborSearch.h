@@ -546,9 +546,9 @@ public:
 
     /*!
  * @details unpack sol info to negative coding format
- * @param del_seq
+ * @param dummy_seq
  */
-    void unpack_seq(const std::vector<int> &del_seq, const MCGRP &mcgrp);
+    void unpack_seq(const std::vector<int> &dummy_seq, const MCGRP &mcgrp);
 
     /*!
      * @details neighbor search
