@@ -294,31 +294,27 @@ public:
 
     void reset()
     {
-        if(considerable){
-            task1 = -1;
-            task2 = -1;
-            seq1_cus_num = -1;
-            seq2_cus_num = -1;
-            total_number_of_routes = 0;
-            delta = 0;
-            vio_load_delta = 0;
-            vio_time_delta = 0;
-            new_total_route_length =
-                std::numeric_limits<identity<decltype(MCGRPMOVE::new_total_route_length)>::type>::max();
-            move_arguments.clear();
+        task1 = -1;
+        task2 = -1;
+        seq1_cus_num = -1;
+        seq2_cus_num = -1;
+        total_number_of_routes = 0;
+        delta = 0;
+        vio_load_delta = 0;
+        vio_time_delta = 0;
+        new_total_route_length =
+            std::numeric_limits<identity<decltype(MCGRPMOVE::new_total_route_length)>::type>::max();
+        move_arguments.clear();
 
-            num_affected_routes = -1;
-            route_loads.clear();
-            route_id.clear();
-            route_custs_num.clear();
-            route_time_tbl.clear();
+        num_affected_routes = -1;
+        route_loads.clear();
+        route_id.clear();
+        route_custs_num.clear();
+        route_time_tbl.clear();
 
-            route_lens.clear();
-            considerable = false;
-        }
-
+        route_lens.clear();
+        considerable = false;
     }
-
 };
 
 inline double get_time_difference(const timeb& start,const timeb& end){

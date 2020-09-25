@@ -17,7 +17,7 @@ void nearest_scanning(const MCGRP &mcgrp, Individual &rs_indi)
     int load;
     int trial;
     int min_dist;
-    int drive_time;
+    int drive_time; // the earliest time of a vehicle begins to search the task
 
     std::vector<int> unserved_task_id_set;
 
@@ -25,7 +25,7 @@ void nearest_scanning(const MCGRP &mcgrp, Individual &rs_indi)
 
     std::vector<int> nearest_task_set;
 
-    int current_task;
+    int current_tail_task;
     int chosen_task;
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -45,13 +45,15 @@ void nearest_scanning(const MCGRP &mcgrp, Individual &rs_indi)
     trial = 0;
     drive_time = 0;
     while (trial < serve_task_num) {
-        current_task = rs_indi.sequence.back();
+        current_tail_task = rs_indi.sequence.back();
 
         //Find all the tasks that satisfy the capacity constraint
         candidate_task_set.clear();
         for (auto unserved_task : unserved_task_id_set) {
             if (mcgrp.inst_tasks[unserved_task].demand <= mcgrp.capacity - load
-            && drive_time + mcgrp.get_travel_time(rs_indi.sequence.back(),unserved_task) <= mcgrp.inst_tasks[unserved_task].time_window.second) {
+            && mcgrp.cal_arrive_time(current_tail_task, unserved_task, drive_time, true)
+            <= mcgrp.inst_tasks[unserved_task].time_window.second)
+            {
                 candidate_task_set.push_back(unserved_task);
             }
         }
@@ -69,15 +71,15 @@ void nearest_scanning(const MCGRP &mcgrp, Individual &rs_indi)
 
         //Find the nearest task from the current candidate task set
         for (auto candidate_task : candidate_task_set) {
-            if (mcgrp.min_cost[mcgrp.inst_tasks[current_task].tail_node][mcgrp.inst_tasks[candidate_task].head_node]
+            if (mcgrp.min_cost[mcgrp.inst_tasks[current_tail_task].tail_node][mcgrp.inst_tasks[candidate_task].head_node]
                 < min_dist) {
-                min_dist = mcgrp.min_cost[mcgrp.inst_tasks[current_task].tail_node][mcgrp.inst_tasks[candidate_task]
+                min_dist = mcgrp.min_cost[mcgrp.inst_tasks[current_tail_task].tail_node][mcgrp.inst_tasks[candidate_task]
                     .head_node];
                 nearest_task_set.clear();
                 nearest_task_set.push_back(candidate_task);
             }
             else if (
-                mcgrp.min_cost[mcgrp.inst_tasks[current_task].tail_node][mcgrp.inst_tasks[candidate_task].head_node]
+                mcgrp.min_cost[mcgrp.inst_tasks[current_tail_task].tail_node][mcgrp.inst_tasks[candidate_task].head_node]
                     == min_dist) {
                 nearest_task_set.push_back(candidate_task);
             }
@@ -89,8 +91,7 @@ void nearest_scanning(const MCGRP &mcgrp, Individual &rs_indi)
         chosen_task = nearest_task_set[k];
 
         load += mcgrp.inst_tasks[chosen_task].demand;
-        drive_time += (mcgrp.get_travel_time(rs_indi.sequence.back(),chosen_task)
-            + mcgrp.inst_tasks[chosen_task].serve_time);
+        drive_time = mcgrp.cal_arrive_time(current_tail_task,chosen_task,drive_time, true);
 
         trial++;
         rs_indi.sequence.push_back(chosen_task);

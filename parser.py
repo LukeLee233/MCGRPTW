@@ -46,28 +46,17 @@ def transfer(input_file: str, output_file: str):
         fp.write(f'Capacity:\t{capacity}\n')
         fp.write(f'Depot Node:\t{1}\n')
         fp.write(f'#Nodes:\t{nodes_num}\n')
-        fp.write(f'#Edges:\t{edges_num}\n')
-        fp.write(f'#Arcs:\t0\n')
+        fp.write(f'#Edges:\t{edges_num-len(req_edges)}\n')
+        fp.write(f'#Arcs:\t{len(req_edges)*2}\n')
         fp.write(f'#Required N:\t0\n')
-        fp.write(f'#Required E:\t{len(req_edges)}\n')
-        fp.write(f'#Required A:\t0\n')
+        fp.write(f'#Required E:\t0\n')
+        fp.write(f'#Required A:\t{len(req_edges)}\n')
 
         fp.write('\n')
         fp.write('ReN.	DEMAND	S. COST\n')
 
         fp.write('\n')
         fp.write('ReE.\tFrom N.\tTo N.\tT. COST\tDEMAND\tS. COST\tT. TIME\tS. TIME\tB. TIME\tE. TIME\n')
-        for idx, edge in enumerate(req_edges, start=1):
-            fp.write(f'E{idx}\t'
-                     f'{edge.source + 1}\t'
-                     f'{edge.sink + 1}\t'
-                     f'{edge.cost}\t'
-                     f'{edge.demand}\t'
-                     f'{edge.cost}\t'
-                     f'{phi * edge.cost}\t'
-                     f'{psi * edge.cost}\t'
-                     f'{edge.begin_window}\t'
-                     f'{edge.end_window}\n')
 
         fp.write('\n')
         fp.write('EDGE\tFROM N.\tTO N.\tT. COST\tT. TIME\n')
@@ -79,10 +68,27 @@ def transfer(input_file: str, output_file: str):
                      f'{phi * edge.cost}\n')
 
         fp.write('\n')
-        fp.write('ReA.	FROM N.	TO N.	T. COST	DEMAND	S. COST\n')
+        fp.write('ReA.\tFROM N.\tTO N.\tT. COST\tDEMAND\tS. COST\tT. TIME\tS. TIME\tB. TIME\tE. TIME\n')
+        for idx, edge in enumerate(req_edges, start=1):
+            fp.write(f'A{idx}\t'
+                     f'{edge.source + 1}\t'
+                     f'{edge.sink + 1}\t'
+                     f'{edge.cost}\t'
+                     f'{edge.demand}\t'
+                     f'{edge.cost}\t'
+                     f'{phi * edge.cost}\t'
+                     f'{psi * edge.cost}\t'
+                     f'{edge.begin_window}\t'
+                     f'{edge.end_window}\n')
 
         fp.write('\n')
-        fp.write('ARC	FROM N.	TO N.	T. COST\n')
+        fp.write('ARC\tFROM N.\tTO N.\tT. COST\tT. TIME\n')
+        for idx, edge in enumerate(req_edges, start=1):
+            fp.write(f'NrA{idx}\t'
+                     f'{edge.sink + 1}\t'
+                     f'{edge.source + 1}\t'
+                     f'{edge.cost}\t'
+                     f'{phi * edge.cost}\n')
 
 
 if __name__ == '__main__':

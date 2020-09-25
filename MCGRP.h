@@ -171,9 +171,20 @@ public:
      */
     bool valid_sol(const std::vector<int> &neg_seq, const double sol_cost) const;
 
-    int get_travel_time(int source_task,int sink_task,bool with_serve = false) const;
+    int get_travel_time(int source_task,int sink_task) const;
 
     vector<int> cal_arrive_time(const vector<int>& route) const;
+
+    /*!
+     *
+     * @param source
+     * @param sink
+     * @param start
+     * @param head_of_source true: need to sum the serve time of source task, vice versa
+     * @return
+     */
+    int cal_arrive_time(int source, int sink, int start, bool head_of_source) const;
+
 
     /*!
      * forecast the time table when modify the serve sequence
@@ -195,12 +206,8 @@ public:
     int get_vio_time(const vector<MCGRPRoute::Timetable>& tbl) const;
 };
 
-inline int MCGRP::get_travel_time(int source_task, int sink_task, bool with_serve) const {
-    if(!with_serve)
+inline int MCGRP::get_travel_time(int source_task, int sink_task) const {
         return min_time[inst_tasks[source_task].tail_node][inst_tasks[sink_task].head_node];
-    else
-        return inst_tasks[source_task].serve_time +
-            min_time[inst_tasks[source_task].tail_node][inst_tasks[sink_task].head_node];
 }
 
 inline bool MCGRP::isTimetableFeasible(const vector<MCGRPRoute::Timetable> tbl) const {

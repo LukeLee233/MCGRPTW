@@ -55,8 +55,7 @@ MCGRP::MCGRP(const instance_num_information &instance_info, RNG &rng)
         min_time[i].resize(offset_node_num);
     }
 
-    My_Assert(serve_cost[0].empty() && min_cost[0].empty() && trav_cost[0].empty()
-              , "Dummy row should be null!");
+    My_Assert(serve_cost[0].empty() && min_cost[0].empty() && trav_cost[0].empty(), "Dummy row should be null!");
 
     task_dist.resize(task_num);
     for (int i = 0; i < task_num; i++) {
@@ -173,7 +172,7 @@ void MCGRP::load_file_info(std::string input_file, const instance_num_informatio
         }
         else if (dummy_string == "ReE.") {
             //edge task
-            getline(fin,dummy_string);
+            getline(fin, dummy_string);
             for (int i = 1; i <= req_edge_num; i++) {
                 fin >> dummy_string;
 
@@ -209,7 +208,7 @@ void MCGRP::load_file_info(std::string input_file, const instance_num_informatio
                 inst_tasks[i].inverse = i + req_edge_num;
 
                 inst_tasks[i + req_edge_num] = inst_tasks[i];
-                swap(inst_tasks[i + req_edge_num].head_node,inst_tasks[i + req_edge_num].tail_node);
+                swap(inst_tasks[i + req_edge_num].head_node, inst_tasks[i + req_edge_num].tail_node);
                 inst_tasks[i + req_edge_num].inverse = i;
 
                 inst_arcs[i].head_node = inst_tasks[i].head_node;
@@ -218,11 +217,11 @@ void MCGRP::load_file_info(std::string input_file, const instance_num_informatio
                 inst_arcs[i].trav_time = inst_tasks[i].trave_time;
 
                 inst_arcs[i + req_edge_num] = inst_arcs[i];
-                swap(inst_arcs[i + req_edge_num].head_node,inst_arcs[i + req_edge_num].tail_node);
+                swap(inst_arcs[i + req_edge_num].head_node, inst_arcs[i + req_edge_num].tail_node);
             }
         }
         else if (dummy_string == "EDGE") {
-            getline(fin,dummy_string);
+            getline(fin, dummy_string);
             for (int i = 2 * req_edge_num + 1; i <= 2 * req_edge_num + nonreq_edge_num; i++) {
                 fin >> dummy_string;
 
@@ -239,12 +238,12 @@ void MCGRP::load_file_info(std::string input_file, const instance_num_informatio
                 inst_arcs[i].trav_time = stoi(dummy_string);
 
                 inst_arcs[i + nonreq_edge_num] = inst_arcs[i];
-                swap(inst_arcs[i + nonreq_edge_num].head_node,inst_arcs[i + nonreq_edge_num].tail_node);
+                swap(inst_arcs[i + nonreq_edge_num].head_node, inst_arcs[i + nonreq_edge_num].tail_node);
             }
         }
         else if (dummy_string == "ReA.") {
-            for (int i = 0; i < 9; i++)
-                fin >> dummy_string;
+            getline(fin, dummy_string);
+
             for (int i = 2 * req_edge_num + 1; i <= 2 * req_edge_num + req_arc_num; i++) {
                 fin >> dummy_string;
 
@@ -264,6 +263,19 @@ void MCGRP::load_file_info(std::string input_file, const instance_num_informatio
 //                inst_tasks[i].serv_cost = stoi(dummy_string);
                 inst_tasks[i].serv_cost = inst_tasks[i].trave_cost;
 
+                fin >> dummy_string;
+                inst_tasks[i].trave_time = stoi(dummy_string);
+
+                fin >> dummy_string;
+                inst_tasks[i].serve_time = stoi(dummy_string);
+
+                task::Window window;
+                fin >> dummy_string;
+                window.first = stoi(dummy_string);
+                fin >> dummy_string;
+                window.second = stoi(dummy_string);
+                inst_tasks[i].time_window = window;
+
                 inst_tasks[i].inverse = ARC_NO_INVERSE;
             }
             for (int i = 2 * req_edge_num + 2 * nonreq_edge_num + 1;
@@ -271,11 +283,11 @@ void MCGRP::load_file_info(std::string input_file, const instance_num_informatio
                 inst_arcs[i].head_node = inst_tasks[i - 2 * nonreq_edge_num].head_node;
                 inst_arcs[i].tail_node = inst_tasks[i - 2 * nonreq_edge_num].tail_node;
                 inst_arcs[i].trav_cost = inst_tasks[i - 2 * nonreq_edge_num].trave_cost;
+                inst_arcs[i].trav_time = inst_tasks[i - 2 * nonreq_edge_num].trave_time;
             }
         }
         else if (dummy_string == "ARC") {
-            for (int i = 0; i < 6; i++)
-                fin >> dummy_string;
+            getline(fin, dummy_string);
 
             for (int i = 2 * req_edge_num + 2 * nonreq_edge_num + req_arc_num + 1;
                  i <= 2 * req_edge_num + 2 * nonreq_edge_num + req_arc_num + nonreq_arc_num; i++) {
@@ -289,6 +301,9 @@ void MCGRP::load_file_info(std::string input_file, const instance_num_informatio
 
                 fin >> dummy_string;
                 inst_arcs[i].trav_cost = stoi(dummy_string);
+
+                fin >> dummy_string;
+                inst_arcs[i].trav_time = stoi(dummy_string);
             }
         }
         else if (dummy_string == "ReN.") {
@@ -355,14 +370,14 @@ void MCGRP::load_file_info(std::string input_file, const instance_num_informatio
 
     My_Assert(total_arc_num == 2 * req_edge_num + 2 * nonreq_edge_num + req_arc_num + nonreq_arc_num,
               "arc number is not right!");
-    for (int i = 1; i <= total_arc_num; i++){
+    for (int i = 1; i <= total_arc_num; i++) {
         trav_cost[inst_arcs[i].head_node][inst_arcs[i].tail_node] = inst_arcs[i].trav_cost;
         trave_time[inst_arcs[i].head_node][inst_arcs[i].tail_node] = inst_arcs[i].trav_time;
     }
 
     My_Assert(actual_task_num == 2 * req_edge_num + req_arc_num + req_node_num,
               "tasks number is not right!");
-    for (int i = 1; i <= actual_task_num; i++){
+    for (int i = 1; i <= actual_task_num; i++) {
         serve_cost[inst_tasks[i].head_node][inst_tasks[i].tail_node] = inst_tasks[i].serv_cost;
         serve_time[inst_tasks[i].head_node][inst_tasks[i].tail_node] = inst_tasks[i].serve_time;
     }
@@ -590,7 +605,8 @@ void MCGRP::create_neighbor_lists(const int neighbor_size)
 {
     My_Assert(task_neigh_list.size() == 0, "Task neighbor list should be empty before construction!");
 
-    int nsize = min(req_edge_num + req_arc_num + req_node_num, neighbor_size);    //rescale the size of neighborhood list
+    int nsize =
+        min(req_edge_num + req_arc_num + req_node_num, neighbor_size);    //rescale the size of neighborhood list
     neigh_size = nsize;
 
     //Here I ask enough memory at the very beginning to avoid segment fault
@@ -738,10 +754,10 @@ int MCGRP::get_total_vio_load(const std::vector<int> &route_seg_load) const
 
 bool MCGRP::check_best_solution(const double total_route_length, const vector<int> &sol_seq) const
 {
-    My_Assert(valid_sol(sol_seq, total_route_length),"Wrong solution!");
     lock_guard<mutex> lk(global_mut);
     // Determines if the current solution is the best found so far.
     if ((total_route_length < best_total_route_length)) {
+        My_Assert(valid_sol(sol_seq, total_route_length), "Wrong solution!");
 
         best_total_route_length = total_route_length;
         best_sol_buff = sol_seq;
@@ -834,26 +850,26 @@ bool MCGRP::valid_sol(const vector<int> &neg_seq, const double sol_cost) const
     int drive_time = 0;
 
     for (int j = 0; j < neg_seq.size() - 1; j++) {
-        My_Assert(neg_seq[j] != 0,"solution can't has dummy task!");
+        My_Assert(neg_seq[j] != 0, "solution can't has dummy task!");
         if (neg_seq[j] < 0) {
-            valid_length += min_cost[inst_tasks[DUMMY].tail_node][inst_tasks[abs(neg_seq[j])].head_node];
-            load = inst_tasks[abs(neg_seq[j])].demand;
+            valid_length += min_cost[inst_tasks[DUMMY].tail_node][inst_tasks[-neg_seq[j]].head_node];
+            load = inst_tasks[-neg_seq[j]].demand;
 
-            drive_time = get_travel_time(DUMMY,abs(neg_seq[j]));
-            My_Assert(load <= capacity && drive_time <= inst_tasks[abs(neg_seq[j])].time_window.second,
+            drive_time = cal_arrive_time(DUMMY, -neg_seq[j],0, true);
+            My_Assert(load <= capacity && drive_time <= inst_tasks[-neg_seq[j]].time_window.second,
                       "solution violate constraints!");
         }
         else {
-            My_Assert(j != 0,"First task must be negative!");
+            My_Assert(j != 0, "First task must be negative!");
             valid_length += min_cost[inst_tasks[abs(neg_seq[j - 1])].tail_node][inst_tasks[neg_seq[j]].head_node];
             load += inst_tasks[neg_seq[j]].demand;
-            drive_time += get_travel_time(abs(neg_seq[j-1]),neg_seq[j]);
-            My_Assert(load <= capacity && drive_time <= inst_tasks[abs(neg_seq[j])].time_window.second,
+            drive_time = cal_arrive_time(abs(neg_seq[j - 1]),neg_seq[j],drive_time,true);
+
+            My_Assert(load <= capacity && drive_time <= inst_tasks[neg_seq[j]].time_window.second,
                       "solution violate constraints!");
         }
 
         valid_length += inst_tasks[abs(neg_seq[j])].serv_cost;
-        drive_time += inst_tasks[abs(neg_seq[j])].serve_time;
 
         if (neg_seq[j + 1] < 0) {
             valid_length += min_cost[inst_tasks[abs(neg_seq[j])].tail_node][inst_tasks[DUMMY].head_node];
@@ -861,14 +877,14 @@ bool MCGRP::valid_sol(const vector<int> &neg_seq, const double sol_cost) const
     }
 
     int j = neg_seq.size() - 1;
-    My_Assert(neg_seq[j] != 0,"solution can't has dummy task!");
+    My_Assert(neg_seq[j] != 0, "solution can't has dummy task!");
 
     if (neg_seq[j] < 0) {
         load = inst_tasks[abs(neg_seq[j])].demand;
 
-        drive_time = get_travel_time(DUMMY,abs(neg_seq[j]));
+        drive_time = cal_arrive_time(DUMMY,-neg_seq[j],0,true);
 
-        valid_length += min_cost[inst_tasks[DUMMY].tail_node][inst_tasks[abs(neg_seq[j])].head_node];
+        valid_length += min_cost[inst_tasks[DUMMY].tail_node][inst_tasks[-neg_seq[j]].head_node];
         My_Assert(load <= capacity && drive_time <= inst_tasks[abs(neg_seq[j])].time_window.second,
                   "solution violate constraints!");
     }
@@ -876,13 +892,13 @@ bool MCGRP::valid_sol(const vector<int> &neg_seq, const double sol_cost) const
         valid_length += min_cost[inst_tasks[abs(neg_seq[j - 1])].tail_node][inst_tasks[neg_seq[j]].head_node];
 
         load += inst_tasks[neg_seq[j]].demand;
-        drive_time += get_travel_time(abs(neg_seq[j-1]),neg_seq[j]);
+        drive_time = cal_arrive_time(abs(neg_seq[j - 1]),neg_seq[j],drive_time,true);
+
         My_Assert(load <= capacity && drive_time <= inst_tasks[abs(neg_seq[j])].time_window.second,
                   "solution violate constraints!");
     }
 
     valid_length += inst_tasks[abs(neg_seq[j])].serv_cost;
-    drive_time += inst_tasks[abs(neg_seq[j])].serve_time;
 
     valid_length += min_cost[inst_tasks[abs(neg_seq[j])].tail_node][inst_tasks[DUMMY].head_node];
     //cout << "valid length is: " << valid_length << endl;
@@ -892,16 +908,17 @@ bool MCGRP::valid_sol(const vector<int> &neg_seq, const double sol_cost) const
 
 void MCGRP::get_trave_matrix()
 {
-    for(int i = 1;i<=node_num;i++){
-        for(int j = 1;j<=node_num;j++){
-            if(shortest_path[i][j].empty()){
+    for (int i = 1; i <= node_num; i++) {
+        for (int j = 1; j <= node_num; j++) {
+            if (shortest_path[i][j].empty()) {
                 min_time[i][j] = 0;
-            }else{
+            }
+            else {
                 vector<int> start = shortest_path[i][j];
-                vector<int> end = vector<int>(start.begin() + 1,start.end());
+                vector<int> end = vector<int>(start.begin() + 1, start.end());
                 start.pop_back();
                 int sum = 0;
-                for(int k = 0; k<start.size(); k++)
+                for (int k = 0; k < start.size(); k++)
                     sum += trave_time[start[k]][end[k]];
                 My_Assert(sum % min_cost[i][j] == 0,
                           "shortest path cost and shortest path time have wrong relationship");
@@ -910,27 +927,38 @@ void MCGRP::get_trave_matrix()
         }
     }
 
-
-
 }
 
 vector<int> MCGRP::cal_arrive_time(const vector<int> &route) const
 {
-    if(route.empty())
+    if (route.empty())
         return vector<int>();
 
     vector<int> arrive_time;
     My_Assert(route.front() != DUMMY && route.back() != DUMMY,
               "invalid route!");
 
-    int drive_time = get_travel_time(DUMMY,route.front());
+    int drive_time = cal_arrive_time(DUMMY, route.front(),0,true);
     arrive_time.push_back(drive_time);
-    for(int i = 1;i<route.size();i++){
-        drive_time += inst_tasks[route[i-1]].serve_time + get_travel_time(route[i-1],route[i]);
+    for (int i = 1; i < route.size(); i++) {
+        drive_time = cal_arrive_time(route[i-1],route[i],drive_time,true);
         arrive_time.push_back(drive_time);
     }
 
     return arrive_time;
+}
+
+int MCGRP::cal_arrive_time(int source, int sink, int start, bool head_of_source) const
+{
+    int t1 = 0;
+    if(head_of_source){
+        t1 = start + inst_tasks[source].serve_time
+            + min_time[inst_tasks[source].tail_node][inst_tasks[sink].head_node];
+    }else{
+        t1 = start + min_time[inst_tasks[source].tail_node][inst_tasks[sink].head_node];
+    }
+
+    return max(inst_tasks[sink].time_window.first, t1);
 }
 
 vector<MCGRPRoute::Timetable> MCGRP::forecast_time_table(const vector<MCGRPRoute::Timetable> &old_table,
@@ -940,86 +968,89 @@ vector<MCGRPRoute::Timetable> MCGRP::forecast_time_table(const vector<MCGRPRoute
                                                          bool allow_infeasible) const
 {
 
-    if(mode == "remove"){
-        if(old_table.empty())
-            return vector<MCGRPRoute::Timetable>({{-1,-1}});
+    if (mode == "remove") {
+        if (old_table.empty())
+            return vector<MCGRPRoute::Timetable>({{-1, -1}});
 
-        vector<MCGRPRoute::Timetable> buffer{{DUMMY,0}};
+        vector<MCGRPRoute::Timetable> buffer{{DUMMY, 0}};
         int cur = 0;
-        for(;cur < old_table.size();cur++){
-            if(old_table[cur].task != tasks.front())
+        for (; cur < old_table.size(); cur++) {
+            if (old_table[cur].task != tasks.front())
                 buffer.push_back(old_table[cur]);
             else
                 break;
         }
 
-        My_Assert(cur != old_table.size(),"removed task doesn't exists!");
+        My_Assert(cur != old_table.size(), "removed task doesn't exists!");
         cur += tasks.size();
-        for(;cur < old_table.size();cur++){
-            int tmp = get_travel_time(buffer.back().task,old_table[cur].task,true);
-            if(!allow_infeasible && tmp > inst_tasks[old_table[cur].task].time_window.second)
+        for (; cur < old_table.size(); cur++) {
+            int drive_time = cal_arrive_time(buffer.back().task, old_table[cur].task,
+                                             buffer.back().arrive_time, true);
+
+            if (!allow_infeasible && drive_time > inst_tasks[old_table[cur].task].time_window.second)
                 return vector<MCGRPRoute::Timetable>();
             buffer.push_back(
-                {old_table[cur].task,max(tmp, inst_tasks[old_table[cur].task].time_window.first)});
+                {old_table[cur].task, drive_time});
         }
 
         buffer.erase(buffer.begin());
 
         return buffer;
     }
-    else if(mode.find("insert") != string::npos)
-    {
+    else if (mode.find("insert") != string::npos) {
         My_Assert(indicator_task != -1, "Wrong indicator!");
-        vector<MCGRPRoute::Timetable> buffer{{DUMMY,0}};
+        vector<MCGRPRoute::Timetable> buffer{{DUMMY, 0}};
         int cur = 0;
-        for(;cur < old_table.size();cur++){
-            if(old_table[cur].task != indicator_task)
+        for (; cur < old_table.size(); cur++) {
+            if (old_table[cur].task != indicator_task)
                 buffer.push_back(old_table[cur]);
             else
                 break;
         }
-        My_Assert(cur != old_table.size(),"indicator task doesn't exists!");
+        My_Assert(cur != old_table.size(), "indicator task doesn't exists!");
 
-        if(mode == "insert_before"){
+        if (mode == "insert_before") {
             // pass
-        }else if(mode == "insert_after"){
+        }
+        else if (mode == "insert_after") {
             buffer.push_back(old_table[cur++]);
-        }else{
-            My_Assert(false,"Unknown parameters!");
+        }
+        else {
+            My_Assert(false, "Unknown parameters!");
         }
 
-        for(int i = 0; i < tasks.size();i++){
-            int tmp = get_travel_time(buffer.back().task,tasks[i],true);
-            if(!allow_infeasible && tmp > inst_tasks[tasks[i]].time_window.second)
-                return vector<MCGRPRoute::Timetable>({{-1,-1}});
-            buffer.push_back(
-                {tasks[i],max(tmp, inst_tasks[tasks[i]].time_window.first)});
+        for (int i = 0; i < tasks.size(); i++) {
+            int drive_time = cal_arrive_time(buffer.back().task,tasks[i],
+                                             buffer.back().arrive_time,true);
+            if (!allow_infeasible && drive_time > inst_tasks[tasks[i]].time_window.second)
+                return vector<MCGRPRoute::Timetable>({{-1, -1}});
+            buffer.push_back({tasks[i], drive_time});
         }
 
-        for(;cur < old_table.size();cur++) {
-            int tmp = get_travel_time(buffer.back().task,old_table[cur].task,true);
-            if(!allow_infeasible && tmp > inst_tasks[old_table[cur].task].time_window.second)
-                return vector<MCGRPRoute::Timetable>();
+        for (; cur < old_table.size(); cur++) {
+            int drive_time = cal_arrive_time(buffer.back().task, old_table[cur].task, buffer.back().arrive_time,true);
+            if (!allow_infeasible && drive_time > inst_tasks[old_table[cur].task].time_window.second)
+                return vector<MCGRPRoute::Timetable>({{-1, -1}});
             buffer.push_back(
-                {old_table[cur].task,max(tmp, inst_tasks[old_table[cur].task].time_window.first)});
+                {old_table[cur].task, max(drive_time, inst_tasks[old_table[cur].task].time_window.first)});
         }
 
         buffer.erase(buffer.begin());
 
         return buffer;
     }
-    else
-    {
-        My_Assert(false,"Unknown parameters!");
+    else {
+        My_Assert(false, "Unknown parameters!");
         return vector<MCGRPRoute::Timetable>();
     }
 
 }
 
-int MCGRP::get_vio_time(const vector<MCGRPRoute::Timetable>& tbl) const
+int MCGRP::get_vio_time(const vector<MCGRPRoute::Timetable> &tbl) const
 {
     int ans = 0;
-    for(const auto node : tbl)
-        ans += max(node.arrive_time - inst_tasks[node.task].time_window.second,0);
+    for (const auto node : tbl)
+        ans += max(node.arrive_time - inst_tasks[node.task].time_window.second, 0);
     return ans;
 }
+

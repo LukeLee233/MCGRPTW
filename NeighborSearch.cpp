@@ -2646,7 +2646,7 @@ void HighSpeedNeighBorSearch::trace(const MCGRP &mcgrp){
 
         vector<int> negative_coding_sol;
         if(cur_solution_cost < mcgrp.best_total_route_length){
-            negative_coding_sol = get_negative_coding(get_solution());
+            negative_coding_sol =get_solution("negative");
         }
 
         mcgrp.check_best_solution(cur_solution_cost, negative_coding_sol);
