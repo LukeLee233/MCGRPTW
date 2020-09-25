@@ -363,6 +363,7 @@ bool Presert::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
     const int u_route = ns.solution[u]->route_id;
 
     double vio_load_delta = 0;
+    bool allow_infeasible = false;
     if (u_route != i_route) {
         if (ns.policy.has_rule(DELTA_ONLY)) {
             if (ns.routes[i_route]->load + mcgrp.inst_tasks[u].demand > mcgrp.capacity) {
@@ -371,6 +372,7 @@ bool Presert::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
             }
         }
         else if (ns.policy.has_rule(FITNESS_ONLY)) {
+            allow_infeasible = true;
             //i_route vio-load calculate
             if (ns.routes[i_route]->load + mcgrp.inst_tasks[u].demand > mcgrp.capacity) {
                 //if insert task to route i and over load
@@ -431,13 +433,31 @@ bool Presert::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
         double delta = i_delta + u_delta;
         const double delta1 = i_delta1 + u_delta;
 
-        if (delta1 < delta) {
+        auto new_time_tbl = expected_time_table(ns,mcgrp,u,u,i,allow_infeasible);
+        auto new_time_tbl_tilde = expected_time_table(ns,mcgrp,u,u_tilde,i,allow_infeasible);
+
+
+        if(mcgrp.isTimetableFeasible(new_time_tbl[0]) && mcgrp.isTimetableFeasible(new_time_tbl_tilde[0])){
+            if (delta1 < delta) {
+                u = u_tilde;
+                i_delta = i_delta1;
+                delta = delta1;
+                new_time_tbl = new_time_tbl_tilde;
+            }
+        }
+        else if(mcgrp.isTimetableFeasible(new_time_tbl[0])){
+            // pass
+        }
+        else if(mcgrp.isTimetableFeasible(new_time_tbl_tilde[0])) {
             u = u_tilde;
             i_delta = i_delta1;
             delta = delta1;
+            new_time_tbl = new_time_tbl_tilde;
         }
-
-
+        else{
+            move_result.reset();
+            return false;
+        }
 
         // Check if we need to reduce the # of routes here
         // The original u route only has task u itself
@@ -474,6 +494,8 @@ bool Presert::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
 
             move_result.considerable = true;
 
+            move_result.route_time_tbl.emplace_back(new_time_tbl[0]);
+            move_result.vio_time_delta = mcgrp.get_vio_time(move_result.route_time_tbl[0]);
             return true;
         }
         else {
@@ -509,6 +531,10 @@ bool Presert::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
 
             move_result.considerable = true;
 
+            move_result.route_time_tbl = new_time_tbl;
+            move_result.vio_time_delta =
+                mcgrp.get_vio_time(move_result.route_time_tbl[0])
+                    + mcgrp.get_vio_time(move_result.route_time_tbl[1]);
             return true;
         }
 
@@ -531,6 +557,15 @@ bool Presert::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
         const double i_delta = hu + ui - hi + mcgrp.inst_tasks[u].serv_cost;
 
         const double delta = u_delta + i_delta;
+
+        auto new_time_tbl = expected_time_table(ns,mcgrp,u,u,i,allow_infeasible);
+
+        if(mcgrp.isTimetableFeasible(new_time_tbl[0])){
+            // pass
+        }else{
+            move_result.reset();
+            return false;
+        }
 
         // Check if we need to reduce the # of routes here
         // The original u route only has task u itself
@@ -566,6 +601,8 @@ bool Presert::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
 
             move_result.considerable = true;
 
+            move_result.route_time_tbl.emplace_back(new_time_tbl[0]);
+            move_result.vio_time_delta = mcgrp.get_vio_time(move_result.route_time_tbl[0]);
             return true;
         }
         else {
@@ -601,6 +638,10 @@ bool Presert::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
 
             move_result.considerable = true;
 
+            move_result.route_time_tbl = new_time_tbl;
+            move_result.vio_time_delta =
+                mcgrp.get_vio_time(move_result.route_time_tbl[0])
+                    + mcgrp.get_vio_time(move_result.route_time_tbl[1]);
             return true;
         }
 
@@ -648,6 +689,8 @@ void Presert::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
 
             ns.routes[i_route]->num_customers = move_result.route_custs_num[1];
 
+            ns.routes[i_route]->time_table = move_result.route_time_tbl[1];
+
             ns.solution[actual_u]->route_id = i_route;
 
             if(ns.solution[i]->pre->ID < 0){
@@ -693,6 +736,8 @@ void Presert::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
 
                 ns.routes[route_id]->length = move_result.route_lens[0];
 
+                ns.routes[route_id]->time_table = move_result.route_time_tbl[0];
+
                 if(ns.solution[original_u]->pre->ID < 0){
                     ns.routes[route_id]->start = ns.solution[original_u]->next->ID;
                 }
@@ -722,6 +767,9 @@ void Presert::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
 
                 ns.routes[u_route]->num_customers = move_result.route_custs_num[0];
                 ns.routes[i_route]->num_customers = move_result.route_custs_num[1];
+
+                ns.routes[u_route]->time_table = move_result.route_time_tbl[0];
+                ns.routes[i_route]->time_table = move_result.route_time_tbl[1];
 
                 if(ns.solution[original_u]->pre->ID < 0){
                     ns.routes[u_route]->start = ns.solution[original_u]->next->ID;
@@ -775,6 +823,8 @@ void Presert::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
 
             ns.routes[i_route]->num_customers = move_result.route_custs_num[1];
 
+            ns.routes[i_route]->time_table = move_result.route_time_tbl[1];
+
             ns.solution[actual_u]->route_id = i_route;
 
             if(ns.solution[i]->pre->ID < 0){
@@ -820,6 +870,8 @@ void Presert::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
 
                 ns.routes[route_id]->length = move_result.route_lens[0];
 
+                ns.routes[route_id]->time_table = move_result.route_time_tbl[0];
+
                 if(ns.solution[actual_u]->pre->ID < 0){
                     ns.routes[route_id]->start = ns.solution[actual_u]->next->ID;
                 }
@@ -847,6 +899,9 @@ void Presert::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
 
                 ns.routes[u_route]->num_customers = move_result.route_custs_num[0];
                 ns.routes[i_route]->num_customers = move_result.route_custs_num[1];
+
+                ns.routes[u_route]->time_table = move_result.route_time_tbl[0];
+                ns.routes[i_route]->time_table = move_result.route_time_tbl[1];
 
                 ns.solution[actual_u]->route_id = i_route;
 
@@ -880,6 +935,7 @@ void Presert::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
     //modify global info
     ns.cur_solution_cost += move_result.delta;
     ns.total_vio_load += move_result.vio_load_delta;
+    ns.total_vio_time += move_result.vio_time_delta;
     My_Assert(ns.valid_sol(mcgrp),"Prediction wrong!");
 
     if(move_result.delta == 0){
@@ -888,4 +944,39 @@ void Presert::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
 
     move_result.reset();
     ns.search_step++;
+}
+
+vector<vector<MCGRPRoute::Timetable>> Presert::expected_time_table(HighSpeedNeighBorSearch &ns,
+                                                                   const MCGRP &mcgrp,
+                                                                   int u,
+                                                                   int u_tilde,
+                                                                   const int i,
+                                                                   bool allow_infeasible)
+{
+    vector<vector<MCGRPRoute::Timetable>>
+        res(2,vector<MCGRPRoute::Timetable>({{-1,-1}}));
+
+    const int i_route = ns.solution[i]->route_id;
+    const int u_route = ns.solution[u]->route_id;
+
+    auto intermediate = mcgrp.forecast_time_table(ns.routes[u_route]->time_table,
+                                                  {u},"remove",-1 ,allow_infeasible);
+
+    if(intermediate.front().task == -1){
+        return res;
+    }
+
+    u = u_tilde;
+    auto final = mcgrp.forecast_time_table(intermediate,
+                                           {u},"insert_before",i,allow_infeasible);
+
+    if(final.front().task == -1){
+        return res;
+    }
+
+    // 0 for u_route, 1 for i_route
+    res[0] = intermediate;
+    res[1] = final;
+
+    return res;
 }
