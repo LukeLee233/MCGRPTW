@@ -956,8 +956,14 @@ Postsert::expected_time_table(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
     }
 
     u = u_tilde;
-    auto final = mcgrp.forecast_time_table(intermediate,
-                                           {u},"insert_after",i,allow_infeasible);
+    vector<MCGRPRoute::Timetable> final;
+    if(u_route == i_route){
+        final = mcgrp.forecast_time_table(intermediate,
+                                          {u},"insert_after",i,allow_infeasible);
+    }else{
+        final = mcgrp.forecast_time_table(ns.routes[i_route]->time_table,
+                                          {u},"insert_after",i,allow_infeasible);
+    }
 
     if(final.front().task == -1){
         return res;
