@@ -947,9 +947,10 @@ vector<MCGRPRoute::Timetable> MCGRP::forecast_time_table(const vector<MCGRPRoute
         vector<MCGRPRoute::Timetable> buffer{{DUMMY,0}};
         int cur = 0;
         for(;cur < old_table.size();cur++){
-            if(old_table[cur].task != tasks.front()){
+            if(old_table[cur].task != tasks.front())
                 buffer.push_back(old_table[cur]);
-            }
+            else
+                break;
         }
 
         My_Assert(cur != old_table.size(),"removed task doesn't exists!");
@@ -972,9 +973,10 @@ vector<MCGRPRoute::Timetable> MCGRP::forecast_time_table(const vector<MCGRPRoute
         vector<MCGRPRoute::Timetable> buffer{{DUMMY,0}};
         int cur = 0;
         for(;cur < old_table.size();cur++){
-            if(old_table[cur].task != indicator_task){
+            if(old_table[cur].task != indicator_task)
                 buffer.push_back(old_table[cur]);
-            }
+            else
+                break;
         }
         My_Assert(cur != old_table.size(),"indicator task doesn't exists!");
 
