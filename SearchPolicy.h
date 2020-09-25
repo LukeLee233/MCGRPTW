@@ -53,6 +53,7 @@ public:
 
     inline void set(bitset<RULES> _policy){current_policy = _policy;};
 
+    double getFitnessDelta(const MCGRPMOVE& move_result);
 
     /*!
  * test policy whether has a given rule

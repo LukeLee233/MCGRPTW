@@ -4,12 +4,18 @@
 
 #include "SearchPolicy.h"
 
+double Policy::getFitnessDelta(const MCGRPMOVE &move_result) {
+    My_Assert(beta != MAX(beta), "beta is undefined!");
+    return move_result.delta + beta * (move_result.vio_load_delta + move_result.vio_time_delta);
+}
 
 bool Policy::check_move(const MCGRPMOVE &move_result)
 {
     //To control the frequency
     static int count = 0;
     static bool flag = true;
+
+
 
     /*----------------------------Feasible search policy------------------------------------*/
     if (has_rule(DELTA_ONLY)) {
@@ -37,10 +43,8 @@ bool Policy::check_move(const MCGRPMOVE &move_result)
 
     /*----------------------------Infeasible search policy------------------------------------*/
     else if (has_rule(FITNESS_ONLY)) {
-        My_Assert(beta != MAX(beta), "beta is undefined!");
-        double delta_fitness;
+        double delta_fitness = getFitnessDelta(move_result);
 
-        delta_fitness = move_result.delta + beta * move_result.vio_load_delta;
         if ((has_rule(DOWNHILL)))
             return delta_fitness <= 0;
         else if (has_rule(TOLERANCE)) {
@@ -74,13 +78,10 @@ bool Policy::check_result(const MCGRPMOVE &M1, const MCGRPMOVE &M2)
         return M1.new_total_route_length < M2.new_total_route_length;
     }
     else if (has_rule(FITNESS_ONLY)) {
-        if(M2.considerable == false){
+        if(!M2.considerable){
             return true;
         }
-        My_Assert(beta != MAX(beta), "beta is undefined!");
 
-        double M1_fitness = M1.delta + beta * M1.vio_load_delta;
-        double M2_fitness = M2.delta + beta * M2.vio_load_delta;
-        return M1_fitness < M2_fitness;
+        return getFitnessDelta(M1) < getFitnessDelta(M2);
     }
 }

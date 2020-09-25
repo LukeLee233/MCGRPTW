@@ -171,11 +171,38 @@ public:
      */
     bool valid_sol(const std::vector<int> &neg_seq, const double sol_cost) const;
 
-    int get_travel_time(int source_task,int sink_task) const;
+    int get_travel_time(int source_task,int sink_task,bool with_serve = false) const;
 
     vector<int> cal_arrive_time(const vector<int>& route) const;
+
+    /*!
+     * forecast the time table when modify the serve sequence
+     * @param old_table
+     * @param tasks
+     * @param indicator_task
+     * @param mode: 1. "insert_before": insert tasks in the route before a task
+     *              2. "insert_after": insert tasks in the route after a task
+     *              3. "remove": remove tasks in the route
+     * @return:     {-1,-1} for infeasible time table
+     */
+    vector<MCGRPRoute::Timetable> forecast_time_table(const vector<MCGRPRoute::Timetable>& old_table,
+                                                      const vector<int>& tasks,
+                                                      string mode, int indicator_task = -1,
+                                                      bool allow_infeasible = false) const;
+
+    bool isTimetableFeasible(const vector<MCGRPRoute::Timetable> tbl) const;
+
+    int get_vio_time(const vector<MCGRPRoute::Timetable>& tbl) const;
 };
 
-inline int MCGRP::get_travel_time(int source_task, int sink_task) const {
-    return min_time[inst_tasks[source_task].tail_node][inst_tasks[sink_task].head_node];
+inline int MCGRP::get_travel_time(int source_task, int sink_task, bool with_serve) const {
+    if(!with_serve)
+        return min_time[inst_tasks[source_task].tail_node][inst_tasks[sink_task].head_node];
+    else
+        return inst_tasks[source_task].serve_time +
+            min_time[inst_tasks[source_task].tail_node][inst_tasks[sink_task].head_node];
+}
+
+inline bool MCGRP::isTimetableFeasible(const vector<MCGRPRoute::Timetable> tbl) const {
+    return tbl.empty() || tbl.front().task != -1;
 }

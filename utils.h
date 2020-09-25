@@ -243,6 +243,7 @@ public:
 
     double new_total_route_length;
     double vio_load_delta;
+    int vio_time_delta;
     vector<int> move_arguments;
 
     int num_affected_routes;
@@ -251,6 +252,8 @@ public:
     vector<int> route_custs_num;
 
     vector<double> route_lens;
+    vector<vector<MCGRPRoute::Timetable>> route_time_tbl;
+
     NeighborOperator move_type;
 
 
@@ -265,6 +268,7 @@ public:
             std::numeric_limits<identity<decltype(MCGRPMOVE::new_total_route_length)>::type>::max();
 
         vio_load_delta = 0;
+        vio_time_delta = 0;
     };
 
     MCGRPMOVE(NeighborOperator _move_type)
@@ -278,6 +282,7 @@ public:
         seq1_cus_num = -1;
         seq2_cus_num = -1;
         vio_load_delta = 0;
+        vio_time_delta = 0;
     }
 
     void choose_tasks(int _task1, int _task2)
@@ -297,6 +302,7 @@ public:
             total_number_of_routes = 0;
             delta = 0;
             vio_load_delta = 0;
+            vio_time_delta = 0;
             new_total_route_length =
                 std::numeric_limits<identity<decltype(MCGRPMOVE::new_total_route_length)>::type>::max();
             move_arguments.clear();
@@ -305,6 +311,7 @@ public:
             route_loads.clear();
             route_id.clear();
             route_custs_num.clear();
+            route_time_tbl.clear();
 
             route_lens.clear();
             considerable = false;

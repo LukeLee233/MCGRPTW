@@ -933,3 +933,91 @@ vector<int> MCGRP::cal_arrive_time(const vector<int> &route) const
     return arrive_time;
 }
 
+vector<MCGRPRoute::Timetable> MCGRP::forecast_time_table(const vector<MCGRPRoute::Timetable> &old_table,
+                                                         const vector<int> &tasks,
+                                                         string mode,
+                                                         int indicator_task,
+                                                         bool allow_infeasible) const
+{
+
+    if(mode == "remove"){
+        if(old_table.empty())
+            return vector<MCGRPRoute::Timetable>({{-1,-1}});
+
+        vector<MCGRPRoute::Timetable> buffer{{DUMMY,0}};
+        int cur = 0;
+        for(;cur < old_table.size();cur++){
+            if(old_table[cur].task != tasks.front()){
+                buffer.push_back(old_table[cur]);
+            }
+        }
+
+        My_Assert(cur != old_table.size(),"removed task doesn't exists!");
+        cur += tasks.size();
+        for(;cur < old_table.size();cur++){
+            int tmp = get_travel_time(buffer.back().task,old_table[cur].task,true);
+            if(!allow_infeasible && tmp > inst_tasks[old_table[cur].task].time_window.second)
+                return vector<MCGRPRoute::Timetable>();
+            buffer.push_back(
+                {old_table[cur].task,max(tmp, inst_tasks[old_table[cur].task].time_window.first)});
+        }
+
+        buffer.erase(buffer.begin());
+
+        return buffer;
+    }
+    else if(mode.find("insert") != string::npos)
+    {
+        My_Assert(indicator_task != -1, "Wrong indicator!");
+        vector<MCGRPRoute::Timetable> buffer{{DUMMY,0}};
+        int cur = 0;
+        for(;cur < old_table.size();cur++){
+            if(old_table[cur].task != indicator_task){
+                buffer.push_back(old_table[cur]);
+            }
+        }
+        My_Assert(cur != old_table.size(),"indicator task doesn't exists!");
+
+        if(mode == "insert_before"){
+            // pass
+        }else if(mode == "insert_after"){
+            buffer.push_back(old_table[cur++]);
+        }else{
+            My_Assert(false,"Unknown parameters!");
+        }
+
+        for(int i = 0; i < tasks.size();i++){
+            int tmp = get_travel_time(buffer.back().task,tasks[i],true);
+            if(!allow_infeasible && tmp > inst_tasks[tasks[i]].time_window.second)
+                return vector<MCGRPRoute::Timetable>({{-1,-1}});
+            buffer.push_back(
+                {tasks[i],max(tmp, inst_tasks[tasks[i]].time_window.first)});
+        }
+
+        for(;cur < old_table.size();cur++) {
+            int tmp = get_travel_time(buffer.back().task,old_table[cur].task,true);
+            if(!allow_infeasible && tmp > inst_tasks[old_table[cur].task].time_window.second)
+                return vector<MCGRPRoute::Timetable>();
+            buffer.push_back(
+                {old_table[cur].task,max(tmp, inst_tasks[old_table[cur].task].time_window.first)});
+        }
+
+        buffer.erase(buffer.begin());
+
+        return buffer;
+    }
+    else
+    {
+        My_Assert(false,"Unknown parameters!");
+        return vector<MCGRPRoute::Timetable>();
+    }
+
+}
+
+int MCGRP::get_vio_time(const vector<MCGRPRoute::Timetable>& tbl) const
+{
+    int ans = 0;
+    for(const auto node : tbl)
+        ans += max(node.arrive_time - inst_tasks[node.task].time_window.second,0);
+    return ans;
+}
