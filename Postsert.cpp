@@ -293,9 +293,9 @@ void Postsert::move(NeighBorSearch &ns, const MCGRP &mcgrp)
     DEBUG_PRINT("execute a single insert:postsert move");
 
     My_Assert(move_result.considerable,"Invalid predictions");
-    //  Indeed, I don't the previous implemantation is good,
+    //  Indeed, I don't the previous implementation is good,
     //  since you have to care too much about the special cases, which is too redundant.
-    //  A better solution I think is to rebuild the correnponding delimiter coding format
+    //  A better solution I think is to rebuild the corresponding delimiter coding format
     //  then use negative decoding to get result :).
 
     Individual individual;
