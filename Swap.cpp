@@ -2002,6 +2002,7 @@ bool NewSwap::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
             case 3:
                 u = u_tilde;
                 i = i_tilde;
+                break;
             default:
                 My_Assert(false,"unknown cases!");
         }
