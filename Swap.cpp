@@ -1956,7 +1956,7 @@ bool NewSwap::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
         delta_tmp[2][0] = u_delta_base + ti + iv + mcgrp.inst_tasks[i].serv_cost;
         delta_tmp[2][1] = i_delta_base + hu_tilde + u_tildej + mcgrp.inst_tasks[u_tilde].serv_cost;
         time_tbl[2] = expected_time_table(ns,mcgrp,u,u_tilde,i,i,allow_infeasible);
-        if(!mcgrp.isTimetableFeasible(time_tbl[1][0])){
+        if(!mcgrp.isTimetableFeasible(time_tbl[2][0])){
             delta_tmp[2][0] = 1e20;
             delta_tmp[2][1] = 1e20;
         }
