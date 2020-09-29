@@ -494,7 +494,7 @@ bool Presert::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
 
             move_result.considerable = true;
 
-            move_result.route_time_tbl.emplace_back(new_time_tbl[1]);
+            move_result.route_time_tbl.emplace_back(new_time_tbl[0]);
             move_result.vio_time_delta = mcgrp.get_vio_time(move_result.route_time_tbl[0]);
             return true;
         }
@@ -601,7 +601,7 @@ bool Presert::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
 
             move_result.considerable = true;
 
-            move_result.route_time_tbl.emplace_back(new_time_tbl[1]);
+            move_result.route_time_tbl.emplace_back(new_time_tbl[0]);
             move_result.vio_time_delta = mcgrp.get_vio_time(move_result.route_time_tbl[0]);
             return true;
         }
@@ -971,6 +971,7 @@ vector<vector<MCGRPRoute::Timetable>> Presert::expected_time_table(HighSpeedNeig
     if(u_route == i_route){
         final = mcgrp.forecast_time_table(intermediate,
                                                {u},"insert_before",i,allow_infeasible);
+        intermediate = final;
     }else{
         final = mcgrp.forecast_time_table(ns.routes[i_route]->time_table,
                                           {u},"insert_before",i,allow_infeasible);

@@ -492,7 +492,7 @@ bool Postsert::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp
 
             move_result.considerable = true;
 
-            move_result.route_time_tbl.emplace_back(new_time_tbl[1]);
+            move_result.route_time_tbl.emplace_back(new_time_tbl[0]);
             move_result.vio_time_delta = mcgrp.get_vio_time(move_result.route_time_tbl[0]);
             return true;
         }
@@ -598,7 +598,7 @@ bool Postsert::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp
 
             move_result.considerable = true;
 
-            move_result.route_time_tbl.emplace_back(new_time_tbl[1]);
+            move_result.route_time_tbl.emplace_back(new_time_tbl[0]);
             move_result.vio_time_delta = mcgrp.get_vio_time(move_result.route_time_tbl[0]);
             return true;
         }
@@ -960,6 +960,7 @@ Postsert::expected_time_table(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
     if(u_route == i_route){
         final = mcgrp.forecast_time_table(intermediate,
                                           {u},"insert_after",i,allow_infeasible);
+        intermediate = final;
     }else{
         final = mcgrp.forecast_time_table(ns.routes[i_route]->time_table,
                                           {u},"insert_after",i,allow_infeasible);
