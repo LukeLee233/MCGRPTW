@@ -76,5 +76,8 @@ public:
 
     void move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp);
 
+    vector<vector<MCGRPRoute::Timetable>> expected_time_table(HighSpeedNeighBorSearch &ns,const MCGRP &mcgrp,
+                                                              int u,int u_tilde, int i, int i_tilde, bool allow_infeasible);
+
     void unit_test(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp);
 };

@@ -1314,7 +1314,7 @@ bool NewSwap::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
     u_route = ns.solution[u]->route_id;
     i_route = ns.solution[i]->route_id;
 
-    // can check feasibility easily
+    // check load legality
     int u_load_delta = 0;
     int i_load_delta = 0;
     double vio_load_delta = 0;
@@ -1406,6 +1406,8 @@ bool NewSwap::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
     double i_delta = 0;
 
     double delta = 0;
+    vector<vector<MCGRPRoute::Timetable>> new_time_tbl{{{-1,-1}}};
+    bool allow_infeasible = ns.policy.has_rule(FITNESS_ONLY) ? true : false;
 
     if(j == u){
         //...h-i-u-v...
@@ -1414,6 +1416,7 @@ bool NewSwap::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
         My_Assert(t == i,"t task must be equal with i task!");
 
         double deltas[4];
+        vector<vector<MCGRPRoute::Timetable>> time_tbl[4];
         if (mcgrp.is_edge(u) && mcgrp.is_edge(i)) {
             const int u_tilde = mcgrp.inst_tasks[u].inverse;
             const int i_tilde = mcgrp.inst_tasks[i].inverse;
@@ -1439,29 +1442,47 @@ bool NewSwap::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
             //add new connections secondly
             //...h-u-i-v...
             deltas[0] = hu + mcgrp.inst_tasks[u].serv_cost + ui + mcgrp.inst_tasks[i].serv_cost + iv;
+            time_tbl[0] = expected_time_table(ns,mcgrp,u,u,i,i,allow_infeasible);
+            if(!mcgrp.isTimetableFeasible(time_tbl[0][0]))
+                deltas[0] = 1e20;
 
             //...h-u-i_tilde-v...
             deltas[1] = hu + mcgrp.inst_tasks[u].serv_cost + ui_tilde + mcgrp.inst_tasks[i_tilde].serv_cost + i_tildev;
+            time_tbl[1] = expected_time_table(ns,mcgrp,u,u,i,i_tilde,allow_infeasible);
+            if(!mcgrp.isTimetableFeasible(time_tbl[1][0]))
+                deltas[1] = 1e20;
 
             //...h-u_tilde-i-v...
             deltas[2] = hu_tilde + mcgrp.inst_tasks[u_tilde].serv_cost + u_tildei + mcgrp.inst_tasks[i].serv_cost + iv;
+            time_tbl[2] = expected_time_table(ns,mcgrp,u,u_tilde,i,i,allow_infeasible);
+            if(!mcgrp.isTimetableFeasible(time_tbl[2][0]))
+                deltas[2] = 1e20;
 
             //...h-u_tilde-i_tilde-v...
             deltas[3] = hu_tilde + mcgrp.inst_tasks[u_tilde].serv_cost + u_tildei_tilde + mcgrp.inst_tasks[i_tilde].serv_cost + i_tildev;
+            time_tbl[3] = expected_time_table(ns,mcgrp,u,u_tilde,i,i_tilde,allow_infeasible);
+            if(!mcgrp.isTimetableFeasible(time_tbl[3][0]))
+                deltas[3] = 1e20;
 
-            int cases = 0;
-            double best_delta = deltas[0];
-            for(int cursor = 1;cursor<4;cursor++){
+            int cases = -1;
+            double best_delta = 1e20;
+            for(int cursor = 0;cursor<4 ;cursor++){
                 if(deltas[cursor] < best_delta){
                     cases = cursor;
                     best_delta = deltas[cursor];
+                    new_time_tbl = time_tbl[cursor];
                 }
             }
 
-            delta = best_delta + base;
+            if(best_delta == 1e20){
+                delta = best_delta;
+            }else{
+                delta = best_delta + base;
+            }
 
             //decide which task should be swapped finally
             switch (cases){
+                case -1:
                 case 0:
                     u = u;
                     i = i;
@@ -1504,23 +1525,37 @@ bool NewSwap::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
             //add new connections secondly
             //...h-u-i-v...
             deltas[0] = hu + mcgrp.inst_tasks[u].serv_cost + ui + mcgrp.inst_tasks[i].serv_cost + iv;
+            time_tbl[0] = expected_time_table(ns,mcgrp,u,u,i,i,allow_infeasible);
+            if(!mcgrp.isTimetableFeasible(time_tbl[0][0]))
+                deltas[0] = 1e20;
+
 
             //...h-u_tilde-i-v...
             deltas[1] = hu_tilde + mcgrp.inst_tasks[u_tilde].serv_cost + u_tildei + mcgrp.inst_tasks[i].serv_cost + iv;
+            time_tbl[1] = expected_time_table(ns,mcgrp,u,u_tilde,i,i,allow_infeasible);
+            if(!mcgrp.isTimetableFeasible(time_tbl[1][0]))
+                deltas[1] = 1e20;
 
-            int cases = 0;
-            double best_delta = deltas[0];
-            for(int cursor = 1;cursor<2;cursor++){
+
+            int cases = -1;
+            double best_delta = 1e20;
+            for(int cursor = 0;cursor<2;cursor++){
                 if(deltas[cursor] < best_delta){
                     cases = cursor;
                     best_delta = deltas[cursor];
+                    new_time_tbl = time_tbl[cursor];
                 }
             }
 
-            delta = best_delta + base;
+            if(best_delta == 1e20){
+                delta = best_delta;
+            }else{
+                delta = best_delta + base;
+            }
 
             //decide which task should be swapped finally
             switch (cases){
+                case -1:
                 case 0:
                     u = u;
                     i = i;
@@ -1554,24 +1589,37 @@ bool NewSwap::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
             //add new connections secondly
             //...h-u-i-v...
             deltas[0] = hu + mcgrp.inst_tasks[u].serv_cost + ui + mcgrp.inst_tasks[i].serv_cost + iv;
+            time_tbl[0] = expected_time_table(ns,mcgrp,u,u,i,i,allow_infeasible);
+            if(!mcgrp.isTimetableFeasible(time_tbl[0][0]))
+                deltas[0] = 1e20;
+
 
             //...h-u-i_tilde-v...
             deltas[1] = hu + mcgrp.inst_tasks[u].serv_cost + ui_tilde + mcgrp.inst_tasks[i_tilde].serv_cost + i_tildev;
+            time_tbl[1] = expected_time_table(ns,mcgrp,u,u,i,i_tilde,allow_infeasible);
+            if(!mcgrp.isTimetableFeasible(time_tbl[1][0]))
+                deltas[1] = 1e20;
 
 
-            int cases = 0;
-            double best_delta = deltas[0];
-            for(int cursor = 1;cursor<2;cursor++){
+            int cases = -1;
+            double best_delta = 1e20;
+            for(int cursor = 0;cursor<2;cursor++){
                 if(deltas[cursor] < best_delta){
                     cases = cursor;
                     best_delta = deltas[cursor];
+                    new_time_tbl = time_tbl[cursor];
                 }
             }
 
-            delta = best_delta + base;
+            if(best_delta == 1e20){
+                delta = best_delta;
+            }else{
+                delta = best_delta + base;
+            }
 
             //decide which task should be swapped finally
             switch (cases){
+                case -1:
                 case 0:
                     u = u;
                     i = i;
@@ -1598,10 +1646,21 @@ bool NewSwap::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
             //add new connections secondly
             //...h-u-i-v...
             deltas[0] = hu + mcgrp.inst_tasks[u].serv_cost + ui + mcgrp.inst_tasks[i].serv_cost + iv;
+            time_tbl[0] = expected_time_table(ns,mcgrp,u,u,i,i,allow_infeasible);
+            if(!mcgrp.isTimetableFeasible(time_tbl[0][0])){
+                deltas[0] = 1e20;
+            }
+
 
             double best_delta = deltas[0];
+            if(best_delta != 1e20)
+                new_time_tbl = time_tbl[0];
 
-            delta = best_delta + base;
+            if(best_delta == 1e20){
+                delta = best_delta;
+            }else{
+                delta = best_delta + base;
+            }
         }
     }
     else if (v == i){
@@ -1611,6 +1670,7 @@ bool NewSwap::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
         My_Assert(u == h,"u task must be equal with h task!");
 
         double deltas[4];
+        vector<vector<MCGRPRoute::Timetable>> time_tbl[4];
         if (mcgrp.is_edge(u) && mcgrp.is_edge(i)) {
             const int u_tilde = mcgrp.inst_tasks[u].inverse;
             const int i_tilde = mcgrp.inst_tasks[i].inverse;
@@ -1636,29 +1696,47 @@ bool NewSwap::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
             //add new connections secondly
             //...t-i-u-j...
             deltas[0] = ti + mcgrp.inst_tasks[i].serv_cost + iu + mcgrp.inst_tasks[u].serv_cost + uj;
+            time_tbl[0] = expected_time_table(ns,mcgrp,i,i,u,u,allow_infeasible);
+            if(!mcgrp.isTimetableFeasible(time_tbl[0][0]))
+                deltas[0] = 1e20;
 
             //...t-i-u_tilde-j...
             deltas[1] = ti + mcgrp.inst_tasks[i].serv_cost + iu_tilde + mcgrp.inst_tasks[u_tilde].serv_cost + u_tildej;
+            time_tbl[1] = expected_time_table(ns,mcgrp,i,i,u,u_tilde,allow_infeasible);
+            if(!mcgrp.isTimetableFeasible(time_tbl[1][0]))
+                deltas[1] = 1e20;
 
             //...t-i_tilde-u-j...
             deltas[2] = ti_tilde + mcgrp.inst_tasks[i_tilde].serv_cost + i_tildeu + mcgrp.inst_tasks[u].serv_cost + uj;
+            time_tbl[2] = expected_time_table(ns,mcgrp,i,i_tilde,u,u,allow_infeasible);
+            if(!mcgrp.isTimetableFeasible(time_tbl[2][0]))
+                deltas[2] = 1e20;
 
             //...t-i_tilde-u_tilde-j...
             deltas[3] = ti_tilde + mcgrp.inst_tasks[i_tilde].serv_cost + i_tildeu_tilde + mcgrp.inst_tasks[u_tilde].serv_cost + u_tildej;
+            time_tbl[3] = expected_time_table(ns,mcgrp,i,i_tilde,u,u_tilde,allow_infeasible);
+            if(!mcgrp.isTimetableFeasible(time_tbl[3][0]))
+                deltas[3] = 1e20;
 
-            int cases = 0;
-            double best_delta = deltas[0];
-            for (int cursor = 1; cursor < 4; cursor++) {
+            int cases = -1;
+            double best_delta = 1e20;
+            for (int cursor = 0; cursor < 4; cursor++) {
                 if (deltas[cursor] < best_delta) {
                     cases = cursor;
                     best_delta = deltas[cursor];
+                    new_time_tbl = time_tbl[cursor];
                 }
             }
 
-            delta = best_delta + base;
+            if(best_delta == 1e20){
+                delta = best_delta;
+            }else{
+                delta = best_delta + base;
+            }
 
             //decide which task should be swapped finally
             switch (cases) {
+                case -1:
                 case 0:i = i;
                     u = u;
                     break;
@@ -1693,23 +1771,35 @@ bool NewSwap::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
             //add new connections secondly
             //...t-i-u-j...
             deltas[0] = ti + mcgrp.inst_tasks[i].serv_cost + iu + mcgrp.inst_tasks[u].serv_cost + uj;
+            time_tbl[0] = expected_time_table(ns,mcgrp,i,i,u,u,allow_infeasible);
+            if(!mcgrp.isTimetableFeasible(time_tbl[0][0]))
+                deltas[0] = 1e20;
 
             //...t-i_tilde-u-j...
             deltas[1] = ti_tilde + mcgrp.inst_tasks[i_tilde].serv_cost + i_tildeu + mcgrp.inst_tasks[u].serv_cost + uj;
+            time_tbl[1] = expected_time_table(ns,mcgrp,i,i_tilde,u,u,allow_infeasible);
+            if(!mcgrp.isTimetableFeasible(time_tbl[1][0]))
+                deltas[1] = 1e20;
 
-            int cases = 0;
-            double best_delta = deltas[0];
-            for (int cursor = 1; cursor < 2; cursor++) {
+            int cases = -1;
+            double best_delta = 1e20;
+            for (int cursor = 0; cursor < 2; cursor++) {
                 if (deltas[cursor] < best_delta) {
                     cases = cursor;
                     best_delta = deltas[cursor];
+                    new_time_tbl = time_tbl[cursor];
                 }
             }
 
-            delta = best_delta + base;
+            if(best_delta == 1e20){
+                delta = best_delta;
+            }else{
+                delta = best_delta + base;
+            }
 
             //decide which task should be swapped finally
             switch (cases) {
+                case -1:
                 case 0:
                     i = i;
                     u = u;
@@ -1741,23 +1831,35 @@ bool NewSwap::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
             //add new connections secondly
             //...t-i-u-j...
             deltas[0] = ti + mcgrp.inst_tasks[i].serv_cost + iu + mcgrp.inst_tasks[u].serv_cost + uj;
+            time_tbl[0] = expected_time_table(ns,mcgrp,i,i,u,u,allow_infeasible);
+            if(!mcgrp.isTimetableFeasible(time_tbl[0][0]))
+                deltas[0] = 1e20;
 
             //...h-i-u_tilde-j...
             deltas[1] = ti + mcgrp.inst_tasks[i].serv_cost + iu_tilde + mcgrp.inst_tasks[u_tilde].serv_cost + u_tildej;
+            time_tbl[1] = expected_time_table(ns,mcgrp,i,i,u,u_tilde,allow_infeasible);
+            if(!mcgrp.isTimetableFeasible(time_tbl[1][0]))
+                deltas[1] = 1e20;
 
-            int cases = 0;
-            double best_delta = deltas[0];
-            for (int cursor = 1; cursor < 2; cursor++) {
+            int cases = -1;
+            double best_delta = 1e20;
+            for (int cursor = 0; cursor < 2; cursor++) {
                 if (deltas[cursor] < best_delta) {
                     cases = cursor;
                     best_delta = deltas[cursor];
+                    new_time_tbl = time_tbl[cursor];
                 }
             }
 
-            delta = best_delta + base;
+            if(best_delta == 1e20){
+                delta = best_delta;
+            }else{
+                delta = best_delta + base;
+            }
 
             //decide which task should be swapped finally
             switch (cases) {
+                case -1:
                 case 0:i = i;
                     u = u;
                     break;
@@ -1782,11 +1884,20 @@ bool NewSwap::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
             //add new connections secondly
             //...t-i-u-j...
             deltas[0] = ti + mcgrp.inst_tasks[i].serv_cost + iu + mcgrp.inst_tasks[u].serv_cost + uj;
-
+            time_tbl[0] = expected_time_table(ns,mcgrp,i,i,u,u,allow_infeasible);
+            if(!mcgrp.isTimetableFeasible(time_tbl[0][0])){
+                deltas[0] = 1e20;
+            }
 
             double best_delta = deltas[0];
+            if(best_delta != 1e20)
+                new_time_tbl = time_tbl[0];
 
-            delta = best_delta + base;
+            if(best_delta == 1e20){
+                delta = best_delta;
+            }else{
+                delta = best_delta + base;
+            }
         }
     }
     else{
@@ -1803,6 +1914,7 @@ bool NewSwap::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
             i_tilde = mcgrp.inst_tasks[i].inverse;
         }
 
+        vector<vector<MCGRPRoute::Timetable>> time_tbl[4];
         const double tu = mcgrp.min_cost[mcgrp.inst_tasks[t].tail_node][mcgrp.inst_tasks[u].head_node];
         const double uv = mcgrp.min_cost[mcgrp.inst_tasks[u].tail_node][mcgrp.inst_tasks[v].head_node];
         const double hi = mcgrp.min_cost[mcgrp.inst_tasks[h].tail_node][mcgrp.inst_tasks[i].head_node];
@@ -1818,28 +1930,86 @@ bool NewSwap::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
         const double hu_tilde = mcgrp.min_cost[mcgrp.inst_tasks[h].tail_node][mcgrp.inst_tasks[u_tilde].head_node];
         const double u_tildej = mcgrp.min_cost[mcgrp.inst_tasks[u_tilde].tail_node][mcgrp.inst_tasks[j].head_node];
 
-        u_delta = -tu - uv - mcgrp.inst_tasks[u].serv_cost;
-        if (ti + iv <= ti_tilde + i_tildev) {
-            u_delta = u_delta + ti + iv + mcgrp.inst_tasks[i].serv_cost;
-        }
-        else {
-            //choose its inverse
-            i = i_tilde;
-            u_delta = u_delta + ti_tilde + i_tildev + mcgrp.inst_tasks[i_tilde].serv_cost;
+        double u_delta_base = -tu - uv - mcgrp.inst_tasks[u].serv_cost;
+        double i_delta_base = -hi - ij - mcgrp.inst_tasks[i].serv_cost;
+        double delta_tmp[4][2]; // [...][0] for u_route, [...][1] for i_route
+
+        // u,i
+        delta_tmp[0][0] = u_delta_base + ti + iv + mcgrp.inst_tasks[i].serv_cost;
+        delta_tmp[0][1] = i_delta_base + hu + uj + mcgrp.inst_tasks[u].serv_cost;
+        time_tbl[0] = expected_time_table(ns,mcgrp,u,u,i,i,allow_infeasible);
+        if(!mcgrp.isTimetableFeasible(time_tbl[0][0])){
+            delta_tmp[0][0] = 1e20;
+            delta_tmp[0][1] = 1e20;
         }
 
-        i_delta = -hi - ij - mcgrp.inst_tasks[i].serv_cost;
-        if (hu + uj <= hu_tilde + u_tildej) {
-            i_delta = i_delta + hu + uj + mcgrp.inst_tasks[u].serv_cost;
-        }
-        else {
-            //choose its inverse
-            u = u_tilde;
-            i_delta = i_delta + hu_tilde + u_tildej + mcgrp.inst_tasks[u_tilde].serv_cost;
+        // u, i_tilde
+        delta_tmp[1][0] = u_delta_base + ti_tilde + i_tildev + mcgrp.inst_tasks[i_tilde].serv_cost;
+        delta_tmp[1][1] = i_delta_base + hu + uj + mcgrp.inst_tasks[u].serv_cost;
+        time_tbl[1] = expected_time_table(ns,mcgrp,u,u,i,i_tilde,allow_infeasible);
+        if(!mcgrp.isTimetableFeasible(time_tbl[1][0])){
+            delta_tmp[1][0] = 1e20;
+            delta_tmp[1][1] = 1e20;
         }
 
-        delta = u_delta + i_delta;
+        // u_tilde, i
+        delta_tmp[2][0] = u_delta_base + ti + iv + mcgrp.inst_tasks[i].serv_cost;
+        delta_tmp[2][1] = i_delta_base + hu_tilde + u_tildej + mcgrp.inst_tasks[u_tilde].serv_cost;
+        time_tbl[2] = expected_time_table(ns,mcgrp,u,u_tilde,i,i,allow_infeasible);
+        if(!mcgrp.isTimetableFeasible(time_tbl[1][0])){
+            delta_tmp[2][0] = 1e20;
+            delta_tmp[2][1] = 1e20;
+        }
 
+        // u_tilde,i_tilde
+        delta_tmp[3][0] = u_delta_base + ti_tilde + i_tildev + mcgrp.inst_tasks[i_tilde].serv_cost;
+        delta_tmp[3][1] = i_delta_base + hu_tilde + u_tildej + mcgrp.inst_tasks[u_tilde].serv_cost;
+        time_tbl[3] = expected_time_table(ns,mcgrp,u,u_tilde,i,i_tilde,allow_infeasible);
+        if(!mcgrp.isTimetableFeasible(time_tbl[3][0])){
+            delta_tmp[3][0] = 1e20;
+            delta_tmp[3][1] = 1e20;
+        }
+
+        delta = 1e20;
+        int cur = -1;
+        for(int k = 0; k< 4; k++){
+            if(delta_tmp[k][0] == 1e20 || delta_tmp[k][1] == 1e20)
+                continue;
+
+            if(delta_tmp[k][0] + delta_tmp[k][1] < delta){
+                u_delta = delta_tmp[k][0];
+                i_delta = delta_tmp[k][1];
+                delta = u_delta + i_delta;
+                new_time_tbl = time_tbl[k];
+                cur = k;
+            }
+        }
+
+        switch (cur) {
+            case -1:
+            case 0:
+                u = u;
+                i = i;
+                break;
+            case 1:
+                u = u;
+                i = i_tilde;
+                break;
+            case 2:
+                u = u_tilde;
+                i = i;
+                break;
+            case 3:
+                u = u_tilde;
+                i = i_tilde;
+            default:
+                My_Assert(false,"unknown cases!");
+        }
+    }
+
+    if(delta == 1e20){
+        move_result.reset();
+        return false;
     }
 
     move_result.choose_tasks(original_u, original_i);
@@ -1870,6 +2040,8 @@ bool NewSwap::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
 
         move_result.considerable = true;
 
+        move_result.route_time_tbl.emplace_back(new_time_tbl[0]);
+        move_result.vio_time_delta = mcgrp.get_vio_time(move_result.route_time_tbl[0]);
         return true;
     }
     else {
@@ -1900,6 +2072,11 @@ bool NewSwap::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
         move_result.vio_load_delta = vio_load_delta;
 
         move_result.considerable = true;
+
+        move_result.route_time_tbl = new_time_tbl;
+        move_result.vio_time_delta =
+            mcgrp.get_vio_time(move_result.route_time_tbl[0])
+                + mcgrp.get_vio_time(move_result.route_time_tbl[1]);
 
         return true;
     }
@@ -1941,6 +2118,8 @@ void NewSwap::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
 
             ns.routes[route_id]->length = move_result.route_lens[0];
 
+            ns.routes[route_id]->time_table = move_result.route_time_tbl[0];
+
             if(ns.solution[original_u]->pre->ID < 0){
                 ns.routes[route_id]->start = actual_i;
             }
@@ -1974,6 +2153,9 @@ void NewSwap::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
 
             ns.routes[u_route]->num_customers = move_result.route_custs_num[0];
             ns.routes[i_route]->num_customers = move_result.route_custs_num[1];
+
+            ns.routes[u_route]->time_table = move_result.route_time_tbl[0];
+            ns.routes[i_route]->time_table = move_result.route_time_tbl[1];
 
             if(ns.solution[original_u]->pre->ID < 0){
                 ns.routes[u_route]->start = actual_i;
@@ -2058,6 +2240,8 @@ void NewSwap::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
 
             ns.routes[route_id]->length = move_result.route_lens[0];
 
+            ns.routes[route_id]->time_table = move_result.route_time_tbl[0];
+
             if(ns.solution[original_u]->pre->ID < 0){
                 ns.routes[route_id]->start = original_i;
             }
@@ -2089,6 +2273,9 @@ void NewSwap::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
 
             ns.routes[u_route]->num_customers = move_result.route_custs_num[0];
             ns.routes[i_route]->num_customers = move_result.route_custs_num[1];
+
+            ns.routes[u_route]->time_table = move_result.route_time_tbl[0];
+            ns.routes[i_route]->time_table = move_result.route_time_tbl[1];
 
             if(ns.solution[original_u]->pre->ID < 0){
                 ns.routes[u_route]->start = original_i;
@@ -2173,6 +2360,8 @@ void NewSwap::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
 
             ns.routes[route_id]->length = move_result.route_lens[0];
 
+            ns.routes[route_id]->time_table = move_result.route_time_tbl[0];
+
             if(ns.solution[original_u]->pre->ID < 0){
                 ns.routes[route_id]->start = actual_i;
             }
@@ -2204,6 +2393,9 @@ void NewSwap::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
 
             ns.routes[u_route]->num_customers = move_result.route_custs_num[0];
             ns.routes[i_route]->num_customers = move_result.route_custs_num[1];
+
+            ns.routes[u_route]->time_table = move_result.route_time_tbl[0];
+            ns.routes[i_route]->time_table = move_result.route_time_tbl[1];
 
             if(ns.solution[original_u]->pre->ID < 0){
                 ns.routes[u_route]->start = actual_i;
@@ -2285,6 +2477,8 @@ void NewSwap::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
 
             ns.routes[route_id]->length = move_result.route_lens[0];
 
+            ns.routes[route_id]->time_table = move_result.route_time_tbl[0];
+
             if(ns.solution[original_u]->pre->ID < 0){
                 ns.routes[route_id]->start = original_i;
             }
@@ -2315,6 +2509,9 @@ void NewSwap::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
 
             ns.routes[u_route]->num_customers = move_result.route_custs_num[0];
             ns.routes[i_route]->num_customers = move_result.route_custs_num[1];
+
+            ns.routes[u_route]->time_table = move_result.route_time_tbl[0];
+            ns.routes[i_route]->time_table = move_result.route_time_tbl[1];
 
             if(ns.solution[original_u]->pre->ID < 0){
                 ns.routes[u_route]->start = original_i;
@@ -2386,6 +2583,7 @@ void NewSwap::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
     //modify global info
     ns.cur_solution_cost += move_result.delta;
     ns.total_vio_load += move_result.vio_load_delta;
+    ns.total_vio_time += move_result.vio_time_delta;
     My_Assert(ns.valid_sol(mcgrp),"Prediction wrong!");
 
     if(move_result.delta == 0){
@@ -2433,4 +2631,92 @@ void NewSwap::unit_test(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
     ns.policy.set(original_policy);
     ns.policy.beta = 0;
     ns.policy.tolerance = 0;
+}
+
+vector<vector<MCGRPRoute::Timetable>> NewSwap::expected_time_table(HighSpeedNeighBorSearch &ns,
+                                                                   const MCGRP &mcgrp,
+                                                                   int u,
+                                                                   int u_tilde,
+                                                                   int i,
+                                                                   int i_tilde,
+                                                                   bool allow_infeasible)
+{
+    vector<vector<MCGRPRoute::Timetable>>
+        res(2,vector<MCGRPRoute::Timetable>({{-1,-1}}));
+
+    const int i_route = ns.solution[i]->route_id;
+    const int u_route = ns.solution[u]->route_id;
+
+    if(u_route == i_route){
+        vector<int> route_task;
+        for(const auto& node:ns.routes[u_route]->time_table){
+            if(node.task == u){
+                route_task.push_back(i_tilde);
+            }else if(node.task == i){
+                route_task.push_back(u_tilde);
+            }else{
+                route_task.push_back(node.task);
+            }
+        }
+        vector<int> time_tbl = mcgrp.cal_arrive_time(route_task);
+        vector<MCGRPRoute::Timetable> intermediate;
+
+        My_Assert(time_tbl.size() == route_task.size(), "wrong time table");
+        for(int k = 0; k<time_tbl.size(); k++){
+            if(!allow_infeasible && time_tbl[k] > mcgrp.inst_tasks[route_task[k]].time_window.second)
+                return res;
+            intermediate.push_back({route_task[k],time_tbl[k]});
+        }
+
+        res[0] = intermediate;
+        res[1] = intermediate;
+
+        return res;
+    }
+    else{
+        vector<int> route_task_u;
+        vector<int> route_task_i;
+        for(const auto& node:ns.routes[u_route]->time_table){
+            if(node.task == u){
+                route_task_u.push_back(i_tilde);
+            }else{
+                route_task_u.push_back(node.task);
+            }
+        }
+
+        for(const auto& node:ns.routes[i_route]->time_table){
+            if(node.task == i){
+                route_task_i.push_back(u_tilde);
+            }else{
+                route_task_i.push_back(node.task);
+            }
+        }
+
+        vector<int> time_tbl_u = mcgrp.cal_arrive_time(route_task_u);
+        vector<int> time_tbl_i = mcgrp.cal_arrive_time(route_task_i);
+
+        My_Assert(time_tbl_u.size() == route_task_u.size(), "wrong time table");
+        My_Assert(time_tbl_i.size() == route_task_i.size(), "wrong time table");
+
+        vector<MCGRPRoute::Timetable> intermediate_u;
+        vector<MCGRPRoute::Timetable> intermediate_i;
+        for(int k = 0; k<time_tbl_u.size(); k++){
+            if(!allow_infeasible && time_tbl_u[k] > mcgrp.inst_tasks[route_task_u[k]].time_window.second)
+                return res;
+            intermediate_u.push_back({route_task_u[k],time_tbl_u[k]});
+        }
+
+        for(int k = 0; k<time_tbl_i.size(); k++){
+            if(!allow_infeasible && time_tbl_i[k] > mcgrp.inst_tasks[route_task_i[k]].time_window.second)
+                return res;
+            intermediate_i.push_back({route_task_i[k],time_tbl_i[k]});
+        }
+
+        res[0] = intermediate_u;
+        res[1] = intermediate_i;
+
+        return res;
+    }
+
+
 }
