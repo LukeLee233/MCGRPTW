@@ -531,7 +531,7 @@ void DoubleInsert::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
         post_move_string.move(ns,mcgrp);
     }
     else{
-        My_Assert(false,"Uknown operator");
+        My_Assert(false,"Unknown operator");
     }
 
     ns.trace(mcgrp);
@@ -550,7 +550,7 @@ void DoubleInsert::unit_test(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
     mcgrp._rng.RandPerm(task_set);    //shuffle tasks
 
     auto original_policy = ns.policy.get();
-    ns.policy.set(FIRST_ACCEPT | TOLERANCE | FITNESS_ONLY);
+    ns.policy.set(FIRST_ACCEPT | TOLERANCE | DELTA_ONLY);
     ns.policy.beta = 0.5;
     ns.policy.tolerance = 0.003;
     ns.neigh_size = mcgrp.neigh_size;
