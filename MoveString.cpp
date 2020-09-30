@@ -327,11 +327,16 @@ void MoveString::move(NeighBorSearch &ns, const MCGRP &mcgrp)
 
 
 
-bool PostMoveString::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, vector<int> disturbance_seq, const int u)
+bool
+PostMoveString::considerable_move(HighSpeedNeighBorSearch &ns,
+                                  const MCGRP &mcgrp,
+                                  vector<int> disturbance_seq,
+                                  const int u)
 {
     // task u cannot be dummy task
     My_Assert(u>=1 && u<=mcgrp.actual_task_num,"Wrong task");
-    My_Assert(all_of(disturbance_seq.begin(),disturbance_seq.end(),[&](int i){return i>=1 && i<=mcgrp.actual_task_num;}),"Wrong task");
+    My_Assert(all_of(disturbance_seq.begin(),disturbance_seq.end(),
+                     [&](int i){return i>=1 && i<=mcgrp.actual_task_num;}),"Wrong task");
 
     if(u == ns.solution[disturbance_seq.back()]->next->ID){
         // Nothing to do
@@ -384,7 +389,15 @@ bool PostMoveString::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP 
         }
     }
 
+    bool allow_infeasible = ns.policy.has_rule(FITNESS_ONLY) ? true : false;
+    vector<vector<MCGRPRoute::Timetable>> new_time_tbl{{{-1,-1}}};
 
+    new_time_tbl = expected_time_table(ns,mcgrp,disturbance_seq,u,allow_infeasible);
+
+    if(!mcgrp.isTimetableFeasible(new_time_tbl[0])){
+        move_result.reset();
+        return false;
+    }
 
     const int v = max(ns.solution[u]->next->ID, 0);
 
@@ -455,6 +468,8 @@ bool PostMoveString::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP 
 
         move_result.considerable = true;
 
+        move_result.route_time_tbl.emplace_back(new_time_tbl[0]);
+        move_result.vio_time_delta = mcgrp.get_vio_time(move_result.route_time_tbl[0]);
         return true;
     }
     else {
@@ -480,6 +495,10 @@ bool PostMoveString::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP 
 
         move_result.considerable = true;
 
+        move_result.route_time_tbl = new_time_tbl;
+        move_result.vio_time_delta =
+            mcgrp.get_vio_time(move_result.route_time_tbl[0])
+                + mcgrp.get_vio_time(move_result.route_time_tbl[1]);
         return true;
     }
 
@@ -514,6 +533,8 @@ void PostMoveString::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
         ns.routes[u_route]->load = move_result.route_loads[1];
 
         ns.routes[u_route]->num_customers = move_result.route_custs_num[1];
+
+        ns.routes[u_route]->time_table = move_result.route_time_tbl[1];
 
         for(auto task:disturbance_sequence){
             ns.solution[task]->route_id = u_route;
@@ -562,6 +583,8 @@ void PostMoveString::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
 
             ns.routes[route_id]->length = move_result.route_lens[0];
 
+            ns.routes[route_id]->time_table = move_result.route_time_tbl[0];
+
             if(ns.solution[disturbance_sequence.front()]->pre->ID < 0){
                 ns.routes[route_id]->start = ns.solution[disturbance_sequence.back()]->next->ID;
             }
@@ -589,6 +612,9 @@ void PostMoveString::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
 
             ns.routes[i_route]->num_customers = move_result.route_custs_num[0];
             ns.routes[u_route]->num_customers = move_result.route_custs_num[1];
+
+            ns.routes[i_route]->time_table = move_result.route_time_tbl[0];
+            ns.routes[u_route]->time_table = move_result.route_time_tbl[1];
 
             for(auto task:disturbance_sequence){
                 ns.solution[task]->route_id = u_route;
@@ -624,6 +650,7 @@ void PostMoveString::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
     //modify global info
     ns.cur_solution_cost += move_result.delta;
     ns.total_vio_load += move_result.vio_load_delta;
+    ns.total_vio_time += move_result.vio_time_delta;
     My_Assert(ns.valid_sol(mcgrp),"Prediction wrong!");
 
 
@@ -635,16 +662,62 @@ void PostMoveString::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
     ns.search_step++;
 }
 
+vector<vector<MCGRPRoute::Timetable>>
+PostMoveString::expected_time_table(HighSpeedNeighBorSearch &ns,
+                                    const MCGRP &mcgrp,
+                                    vector<int> &disturbance_seq,
+                                    const int i,
+                                    bool allow_infeasible)
+{
+    vector<vector<MCGRPRoute::Timetable>>
+        res(2,vector<MCGRPRoute::Timetable>({{-1,-1}}));
+
+    const int i_route = ns.solution[i]->route_id;
+    const int u_route = ns.solution[disturbance_seq.front()]->route_id;
+
+    auto intermediate = mcgrp.forecast_time_table(ns.routes[u_route]->time_table,
+                                                  disturbance_seq,"remove",-1 ,allow_infeasible);
+
+    if(!mcgrp.isTimetableFeasible(intermediate)){
+        return res;
+    }
+
+    vector<MCGRPRoute::Timetable> final;
+    if(u_route == i_route){
+        final = mcgrp.forecast_time_table(intermediate,
+                                          disturbance_seq,"insert_after",i,allow_infeasible);
+        intermediate = final;
+    }else{
+        final = mcgrp.forecast_time_table(ns.routes[i_route]->time_table,
+                                          disturbance_seq,"insert_after",i,allow_infeasible);
+    }
+
+    if(!mcgrp.isTimetableFeasible(final)){
+        return res;
+    }
+
+    // 0 for u_route, 1 for i_route
+    res[0] = intermediate;
+    res[1] = final;
+
+    return res;
+}
+
 //---------------------------------------------------------------------------------------------
 
 
 
-bool PreMoveString::considerable_move(HighSpeedNeighBorSearch &ns, const class MCGRP &mcgrp, vector<int> disturbance_seq, const int u)
+bool
+PreMoveString::considerable_move(HighSpeedNeighBorSearch &ns,
+                                 const class MCGRP &mcgrp,
+                                 vector<int> disturbance_seq,
+                                 const int u)
 {
 
     // task u cannot be dummy task
     My_Assert(u >= 1 && u <= mcgrp.actual_task_num,"Wrong task");
-    My_Assert(all_of(disturbance_seq.begin(), disturbance_seq.end(), [&](int i){return i>=1 && i<=mcgrp.actual_task_num;}), "Wrong task");
+    My_Assert(all_of(disturbance_seq.begin(), disturbance_seq.end(),
+                     [&](int i){return i>=1 && i<=mcgrp.actual_task_num;}), "Wrong task");
 
     if(u == ns.solution[disturbance_seq.front()]->pre->ID){
         // Nothing to do
@@ -697,7 +770,15 @@ bool PreMoveString::considerable_move(HighSpeedNeighBorSearch &ns, const class M
         }
     }
 
+    bool allow_infeasible = ns.policy.has_rule(FITNESS_ONLY) ? true : false;
+    vector<vector<MCGRPRoute::Timetable>> new_time_tbl{{{-1,-1}}};
 
+    new_time_tbl = expected_time_table(ns,mcgrp,disturbance_seq,u,allow_infeasible);
+
+    if(!mcgrp.isTimetableFeasible(new_time_tbl[0])){
+        move_result.reset();
+        return false;
+    }
 
     const int t = max(ns.solution[u]->pre->ID, 0);
 
@@ -771,6 +852,8 @@ bool PreMoveString::considerable_move(HighSpeedNeighBorSearch &ns, const class M
 
         move_result.considerable = true;
 
+        move_result.route_time_tbl.emplace_back(new_time_tbl[0]);
+        move_result.vio_time_delta = mcgrp.get_vio_time(move_result.route_time_tbl[0]);
         return true;
     }
     else {
@@ -796,6 +879,10 @@ bool PreMoveString::considerable_move(HighSpeedNeighBorSearch &ns, const class M
 
         move_result.considerable = true;
 
+        move_result.route_time_tbl = new_time_tbl;
+        move_result.vio_time_delta =
+            mcgrp.get_vio_time(move_result.route_time_tbl[0])
+                + mcgrp.get_vio_time(move_result.route_time_tbl[1]);
         return true;
     }
 
@@ -830,6 +917,8 @@ void PreMoveString::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
         ns.routes[u_route]->load = move_result.route_loads[1];
 
         ns.routes[u_route]->num_customers = move_result.route_custs_num[1];
+
+        ns.routes[u_route]->time_table = move_result.route_time_tbl[1];
 
         for(auto task:disturbance_sequence){
             ns.solution[task]->route_id = u_route;
@@ -878,6 +967,8 @@ void PreMoveString::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
 
             ns.routes[route_id]->length = move_result.route_lens[0];
 
+            ns.routes[route_id]->time_table = move_result.route_time_tbl[0];
+
             if(ns.solution[disturbance_sequence.front()]->pre->ID < 0){
                 ns.routes[route_id]->start = ns.solution[disturbance_sequence.back()]->next->ID;
             }
@@ -905,6 +996,9 @@ void PreMoveString::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
 
             ns.routes[i_route]->num_customers = move_result.route_custs_num[0];
             ns.routes[u_route]->num_customers = move_result.route_custs_num[1];
+
+            ns.routes[i_route]->time_table = move_result.route_time_tbl[0];
+            ns.routes[u_route]->time_table = move_result.route_time_tbl[1];
 
             for(auto task:disturbance_sequence){
                 ns.solution[task]->route_id = u_route;
@@ -940,6 +1034,7 @@ void PreMoveString::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
     //modify global info
     ns.cur_solution_cost += move_result.delta;
     ns.total_vio_load += move_result.vio_load_delta;
+    ns.total_vio_time += move_result.vio_time_delta;
     My_Assert(ns.valid_sol(mcgrp),"Prediction wrong!");
 
 
@@ -949,4 +1044,44 @@ void PreMoveString::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
 
     move_result.reset();
     ns.search_step++;
+}
+
+vector<vector<MCGRPRoute::Timetable>> PreMoveString::expected_time_table(HighSpeedNeighBorSearch &ns,
+                                                                         const MCGRP &mcgrp,
+                                                                         vector<int> &disturbance_seq,
+                                                                         const int i,
+                                                                         bool allow_infeasible)
+{
+    vector<vector<MCGRPRoute::Timetable>>
+        res(2,vector<MCGRPRoute::Timetable>({{-1,-1}}));
+
+    const int i_route = ns.solution[i]->route_id;
+    const int u_route = ns.solution[disturbance_seq.front()]->route_id;
+
+    auto intermediate = mcgrp.forecast_time_table(ns.routes[u_route]->time_table,
+                                                  disturbance_seq,"remove",-1 ,allow_infeasible);
+
+    if(!mcgrp.isTimetableFeasible(intermediate)){
+        return res;
+    }
+
+    vector<MCGRPRoute::Timetable> final;
+    if(u_route == i_route){
+        final = mcgrp.forecast_time_table(intermediate,
+                                          disturbance_seq,"insert_before",i,allow_infeasible);
+        intermediate = final;
+    }else{
+        final = mcgrp.forecast_time_table(ns.routes[i_route]->time_table,
+                                          disturbance_seq,"insert_before",i,allow_infeasible);
+    }
+
+    if(!mcgrp.isTimetableFeasible(final)){
+        return res;
+    }
+
+    // 0 for u_route, 1 for i_route
+    res[0] = intermediate;
+    res[1] = final;
+
+    return res;
 }

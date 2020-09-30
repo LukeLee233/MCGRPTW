@@ -26,7 +26,7 @@ public:
     ,presert_times(0),postsert_times(0){};
 
     /*!
-     * @details get the seccessor of the chosen task within the same route,exclude dummy task
+     * @details get the successor of the chosen task within the same route,exclude dummy task
      * @param ns
      * @param chosen_task
      * @param length
@@ -58,10 +58,9 @@ public:
 
 
     /*!
- * @details get the seccessor of the chosen task within the same route,exclude dummy task
+ * @details get the successor of the chosen task within the same route,exclude dummy task
  * @param ns
  * @param chosen_task
- * @param length
  * @return
  */
     vector<int> get_successor_tasks(HighSpeedNeighBorSearch &ns, const int chosen_task);
