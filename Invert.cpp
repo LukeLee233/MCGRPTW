@@ -6,7 +6,7 @@ using namespace std;
 
 bool Invert::search(NeighBorSearch &ns, const class MCGRP &mcgrp, int chosen_task)
 {
-    //No seach space in Invert operator, No accept rule for invert operator
+    //No search space in Invert operator, No accept rule for invert operator
     My_Assert(chosen_task != DUMMY, "Chosen task can't be dummy");
 
     if (!mcgrp.is_edge(chosen_task)) {
@@ -146,7 +146,7 @@ void Invert::unit_test(NeighBorSearch &ns, const MCGRP &mcgrp)
 
 bool Invert::search(HighSpeedNeighBorSearch &ns, const class MCGRP &mcgrp, int chosen_task)
 {
-    //No seach space in Invert operator, No accept rule for invert operator
+    //No search space in Invert operator, No accept rule for invert operator
     My_Assert(chosen_task != DUMMY, "Chosen task can't be dummy");
 
     if (!mcgrp.is_edge(chosen_task)) {
@@ -168,6 +168,8 @@ bool Invert::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, 
     My_Assert(u != DUMMY, "task u cannot be dummy task!");
     My_Assert(mcgrp.is_edge(u), "task u must be edge task!");
 
+    bool allow_infeasible = ns.policy.has_rule(FITNESS_ONLY) ? true : false;
+
     const int u_tilde = mcgrp.inst_tasks[u].inverse;
 
     int t, v;
@@ -184,6 +186,14 @@ bool Invert::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, 
         delta = -tu - uv - mcgrp.inst_tasks[u].serv_cost + tu_tilde + u_tildev + mcgrp.inst_tasks[u_tilde].serv_cost;
 
     int u_route = ns.solution[u]->route_id;
+    vector<MCGRPRoute::Timetable> new_time_tbl{{{-1,-1}}};
+
+    new_time_tbl = expected_time_table(ns,mcgrp,u,u_tilde,allow_infeasible);
+    if(!mcgrp.isTimetableFeasible(new_time_tbl)){
+        move_result.reset();
+        return false;
+    }
+
 
     move_result.choose_tasks(u, u_tilde);
 //    move_result.num_affected_routes = 1;
@@ -199,6 +209,8 @@ bool Invert::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, 
     move_result.move_arguments.push_back(u_tilde);
     move_result.considerable = true;
 
+    move_result.route_time_tbl.emplace_back(new_time_tbl);
+    move_result.vio_time_delta = mcgrp.get_vio_time(move_result.route_time_tbl[0]);
     return true;
 }
 
@@ -224,6 +236,8 @@ void Invert::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
 
     ns.routes[route_id]->length = move_result.route_lens[0];
 
+    ns.routes[route_id]->time_table = move_result.route_time_tbl[0];
+
     if(ns.solution[u]->pre->ID < 0){
         ns.routes[route_id]->start = u_tilde;
     }
@@ -248,9 +262,8 @@ void Invert::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
 
     //modify global info
     ns.cur_solution_cost += move_result.delta;
+    ns.total_vio_time += move_result.vio_time_delta;
     My_Assert(ns.valid_sol(mcgrp),"Prediction wrong!");
-
-
 
     if(move_result.delta == 0){
         ns.equal_step++;
@@ -298,3 +311,31 @@ void Invert::unit_test(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
     ns.policy.tolerance = 0;
 }
 
+vector<MCGRPRoute::Timetable>
+Invert::expected_time_table(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int u, int u_tilde, bool allow_infeasible)
+{
+    vector<MCGRPRoute::Timetable> res({{-1,-1}});
+
+    const int u_route = ns.solution[u]->route_id;
+
+    vector<int> route_task;
+    for(const auto& node:ns.routes[u_route]->time_table){
+        if(node.task == u)
+            route_task.push_back(u_tilde);
+        else
+            route_task.push_back(node.task);
+    }
+
+    vector<int> time_tbl = mcgrp.cal_arrive_time(route_task);
+    vector<MCGRPRoute::Timetable> intermediate;
+
+    My_Assert(time_tbl.size() == route_task.size(), "wrong time table");
+    for(int k = 0; k<time_tbl.size(); k++){
+        if(!allow_infeasible && time_tbl[k] > mcgrp.inst_tasks[route_task[k]].time_window.second)
+            return res;
+        intermediate.push_back({route_task[k],time_tbl[k]});
+    }
+
+    res = intermediate;
+    return res;
+}
