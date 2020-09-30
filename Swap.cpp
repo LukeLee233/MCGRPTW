@@ -481,8 +481,8 @@ bool NewSwap::search(NeighBorSearch &ns, const MCGRP &mcgrp, int chosen_task)
     }
     else {
         My_Assert(false, "Unknown accept rule");
+        return false;
     }
-
 }
 
 bool NewSwap::considerable_move(NeighBorSearch &ns, const MCGRP &mcgrp, int i, int u)
@@ -1295,8 +1295,8 @@ bool NewSwap::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen
     }
     else {
         My_Assert(false, "Unknown accept rule");
+        return false;
     }
-
 }
 
 bool NewSwap::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int i, int u)
