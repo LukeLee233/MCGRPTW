@@ -41,7 +41,7 @@ bool Flip::considerable_move(NeighBorSearch &ns, const MCGRP &mcgrp, int start_t
     vector<int> candidate_seq;
     candidate_seq.reserve(original_sequence.size());
     for (auto cursor = 0; cursor < original_sequence.size(); cursor++) {
-        //Base on probobality
+        //Base on probability
         if (mcgrp.is_edge(original_sequence[cursor]) && mcgrp._rng.Randfloat(0, 1) > 0.5) {
             candidate_seq.push_back(mcgrp.inst_tasks[original_sequence[cursor]].inverse);
         }
@@ -423,6 +423,14 @@ bool NewFlip::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
     My_Assert(all_of(candidate_seq.begin(),candidate_seq.end(),[&](int i){return i>=1 && i<=mcgrp.actual_task_num;}),"Wrong task");
     My_Assert(ns.solution[candidate_seq.front()]->route_id == ns.solution[candidate_seq.back()]->route_id,"Flip attempted using different routes!");
 
+    vector<MCGRPRoute::Timetable> new_time_tbl{{{-1,-1}}};
+    bool allow_infeasible = ns.policy.has_rule(FITNESS_ONLY) ? true : false;
+
+    if(!mcgrp.isTimetableFeasible(new_time_tbl)){
+        move_result.reset();
+        return false;
+    }
+
     move_result.choose_tasks(start_task, end_task);
     move_result.move_arguments = candidate_seq;
 
@@ -464,6 +472,8 @@ bool NewFlip::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
     move_result.new_total_route_length = ns.cur_solution_cost + move_result.delta;
     move_result.considerable = true;
 
+    move_result.route_time_tbl.emplace_back(new_time_tbl);
+    move_result.vio_time_delta = mcgrp.get_vio_time(move_result.route_time_tbl[0]);
     return true;
 }
 
@@ -482,6 +492,8 @@ void NewFlip::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp){
     //Modify routes info
     const int route_id = move_result.route_id[0];
     ns.routes[route_id]->length = move_result.route_lens[0];
+
+    ns.routes[route_id]->time_table = move_result.route_time_tbl[0];
 
     const int start_task = move_result.task1;
     const int end_task = move_result.task2;
@@ -510,6 +522,7 @@ void NewFlip::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp){
     //modify global info
     ns.cur_solution_cost += move_result.delta;
     ns.total_vio_load += move_result.vio_load_delta;
+    ns.total_vio_time += move_result.vio_time_delta;
     My_Assert(ns.valid_sol(mcgrp),"Prediction wrong!");
 
     if(move_result.delta == 0){
@@ -531,4 +544,38 @@ vector<int> NewFlip::get_sequence(HighSpeedNeighBorSearch &ns, const int start, 
     }
 
     return buffer;
+}
+
+vector<MCGRPRoute::Timetable>
+NewFlip::expected_time_table(HighSpeedNeighBorSearch &ns,
+                             const MCGRP &mcgrp,
+                             vector<int> &invert_seq,
+                             bool allow_infeasible)
+{
+    vector<MCGRPRoute::Timetable>
+    res({{-1,-1}});
+
+    const int invert_route = ns.solution[invert_seq.front()]->route_id;
+
+    vector<int> route_task;
+    for(const auto& node:ns.routes[invert_route]->time_table){
+        if(node.task == invert_seq.front())
+            break;
+        else
+            route_task.push_back(node.task);
+    }
+
+    route_task.insert(route_task.end(),invert_seq.cbegin(),invert_seq.cend());
+    vector<int> time_tbl = mcgrp.cal_arrive_time(route_task);
+
+    vector<MCGRPRoute::Timetable> intermediate;
+    My_Assert(time_tbl.size() == route_task.size(), "wrong time table");
+    for(int k = 0; k<time_tbl.size(); k++){
+        if(!allow_infeasible && time_tbl[k] > mcgrp.inst_tasks[route_task[k]].time_window.second)
+            return res;
+        intermediate.push_back({route_task[k],time_tbl[k]});
+    }
+
+    res = intermediate;
+    return res;
 }

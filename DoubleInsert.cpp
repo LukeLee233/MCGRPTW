@@ -415,7 +415,7 @@ bool DoubleInsert::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &m
     const int i = max(ns.solution[j]->pre->ID, 0);
     const int k = max(ns.solution[j]->next->ID, 0);
 
-    //suppose disturbance sequenec is dis(0)-dis(1)-dis(2)
+    //suppose disturbance sequence is dis(0)-dis(1)-dis(2)
     if(disturbance_seq.back() == i){
         //...dis(0)-dis(1)-dis(2)(i)-j-k...
         //no need to presert

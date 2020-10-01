@@ -51,5 +51,11 @@ public:
 
     bool considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int start_task, int end_task);
 
+    vector<MCGRPRoute::Timetable>
+    expected_time_table(HighSpeedNeighBorSearch &ns,
+                        const MCGRP &mcgrp,
+                        vector<int> &invert_seq,
+                        bool allow_infeasible);
+
     void move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp);
 };
