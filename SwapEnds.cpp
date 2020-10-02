@@ -441,7 +441,8 @@ struct RouteSegment
     double len;
 };
 
-RouteSegment get_segment_info(const MCGRP &mcgrp,const NeighBorSearch &ns,const int a,const int b){
+RouteSegment get_segment_info(const MCGRP &mcgrp, const NeighBorSearch &ns, const int a, const int b)
+{
     /// Calculates the length, load, and # of customers on the segment
     /// of the route between nodes a and b.  Assumes that a is before b
     /// in the route - this is not checked! closed interval
@@ -450,11 +451,10 @@ RouteSegment get_segment_info(const MCGRP &mcgrp,const NeighBorSearch &ns,const 
     /// load:   a + i + j + b
     /// #:      4
 
-    My_Assert(a != DUMMY || b != DUMMY,"can't parse two dummy tasks");
+    My_Assert(a != DUMMY || b != DUMMY, "can't parse two dummy tasks");
 
     RouteSegment buffer;
-    if (a == b)
-    {
+    if (a == b) {
         // Degenerate case...
         buffer.segment_start = b;
         buffer.segment_end = a;
@@ -471,34 +471,31 @@ RouteSegment get_segment_info(const MCGRP &mcgrp,const NeighBorSearch &ns,const 
     buffer.load = 0;
 
     // Special cases
-    if (a == DUMMY)
-    {
+    if (a == DUMMY) {
         //we want the segment dummy-i-j-...-k-b-...
-        My_Assert(b != DUMMY,"Two dummy!");
+        My_Assert(b != DUMMY, "Two dummy!");
 
         buffer.segment_start = ns.routes[ns.route_id[b]].start;
         buffer.segment_end = b;
         buffer.len += (mcgrp.inst_tasks[DUMMY].serv_cost +
             mcgrp.min_cost[mcgrp.inst_tasks[DUMMY].tail_node][mcgrp.inst_tasks[buffer.segment_start].head_node]);
     }
-    else if (b == DUMMY)
-    {
+    else if (b == DUMMY) {
         // we want the segment ...a-i-j-...-k-dummy
-        My_Assert(a != DUMMY,"Two dummy!");
+        My_Assert(a != DUMMY, "Two dummy!");
 
         buffer.segment_start = a;
         buffer.segment_end = ns.routes[ns.route_id[a]].end;
         buffer.len += (mcgrp.min_cost[mcgrp.inst_tasks[buffer.segment_end].tail_node][mcgrp.inst_tasks[DUMMY].head_node]
-                    + mcgrp.inst_tasks[DUMMY].serv_cost);
+            + mcgrp.inst_tasks[DUMMY].serv_cost);
     }
 
     // Now calculate the length, load, and # customer on this segment
     int current_task = buffer.segment_start;
 
-    while (current_task != buffer.segment_end)
-    {
+    while (current_task != buffer.segment_end) {
         int next_task = max(ns.next_array[current_task], DUMMY);
-        buffer.len += (mcgrp.inst_tasks[current_task].serv_cost+
+        buffer.len += (mcgrp.inst_tasks[current_task].serv_cost +
             mcgrp.min_cost[mcgrp.inst_tasks[current_task].tail_node][mcgrp.inst_tasks[next_task].head_node]);
 
         buffer.load += mcgrp.inst_tasks[current_task].demand;
@@ -518,7 +515,9 @@ RouteSegment get_segment_info(const MCGRP &mcgrp,const NeighBorSearch &ns,const 
     return buffer;
 }
 
-bool NewSwapEnds::considerable_move(NeighBorSearch &ns, const MCGRP &mcgrp, const int chosen_task, const int neighbor_task){
+bool
+NewSwapEnds::considerable_move(NeighBorSearch &ns, const MCGRP &mcgrp, const int chosen_task, const int neighbor_task)
+{
     /// Example: ( a & v input): VRP_DEPOT-i-a-b-j-k-l-VRP_DEPOT and VRP_DEPOT-t-u-v-w-x-y-z-VRP_DEPOT becomes
     /// VRP_DEPOT-i-a-w-x-y-z-VRP_DEPOT and VRP_DEPOT-t-u-v-b-j-k-l-VRP_DEPOT
 
@@ -527,8 +526,8 @@ bool NewSwapEnds::considerable_move(NeighBorSearch &ns, const MCGRP &mcgrp, cons
     const int a_route = ns.route_id[a];
     const int v_route = ns.route_id[v];
 
-    My_Assert(a != DUMMY && v !=DUMMY,"Swap ends called with depot; Move doesn't make sense");
-    My_Assert(a_route != v_route,"swap ends called with a and v in same route!");
+    My_Assert(a != DUMMY && v != DUMMY, "Swap ends called with depot; Move doesn't make sense");
+    My_Assert(a_route != v_route, "swap ends called with a and v in same route!");
 
     const int w = max(ns.next_array[v], DUMMY);
     const int b = max(ns.next_array[a], DUMMY);
@@ -538,10 +537,10 @@ bool NewSwapEnds::considerable_move(NeighBorSearch &ns, const MCGRP &mcgrp, cons
     const auto aw = mcgrp.min_cost[mcgrp.inst_tasks[a].tail_node][mcgrp.inst_tasks[w].head_node];
     const auto vb = mcgrp.min_cost[mcgrp.inst_tasks[v].tail_node][mcgrp.inst_tasks[b].head_node];
 
-    const double delta = - ab - vw + aw + vb;
+    const double delta = -ab - vw + aw + vb;
 
-    RouteSegment seg_a = get_segment_info(mcgrp,ns, DUMMY, a);
-    RouteSegment seg_v = get_segment_info(mcgrp,ns, DUMMY, v);
+    RouteSegment seg_a = get_segment_info(mcgrp, ns, DUMMY, a);
+    RouteSegment seg_v = get_segment_info(mcgrp, ns, DUMMY, v);
 
     const auto a_load_delta = -(ns.routes[a_route].load - seg_a.load) + (ns.routes[v_route].load - seg_v.load);
     const auto v_load_delta = -(ns.routes[v_route].load - seg_v.load) + (ns.routes[a_route].load - seg_a.load);
@@ -550,7 +549,7 @@ bool NewSwapEnds::considerable_move(NeighBorSearch &ns, const MCGRP &mcgrp, cons
     double vio_load_delta = 0;
     if (ns.policy.has_rule(DELTA_ONLY)) {
         if (ns.routes[a_route].load + a_load_delta > mcgrp.capacity
-        || ns.routes[v_route].load + v_load_delta > mcgrp.capacity) {
+            || ns.routes[v_route].load + v_load_delta > mcgrp.capacity) {
             move_result.reset();
             return false;
         }
@@ -613,8 +612,8 @@ bool NewSwapEnds::considerable_move(NeighBorSearch &ns, const MCGRP &mcgrp, cons
 
     int cur_task = ns.next_array[a];
     a_seq.push_back(a);
-    while(cur_task > DUMMY){
-        if(cur_task != mcgrp.sentinel){
+    while (cur_task > DUMMY) {
+        if (cur_task != mcgrp.sentinel) {
             a_seq.push_back(cur_task);
         }
         cur_task = ns.next_array[cur_task];
@@ -622,15 +621,15 @@ bool NewSwapEnds::considerable_move(NeighBorSearch &ns, const MCGRP &mcgrp, cons
 
     cur_task = ns.next_array[v];
     v_seq.push_back(v);
-    while(cur_task > DUMMY){
-        if(cur_task != mcgrp.sentinel) {
+    while (cur_task > DUMMY) {
+        if (cur_task != mcgrp.sentinel) {
             v_seq.push_back(cur_task);
         }
         cur_task = ns.next_array[cur_task];
     }
 
     move_result.move_arguments = a_seq;
-    move_result.move_arguments.insert(move_result.move_arguments.end(),v_seq.begin(),v_seq.end());
+    move_result.move_arguments.insert(move_result.move_arguments.end(), v_seq.begin(), v_seq.end());
 
     move_result.task1 = a;
     move_result.task2 = v;
@@ -642,30 +641,31 @@ bool NewSwapEnds::considerable_move(NeighBorSearch &ns, const MCGRP &mcgrp, cons
     return true;
 }
 
-void NewSwapEnds::move(NeighBorSearch &ns, const MCGRP &mcgrp){
+void NewSwapEnds::move(NeighBorSearch &ns, const MCGRP &mcgrp)
+{
     DEBUG_PRINT("execute a 2-opt:swap-ends move");
 
-    My_Assert(move_result.considerable,"Invalid predictions");
+    My_Assert(move_result.considerable, "Invalid predictions");
 
     const int a = move_result.task1;
     const int v = move_result.task2;
 
-    My_Assert(a != DUMMY && v != DUMMY,"cannot handle dummy tasks!");
-    My_Assert(ns.route_id[a] != ns.route_id[v],"cannot handle same route");
+    My_Assert(a != DUMMY && v != DUMMY, "cannot handle dummy tasks!");
+    My_Assert(ns.route_id[a] != ns.route_id[v], "cannot handle same route");
 
     //Extract the seq which needs swapped
     vector<int> a_seq;
     vector<int> v_seq;
 
-    My_Assert(a == move_result.move_arguments.front(),"Incorrect arguments");
+    My_Assert(a == move_result.move_arguments.front(), "Incorrect arguments");
     int i;
-    for(i = 1; move_result.move_arguments[i] != v;i++){
+    for (i = 1; move_result.move_arguments[i] != v; i++) {
         a_seq.push_back(move_result.move_arguments[i]);
     }
 
-    My_Assert(v == move_result.move_arguments[i],"Incorrect arguments");
+    My_Assert(v == move_result.move_arguments[i], "Incorrect arguments");
     i++;
-    for(;i<move_result.move_arguments.size();i++){
+    for (; i < move_result.move_arguments.size(); i++) {
         v_seq.push_back(move_result.move_arguments[i]);
     }
 
@@ -675,10 +675,10 @@ void NewSwapEnds::move(NeighBorSearch &ns, const MCGRP &mcgrp){
     My_Assert(ns.delimiter_coding_sol == individual.sequence,
               "Inconsistency between negative coding and delimiter coding.");
 
-    My_Assert(!ns.check_missed(mcgrp),"Some task has been missed!");
+    My_Assert(!ns.check_missed(mcgrp), "Some task has been missed!");
 
 
-    if(a_seq.size() > 0 && v_seq.size() > 0){
+    if (a_seq.size() > 0 && v_seq.size() > 0) {
         vector<int> first_seg;
         vector<int> middle_seg;
         vector<int> last_seg;
@@ -696,40 +696,40 @@ void NewSwapEnds::move(NeighBorSearch &ns, const MCGRP &mcgrp){
                       && v_ite_end != individual.sequence.end(),
                   "Can't find corresponding candidate tasks in sequence!");
 
-        My_Assert(v_ite_start != a_ite_start,"can't handle two same sequence!");
+        My_Assert(v_ite_start != a_ite_start, "can't handle two same sequence!");
         if (v_ite_start < a_ite_start) {
-            first_seg = vector<int>(individual.sequence.begin(),v_ite_start);
-            middle_seg = vector<int>(v_ite_end+1,a_ite_start);
-            last_seg = vector<int>(a_ite_end + 1,individual.sequence.end());
+            first_seg = vector<int>(individual.sequence.begin(), v_ite_start);
+            middle_seg = vector<int>(v_ite_end + 1, a_ite_start);
+            last_seg = vector<int>(a_ite_end + 1, individual.sequence.end());
 
             vector<int> buffer;
             buffer = first_seg;
-            buffer.insert(buffer.end(),a_seq.begin(),a_seq.end());
-            buffer.insert(buffer.end(),middle_seg.begin(),middle_seg.end());
-            buffer.insert(buffer.end(),v_seq.begin(),v_seq.end());
-            buffer.insert(buffer.end(),last_seg.begin(),last_seg.end());
+            buffer.insert(buffer.end(), a_seq.begin(), a_seq.end());
+            buffer.insert(buffer.end(), middle_seg.begin(), middle_seg.end());
+            buffer.insert(buffer.end(), v_seq.begin(), v_seq.end());
+            buffer.insert(buffer.end(), last_seg.begin(), last_seg.end());
 
             individual.sequence = buffer;
         }
         else {
-            first_seg = vector<int>(individual.sequence.begin(),a_ite_start);
-            middle_seg = vector<int>(a_ite_end+1,v_ite_start);
-            last_seg = vector<int>(v_ite_end + 1,individual.sequence.end());
+            first_seg = vector<int>(individual.sequence.begin(), a_ite_start);
+            middle_seg = vector<int>(a_ite_end + 1, v_ite_start);
+            last_seg = vector<int>(v_ite_end + 1, individual.sequence.end());
 
             vector<int> buffer;
             buffer = first_seg;
-            buffer.insert(buffer.end(),v_seq.begin(),v_seq.end());
-            buffer.insert(buffer.end(),middle_seg.begin(),middle_seg.end());
-            buffer.insert(buffer.end(),a_seq.begin(),a_seq.end());
-            buffer.insert(buffer.end(),last_seg.begin(),last_seg.end());
+            buffer.insert(buffer.end(), v_seq.begin(), v_seq.end());
+            buffer.insert(buffer.end(), middle_seg.begin(), middle_seg.end());
+            buffer.insert(buffer.end(), a_seq.begin(), a_seq.end());
+            buffer.insert(buffer.end(), last_seg.begin(), last_seg.end());
 
             individual.sequence = buffer;
         }
 
     }
-    else if (a_seq.size() == 0 && v_seq.size() > 0){
+    else if (a_seq.size() == 0 && v_seq.size() > 0) {
         DEBUG_PRINT("a sequence is empty");
-        My_Assert(a != mcgrp.sentinel,"Invalid arguments!");
+        My_Assert(a != mcgrp.sentinel, "Invalid arguments!");
 
         //task a doesn't have subsequence, just need to concatenate v's sequence after a
         const auto v_ite_start = std::find(individual.sequence.begin(), individual.sequence.end(), v_seq.front());
@@ -746,11 +746,11 @@ void NewSwapEnds::move(NeighBorSearch &ns, const MCGRP &mcgrp){
         My_Assert(a_ite_start != individual.sequence.end(),
                   "Can't find corresponding chosen task in sequence!");
 
-        individual.sequence.insert(a_ite_start+1, v_seq.begin(), v_seq.end());
+        individual.sequence.insert(a_ite_start + 1, v_seq.begin(), v_seq.end());
     }
-    else if (a_seq.size() > 0 && v_seq.size() == 0){
+    else if (a_seq.size() > 0 && v_seq.size() == 0) {
         DEBUG_PRINT("v sequence is empty");
-        My_Assert(v != mcgrp.sentinel,"Invalid arguments!");
+        My_Assert(v != mcgrp.sentinel, "Invalid arguments!");
 
         //task v doesn't have subsequence, just need to concatenate a's sequence after v
         const auto a_ite_start = std::find(individual.sequence.begin(), individual.sequence.end(), a_seq.front());
@@ -767,10 +767,10 @@ void NewSwapEnds::move(NeighBorSearch &ns, const MCGRP &mcgrp){
         My_Assert(v_ite_start != individual.sequence.end(),
                   "Can't find corresponding chosen task in sequence!");
 
-        individual.sequence.insert(v_ite_start+1, a_seq.begin(), a_seq.end());
+        individual.sequence.insert(v_ite_start + 1, a_seq.begin(), a_seq.end());
     }
-    else{
-        My_Assert(false,"Both sequences are empty this make no sense!");
+    else {
+        My_Assert(false, "Both sequences are empty this make no sense!");
     }
 
     auto prior_cost = ns.cur_solution_cost;
@@ -779,18 +779,18 @@ void NewSwapEnds::move(NeighBorSearch &ns, const MCGRP &mcgrp){
     ns.unpack_seq(individual.sequence, mcgrp);
     ns.delimiter_coding_sol = get_delimiter_coding(ns.negative_coding_sol);
 
-    My_Assert(prior_cost + move_result.delta == ns.cur_solution_cost,"Wrong prediction!");
+    My_Assert(prior_cost + move_result.delta == ns.cur_solution_cost, "Wrong prediction!");
 
-    if(ns.policy.has_rule(DELTA_ONLY)){
-        My_Assert(ns.total_vio_load == 0,"You can't generate an infeasible solution in the feasible search!");
+    if (ns.policy.has_rule(DELTA_ONLY)) {
+        My_Assert(ns.total_vio_load == 0, "You can't generate an infeasible solution in the feasible search!");
     }
 
 
-    if(ns.cur_solution_cost == prior_cost){
+    if (ns.cur_solution_cost == prior_cost) {
         ns.equal_step++;
     }
 
-    My_Assert(!ns.check_missed(mcgrp),"Some task has been missed!");
+    My_Assert(!ns.check_missed(mcgrp), "Some task has been missed!");
 
 
     move_result.reset();
@@ -803,20 +803,21 @@ void NewSwapEnds::move(NeighBorSearch &ns, const MCGRP &mcgrp){
  * High Speed
  */
 
-RouteSegment get_segment_info(const MCGRP &mcgrp,HighSpeedNeighBorSearch &ns,const int chosen_task){
-    /// Calculates the length, load, and # of customers of the segment
-    //  after chosen task.
-    /// Example:  chosen_task-a-i-j-b-dummy has
-    /// length: d(a,i)+d(i,j)+d(j,b)
-    /// load:   a + i + j + b
-    /// #:      4
+RouteSegment get_segment_info(const MCGRP &mcgrp, HighSpeedNeighBorSearch &ns, const int chosen_task)
+{
+    // Calculate the length, load, and # of customers of the segment
+    // after chosen task.
+    // Example:  chosen_task-a-i-j-b-dummy has
+    // length: d(a,i) + d(i,j) + d(j,b)
+    // load:   a + i + j + b
+    // #:      4
 
 
     RouteSegment buffer;
 
     buffer.segment_start = ns.solution[chosen_task]->next->ID;
 
-    if(buffer.segment_start < 0){
+    if (buffer.segment_start < 0) {
         buffer.segment_start = 0;
         buffer.segment_end = 0;
         buffer.num_custs = 0;
@@ -835,8 +836,7 @@ RouteSegment get_segment_info(const MCGRP &mcgrp,HighSpeedNeighBorSearch &ns,con
     // Now calculate the length, load, and # customer on this segment
     int current_task = buffer.segment_start;
 
-    while (current_task != buffer.segment_end)
-    {
+    while (current_task != buffer.segment_end) {
         int next_task = ns.solution[current_task]->next->ID;
         buffer.len += (mcgrp.inst_tasks[current_task].serv_cost +
             mcgrp.min_cost[mcgrp.inst_tasks[current_task].tail_node][mcgrp.inst_tasks[next_task].head_node]);
@@ -856,22 +856,28 @@ RouteSegment get_segment_info(const MCGRP &mcgrp,HighSpeedNeighBorSearch &ns,con
     return buffer;
 }
 
-
-bool NewSwapEnds::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, const int chosen_task, const int neighbor_task,const int chosen_route,const int neighbor_route){
-    /// Example: ( a & v input): VRP_DEPOT-i-a-b-j-k-l-VRP_DEPOT and VRP_DEPOT-t-u-v-w-x-y-z-VRP_DEPOT becomes
-    /// VRP_DEPOT-i-a-w-x-y-z-VRP_DEPOT and VRP_DEPOT-t-u-v-b-j-k-l-VRP_DEPOT
+bool
+NewSwapEnds::considerable_move(HighSpeedNeighBorSearch &ns,
+                               const MCGRP &mcgrp,
+                               const int chosen_task,
+                               const int neighbor_task,
+                               const int chosen_route,
+                               const int neighbor_route)
+{
+    // Example: ( a & v input):
+    // VRP_DEPOT-i-a-b-j-k-l-VRP_DEPOT and VRP_DEPOT-t-u-v-w-x-y-z-VRP_DEPOT becomes
+    // VRP_DEPOT-i-a-w-x-y-z-VRP_DEPOT and VRP_DEPOT-t-u-v-b-j-k-l-VRP_DEPOT
 
     move_result.reset();
 
     const int a_route = chosen_route;
     const int v_route = neighbor_route;
 
-    My_Assert(a_route != v_route,"swap ends called with a and v in same route!");
+    My_Assert(a_route != v_route, "swap ends called with a and v in same route!");
 
     //get sequence that need to be swap
-    RouteSegment seg_after_a = get_segment_info(mcgrp,ns,chosen_task);
-    RouteSegment seg_after_v = get_segment_info(mcgrp,ns, neighbor_task);
-
+    RouteSegment seg_after_a = get_segment_info(mcgrp, ns, chosen_task);
+    RouteSegment seg_after_v = get_segment_info(mcgrp, ns, neighbor_task);
 
     const auto a_load_delta = -seg_after_a.load + seg_after_v.load;
     const auto v_load_delta = -seg_after_v.load + seg_after_a.load;
@@ -885,9 +891,9 @@ bool NewSwapEnds::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mc
         }
     }
     else if (ns.policy.has_rule(FITNESS_ONLY)) {
-        My_Assert(v_load_delta == -a_load_delta,"Wrong arguments");
+        My_Assert(v_load_delta == -a_load_delta, "Wrong arguments");
 
-        if(a_load_delta >= 0){
+        if (a_load_delta >= 0) {
             //a_route vio-load calculate
             if (ns.routes[a_route]->load + a_load_delta > mcgrp.capacity) {
                 //if insert task to route a and over load
@@ -900,7 +906,7 @@ bool NewSwapEnds::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mc
                 }
             }
 
-            My_Assert(v_load_delta <= 0,"Wrong arguments!");
+            My_Assert(v_load_delta <= 0, "Wrong arguments!");
             if (ns.routes[v_route]->load > mcgrp.capacity) {
                 //if insert task to route a and over load
                 if (ns.routes[v_route]->load + v_load_delta >= mcgrp.capacity) {
@@ -912,7 +918,7 @@ bool NewSwapEnds::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mc
                 }
             }
         }
-        else{
+        else {
             if (ns.routes[a_route]->load > mcgrp.capacity) {
                 //if insert task to route a and over load
                 if (ns.routes[a_route]->load + a_load_delta >= mcgrp.capacity) {
@@ -924,7 +930,7 @@ bool NewSwapEnds::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mc
                 }
             }
 
-            My_Assert(v_load_delta >= 0,"Wrong arguments!");
+            My_Assert(v_load_delta >= 0, "Wrong arguments!");
             //v_route vio-load calculate
             if (ns.routes[v_route]->load + v_load_delta > mcgrp.capacity) {
                 //if insert task to route v and over load
@@ -943,21 +949,32 @@ bool NewSwapEnds::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mc
 
     double delta;
 
-    //a can be dummy and b can be dummy too
-    const int a = max(chosen_task,0);
-    const int v = max(neighbor_task,0);
+    //a can be dummy and v can be dummy too
+    const int a = max(chosen_task, 0);
+    const int v = max(neighbor_task, 0);
 
-    if(seg_after_a.num_custs == 0 && seg_after_v.num_custs == 0){
+    bool allow_infeasible = ns.policy.has_rule(FITNESS_ONLY) ? true : false;
+    vector<vector<MCGRPRoute::Timetable>> new_time_tbl{{{-1,-1}}};
+
+    new_time_tbl = expected_time_table(ns,mcgrp,a,v,a_route,v_route,seg_after_a,seg_after_v,allow_infeasible);
+
+    if(!mcgrp.isTimetableFeasible(new_time_tbl[0])){
+        move_result.reset();
+        return false;
+    }
+
+    if (seg_after_a.num_custs == 0 && seg_after_v.num_custs == 0) {
         //means no actual move happens
         //...-a-[]-0
         //...-v-[]-0
+        move_result.reset();
         return false;
     }
-    else if (seg_after_a.num_custs == 0){
+    else if (seg_after_a.num_custs == 0) {
         //a segment is empty
         //0-a-[]-0
         //0-v-[w]-0
-        My_Assert(v_route == ns.solution[seg_after_v.segment_start]->route_id,"Wrong routes");
+        My_Assert(v_route == ns.solution[seg_after_v.segment_start]->route_id, "Wrong routes");
         const int w = max(ns.solution[neighbor_task]->next->ID, 0);
 
         const auto vw = mcgrp.min_cost[mcgrp.inst_tasks[v].tail_node][mcgrp.inst_tasks[w].head_node];
@@ -966,9 +983,10 @@ bool NewSwapEnds::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mc
         const auto a_dummy = mcgrp.min_cost[mcgrp.inst_tasks[a].tail_node][mcgrp.inst_tasks[DUMMY].head_node];
         const auto v_dummy = mcgrp.min_cost[mcgrp.inst_tasks[v].tail_node][mcgrp.inst_tasks[DUMMY].head_node];
 
-        delta = - a_dummy + aw - vw  + v_dummy;
+        delta = -a_dummy + aw - vw + v_dummy;
 
-        const auto seg_after_v_dummy = mcgrp.min_cost[mcgrp.inst_tasks[seg_after_v.segment_end].tail_node][mcgrp.inst_tasks[DUMMY].head_node];
+        const auto seg_after_v_dummy =
+            mcgrp.min_cost[mcgrp.inst_tasks[seg_after_v.segment_end].tail_node][mcgrp.inst_tasks[DUMMY].head_node];
 
         auto new_a_len = ns.routes[a_route]->length - a_dummy + aw + seg_after_v.len + seg_after_v_dummy;
         auto new_v_len = ns.routes[v_route]->length - vw - seg_after_v.len - seg_after_v_dummy + v_dummy;
@@ -978,11 +996,11 @@ bool NewSwapEnds::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mc
         move_result.seq1_cus_num = seg_after_a.num_custs;
         move_result.seq2_cus_num = seg_after_v.num_custs;
     }
-    else if (seg_after_v.num_custs == 0){
+    else if (seg_after_v.num_custs == 0) {
         //v segment is empty
         //0-a-[b]-0
         //0-v-[]-0
-        My_Assert(a_route == ns.solution[seg_after_a.segment_start]->route_id,"Wrong routes");
+        My_Assert(a_route == ns.solution[seg_after_a.segment_start]->route_id, "Wrong routes");
 
         const int b = max(ns.solution[chosen_task]->next->ID, 0);
 
@@ -992,9 +1010,10 @@ bool NewSwapEnds::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mc
         const auto a_dummy = mcgrp.min_cost[mcgrp.inst_tasks[a].tail_node][mcgrp.inst_tasks[DUMMY].head_node];
         const auto v_dummy = mcgrp.min_cost[mcgrp.inst_tasks[v].tail_node][mcgrp.inst_tasks[DUMMY].head_node];
 
-        delta = - v_dummy + vb - ab + a_dummy;
+        delta = -v_dummy + vb - ab + a_dummy;
 
-        const auto seg_after_a_dummy = mcgrp.min_cost[mcgrp.inst_tasks[seg_after_a.segment_end].tail_node][mcgrp.inst_tasks[DUMMY].head_node];
+        const auto seg_after_a_dummy =
+            mcgrp.min_cost[mcgrp.inst_tasks[seg_after_a.segment_end].tail_node][mcgrp.inst_tasks[DUMMY].head_node];
 
         auto new_a_len = ns.routes[a_route]->length - ab - seg_after_a.len - seg_after_a_dummy + a_dummy;
         auto new_v_len = ns.routes[v_route]->length - v_dummy + vb + seg_after_a.len + seg_after_a_dummy;
@@ -1004,12 +1023,12 @@ bool NewSwapEnds::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mc
         move_result.seq1_cus_num = seg_after_a.num_custs;
         move_result.seq2_cus_num = seg_after_v.num_custs;
     }
-    else{
+    else {
         //normal case,two segments are not empty
         //0-a-[b]-0
         //0-v-[w]-0
-        My_Assert(a_route == ns.solution[seg_after_a.segment_start]->route_id,"Wrong routes");
-        My_Assert(v_route == ns.solution[seg_after_v.segment_start]->route_id,"Wrong routes");
+        My_Assert(a_route == ns.solution[seg_after_a.segment_start]->route_id, "Wrong routes");
+        My_Assert(v_route == ns.solution[seg_after_v.segment_start]->route_id, "Wrong routes");
 
         const int b = max(ns.solution[chosen_task]->next->ID, 0);
         const int w = max(ns.solution[neighbor_task]->next->ID, 0);
@@ -1019,13 +1038,17 @@ bool NewSwapEnds::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mc
         const auto aw = mcgrp.min_cost[mcgrp.inst_tasks[a].tail_node][mcgrp.inst_tasks[w].head_node];
         const auto vb = mcgrp.min_cost[mcgrp.inst_tasks[v].tail_node][mcgrp.inst_tasks[b].head_node];
 
-        delta = - ab - vw + aw + vb;
+        delta = -ab - vw + aw + vb;
 
-        const auto seg_after_a_dummy = mcgrp.min_cost[mcgrp.inst_tasks[seg_after_a.segment_end].tail_node][mcgrp.inst_tasks[DUMMY].head_node];
-        const auto seg_after_v_dummy = mcgrp.min_cost[mcgrp.inst_tasks[seg_after_v.segment_end].tail_node][mcgrp.inst_tasks[DUMMY].head_node];
+        const auto seg_after_a_dummy =
+            mcgrp.min_cost[mcgrp.inst_tasks[seg_after_a.segment_end].tail_node][mcgrp.inst_tasks[DUMMY].head_node];
+        const auto seg_after_v_dummy =
+            mcgrp.min_cost[mcgrp.inst_tasks[seg_after_v.segment_end].tail_node][mcgrp.inst_tasks[DUMMY].head_node];
 
-        auto new_a_len = ns.routes[a_route]->length - ab - seg_after_a.len - seg_after_a_dummy  + aw + seg_after_v.len + seg_after_v_dummy;
-        auto new_v_len = ns.routes[v_route]->length - vw - seg_after_v.len - seg_after_v_dummy  + vb + seg_after_a.len + seg_after_a_dummy;
+        auto new_a_len = ns.routes[a_route]->length - ab - seg_after_a.len - seg_after_a_dummy + aw + seg_after_v.len
+            + seg_after_v_dummy;
+        auto new_v_len = ns.routes[v_route]->length - vw - seg_after_v.len - seg_after_v_dummy + vb + seg_after_a.len
+            + seg_after_a_dummy;
         move_result.route_lens.push_back(new_a_len);
         move_result.route_lens.push_back(new_v_len);
 
@@ -1036,7 +1059,7 @@ bool NewSwapEnds::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mc
     move_result.delta = delta;
 
     move_result.num_affected_routes = 2;
-    My_Assert(move_result.route_id.empty(),"Wrong statement");
+    My_Assert(move_result.route_id.empty(), "Wrong statement");
     move_result.route_id.push_back(a_route);
     move_result.route_id.push_back(v_route);
 
@@ -1058,7 +1081,7 @@ bool NewSwapEnds::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mc
     vector<int> a_seq;
     a_seq.push_back(chosen_task);
     int cur_task = ns.solution[chosen_task]->ID;
-    for(auto i = 0;i < seg_after_a.num_custs;i++) {
+    for (auto i = 0; i < seg_after_a.num_custs; i++) {
         cur_task = ns.solution[cur_task]->next->ID;
         a_seq.push_back(cur_task);
     }
@@ -1066,14 +1089,14 @@ bool NewSwapEnds::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mc
     vector<int> v_seq;
     v_seq.push_back(neighbor_task);
     cur_task = ns.solution[neighbor_task]->ID;
-    for(auto i = 0;i < seg_after_v.num_custs;i++) {
+    for (auto i = 0; i < seg_after_v.num_custs; i++) {
         cur_task = ns.solution[cur_task]->next->ID;
         v_seq.push_back(cur_task);
     }
 
 
     move_result.move_arguments = a_seq;
-    move_result.move_arguments.insert(move_result.move_arguments.end(),v_seq.begin(),v_seq.end());
+    move_result.move_arguments.insert(move_result.move_arguments.end(), v_seq.begin(), v_seq.end());
 
     move_result.task1 = chosen_task;
     move_result.task2 = neighbor_task;
@@ -1082,15 +1105,20 @@ bool NewSwapEnds::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mc
 
     move_result.considerable = true;
 
+    move_result.route_time_tbl = new_time_tbl;
+    move_result.vio_time_delta =
+        mcgrp.get_vio_time(move_result.route_time_tbl[0])
+            + mcgrp.get_vio_time(move_result.route_time_tbl[1])
+            - mcgrp.get_vio_time(ns.routes[a_route]->time_table)
+            - mcgrp.get_vio_time(ns.routes[v_route]->time_table);
     return true;
 }
 
-
-
-void NewSwapEnds::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp){
+void NewSwapEnds::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
+{
     DEBUG_PRINT("execute a 2-opt:swap-ends move");
 
-    My_Assert(move_result.considerable,"Invalid predictions");
+    My_Assert(move_result.considerable, "Invalid predictions");
 
     const int a = move_result.task1;
     const int v = move_result.task2;
@@ -1099,36 +1127,38 @@ void NewSwapEnds::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp){
     vector<int> a_seq;
     vector<int> v_seq;
 
-    My_Assert(a == move_result.move_arguments.front(),"Incorrect arguments");
+    My_Assert(a == move_result.move_arguments.front(), "Incorrect arguments");
     int i;
-    for(i = 1; move_result.move_arguments[i] != v;i++){
+    for (i = 1; move_result.move_arguments[i] != v; i++) {
         a_seq.push_back(move_result.move_arguments[i]);
     }
 
-    My_Assert(v == move_result.move_arguments[i],"Incorrect arguments");
+    My_Assert(v == move_result.move_arguments[i], "Incorrect arguments");
     i++;
-    for(;i<move_result.move_arguments.size();i++){
+    for (; i < move_result.move_arguments.size(); i++) {
         v_seq.push_back(move_result.move_arguments[i]);
     }
 
-    My_Assert(all_of(a_seq.begin(), a_seq.end(),[&](int i){return i>=1 && i<=mcgrp.actual_task_num;}),"Wrong task");
-    My_Assert(all_of(v_seq.begin(), v_seq.end(),[&](int i){return i>=1 && i<=mcgrp.actual_task_num;}),"Wrong task");
+    My_Assert(all_of(a_seq.begin(), a_seq.end(), [&](int i)
+    { return i >= 1 && i <= mcgrp.actual_task_num; }), "Wrong task");
+    My_Assert(all_of(v_seq.begin(), v_seq.end(), [&](int i)
+    { return i >= 1 && i <= mcgrp.actual_task_num; }), "Wrong task");
 
-    My_Assert(a_seq.size() == move_result.seq1_cus_num && v_seq.size() == move_result.seq2_cus_num,"Wrong task");
+    My_Assert(a_seq.size() == move_result.seq1_cus_num && v_seq.size() == move_result.seq2_cus_num, "Wrong task");
 
-    My_Assert(move_result.num_affected_routes == 2,"Wrong routes number");
+    My_Assert(move_result.num_affected_routes == 2, "Wrong routes number");
 
     const int a_route = move_result.route_id[0];
     const int v_route = move_result.route_id[1];
-    My_Assert(a_route != v_route,"Wrong routes!");
-    My_Assert(ns.routes.activated_route_id.find(a_route)!=ns.routes.activated_route_id.end(),"Invalid route");
-    My_Assert(ns.routes.activated_route_id.find(v_route)!=ns.routes.activated_route_id.end(),"Invalid route");
+    My_Assert(a_route != v_route, "Wrong routes!");
+    My_Assert(ns.routes.activated_route_id.find(a_route) != ns.routes.activated_route_id.end(), "Invalid route");
+    My_Assert(ns.routes.activated_route_id.find(v_route) != ns.routes.activated_route_id.end(), "Invalid route");
 
-    if(move_result.seq1_cus_num != 0 && move_result.seq2_cus_num != 0){
+    if (move_result.seq1_cus_num != 0 && move_result.seq2_cus_num != 0) {
         //Modify routes info
-        My_Assert(!a_seq.empty() && !v_seq.empty(),"Wrong arguments");
-        My_Assert(ns.solution[a]->next->ID == a_seq.front(),"Wrong task");
-        My_Assert(ns.solution[v]->next->ID == v_seq.front(),"Wrong task");
+        My_Assert(!a_seq.empty() && !v_seq.empty(), "Wrong arguments");
+        My_Assert(ns.solution[a]->next->ID == a_seq.front(), "Wrong task");
+        My_Assert(ns.solution[v]->next->ID == v_seq.front(), "Wrong task");
 
         ns.routes[a_route]->length = move_result.route_lens[0];
         ns.routes[v_route]->length = move_result.route_lens[1];
@@ -1139,21 +1169,24 @@ void NewSwapEnds::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp){
         ns.routes[a_route]->num_customers = move_result.route_custs_num[0];
         ns.routes[v_route]->num_customers = move_result.route_custs_num[1];
 
-        for(auto task : a_seq){
+        ns.routes[a_route]->time_table = move_result.route_time_tbl[0];
+        ns.routes[v_route]->time_table = move_result.route_time_tbl[1];
+
+        for (auto task : a_seq) {
             ns.solution[task]->route_id = v_route;
         }
 
-        for(auto task: v_seq){
+        for (auto task: v_seq) {
             ns.solution[task]->route_id = a_route;
         }
 
-        if(ns.solution[a_seq.front()]->pre->ID < 0){
+        if (ns.solution[a_seq.front()]->pre->ID < 0) {
             ns.routes[a_route]->start = v_seq.front();
         }
 
         ns.routes[a_route]->end = v_seq.back();
 
-        if(ns.solution[v_seq.front()]->pre->ID < 0){
+        if (ns.solution[v_seq.front()]->pre->ID < 0) {
             ns.routes[v_route]->start = a_seq.front();
         }
 
@@ -1175,12 +1208,12 @@ void NewSwapEnds::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp){
         v_final_dummy->pre = ns.solution[a_seq.back()];
 
     }
-    else if (move_result.seq1_cus_num == 0){
-        My_Assert(move_result.seq2_cus_num != 0,"Wrong arguments");
-        My_Assert(a_seq.empty() && !v_seq.empty(),"Wrong arguments");
-        My_Assert(ns.solution[v]->next->ID == v_seq.front(),"Wrong task");
+    else if (move_result.seq1_cus_num == 0) {
+        My_Assert(move_result.seq2_cus_num != 0, "Wrong arguments");
+        My_Assert(a_seq.empty() && !v_seq.empty(), "Wrong arguments");
+        My_Assert(ns.solution[v]->next->ID == v_seq.front(), "Wrong task");
 
-        if(v_seq.front() == ns.routes[v_route]->start && v_seq.back() == ns.routes[v_route]->end) {
+        if (v_seq.front() == ns.routes[v_route]->start && v_seq.back() == ns.routes[v_route]->end) {
             //v route need to be eliminated
             //Modify routes info
 
@@ -1190,7 +1223,9 @@ void NewSwapEnds::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp){
 
             ns.routes[a_route]->num_customers = move_result.route_custs_num[0];
 
-            for(auto task: v_seq){
+            ns.routes[a_route]->time_table = move_result.route_time_tbl[0];
+
+            for (auto task: v_seq) {
                 ns.solution[task]->route_id = a_route;
             }
 
@@ -1203,12 +1238,12 @@ void NewSwapEnds::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp){
             int dummy_marker = 0;
             HighSpeedNeighBorSearch::TASK_NODE *reserve_dummy;
             bool very_end_case = false;
-            if(ns.solution[v_seq.back()]->next == ns.solution.very_end){
+            if (ns.solution[v_seq.back()]->next == ns.solution.very_end) {
                 dummy_marker = ns.solution[v_seq.front()]->pre->ID;
                 reserve_dummy = ns.solution[v_seq.back()]->next;
                 very_end_case = true;
             }
-            else{
+            else {
                 dummy_marker = ns.solution[v_seq.back()]->next->ID;
                 reserve_dummy = ns.solution[v_seq.front()]->pre;
             }
@@ -1224,17 +1259,17 @@ void NewSwapEnds::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp){
             a_final_dummy->pre = ns.solution[v_seq.back()];
 
             //free dummy marker
-            if(very_end_case){
+            if (very_end_case) {
                 ns.solution[dummy_marker]->pre->next = reserve_dummy;
                 reserve_dummy->pre = ns.solution[dummy_marker]->pre;
             }
-            else{
+            else {
                 ns.solution[dummy_marker]->next->pre = reserve_dummy;
                 reserve_dummy->next = ns.solution[dummy_marker]->next;
             }
             ns.solution.dummypool.free_dummy(dummy_marker);
         }
-        else{
+        else {
             //Modify routes info
             ns.routes[a_route]->length = move_result.route_lens[0];
             ns.routes[v_route]->length = move_result.route_lens[1];
@@ -1245,7 +1280,10 @@ void NewSwapEnds::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp){
             ns.routes[a_route]->num_customers = move_result.route_custs_num[0];
             ns.routes[v_route]->num_customers = move_result.route_custs_num[1];
 
-            for(auto task: v_seq){
+            ns.routes[a_route]->time_table = move_result.route_time_tbl[0];
+            ns.routes[v_route]->time_table = move_result.route_time_tbl[1];
+
+            for (auto task: v_seq) {
                 ns.solution[task]->route_id = a_route;
             }
 
@@ -1270,12 +1308,12 @@ void NewSwapEnds::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp){
         }
 
     }
-    else if (move_result.seq2_cus_num == 0){
-        My_Assert(move_result.seq1_cus_num != 0,"Wrong arguments");
-        My_Assert(!a_seq.empty() && v_seq.empty(),"Wrong arguments");
-        My_Assert(ns.solution[a]->next->ID == a_seq.front(),"Wrong task");
+    else if (move_result.seq2_cus_num == 0) {
+        My_Assert(move_result.seq1_cus_num != 0, "Wrong arguments");
+        My_Assert(!a_seq.empty() && v_seq.empty(), "Wrong arguments");
+        My_Assert(ns.solution[a]->next->ID == a_seq.front(), "Wrong task");
 
-        if(a_seq.front() == ns.routes[a_route]->start && a_seq.back() == ns.routes[a_route]->end){
+        if (a_seq.front() == ns.routes[a_route]->start && a_seq.back() == ns.routes[a_route]->end) {
             //a route need to be eliminated
             //Modify routes info
 
@@ -1285,7 +1323,9 @@ void NewSwapEnds::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp){
 
             ns.routes[v_route]->num_customers = move_result.route_custs_num[1];
 
-            for(auto task: a_seq){
+            ns.routes[v_route]->time_table = move_result.route_time_tbl[1];
+
+            for (auto task: a_seq) {
                 ns.solution[task]->route_id = v_route;
             }
 
@@ -1298,12 +1338,12 @@ void NewSwapEnds::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp){
             int dummy_marker = 0;
             HighSpeedNeighBorSearch::TASK_NODE *reserve_dummy;
             bool very_end_case = false;
-            if(ns.solution[a_seq.back()]->next == ns.solution.very_end){
+            if (ns.solution[a_seq.back()]->next == ns.solution.very_end) {
                 dummy_marker = ns.solution[a_seq.front()]->pre->ID;
                 reserve_dummy = ns.solution[a_seq.back()]->next;
                 very_end_case = true;
             }
-            else{
+            else {
                 dummy_marker = ns.solution[a_seq.back()]->next->ID;
                 reserve_dummy = ns.solution[a_seq.front()]->pre;
             }
@@ -1318,11 +1358,11 @@ void NewSwapEnds::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp){
             v_final_dummy->pre = ns.solution[a_seq.back()];
 
             //free dummy marker
-            if(very_end_case){
+            if (very_end_case) {
                 ns.solution[dummy_marker]->pre->next = reserve_dummy;
                 reserve_dummy->pre = ns.solution[dummy_marker]->pre;
             }
-            else{
+            else {
                 ns.solution[dummy_marker]->next->pre = reserve_dummy;
                 reserve_dummy->next = ns.solution[dummy_marker]->next;
             }
@@ -1330,7 +1370,7 @@ void NewSwapEnds::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp){
 
             ns.solution.dummypool.free_dummy(dummy_marker);
         }
-        else{
+        else {
             //Modify routes info
             ns.routes[a_route]->length = move_result.route_lens[0];
             ns.routes[v_route]->length = move_result.route_lens[1];
@@ -1341,7 +1381,10 @@ void NewSwapEnds::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp){
             ns.routes[a_route]->num_customers = move_result.route_custs_num[0];
             ns.routes[v_route]->num_customers = move_result.route_custs_num[1];
 
-            for(auto task: a_seq){
+            ns.routes[a_route]->time_table = move_result.route_time_tbl[0];
+            ns.routes[v_route]->time_table = move_result.route_time_tbl[1];
+
+            for (auto task: a_seq) {
                 ns.solution[task]->route_id = v_route;
             }
 
@@ -1365,19 +1408,112 @@ void NewSwapEnds::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp){
         }
 
     }
-    else{
-        My_Assert(false,"Wrong arguments");
+    else {
+        My_Assert(false, "Wrong arguments");
     }
 
     //modify global info
     ns.cur_solution_cost += move_result.delta;
     ns.total_vio_load += move_result.vio_load_delta;
-    My_Assert(ns.valid_sol(mcgrp),"Prediction wrong!");
+    ns.total_vio_time += move_result.vio_time_delta;
+    My_Assert(ns.valid_sol(mcgrp), "Prediction wrong!");
 
-    if(move_result.delta == 0){
+    if (move_result.delta == 0) {
         ns.equal_step++;
     }
 
     move_result.reset();
     ns.search_step++;
+}
+
+vector<vector<MCGRPRoute::Timetable>>
+NewSwapEnds::expected_time_table(HighSpeedNeighBorSearch &ns,
+                    const MCGRP &mcgrp,
+                    int a,
+                    int v,
+                    int a_route,
+                    int v_route,
+                    const RouteSegment& a_seg,
+                    const RouteSegment& v_seg,
+                    bool allow_infeasible)
+{
+    vector<vector<MCGRPRoute::Timetable>>
+        res(2, vector<MCGRPRoute::Timetable>({{-1, -1}}));
+
+    My_Assert(a_route != v_route, "Two routes can't be the same route in swap ends!");
+
+    vector<int> route_task_a;
+    vector<int> route_task_v;
+    int a_pos = -1;
+    int v_pos = -1;
+
+    if(a == DUMMY){
+        if(a_seg.num_custs == 0)
+            a_pos = ns.routes[a_route]->time_table.size();
+        else
+            a_pos = 0;
+    }
+
+    if(v == DUMMY){
+        if(v_seg.num_custs == 0)
+            v_pos = ns.routes[v_route]->time_table.size();
+        else
+            v_pos = 0;
+    }
+
+    if(a_pos == v_pos && a_pos != -1){
+        res[0] = ns.routes[v_route]->time_table;
+        res[1] = ns.routes[a_route]->time_table;
+        if(a_pos > 0)
+            swap(res[0],res[1]);
+        return res;
+    }
+
+    for (int cur = 0; cur < ns.routes[a_route]->time_table.size(); cur++) {
+        if (ns.routes[a_route]->time_table[cur].task == a)
+            a_pos = cur + 1;
+        route_task_a.push_back(ns.routes[a_route]->time_table[cur].task);
+    }
+
+    for (int cur = 0; cur < ns.routes[v_route]->time_table.size(); cur++) {
+        if (ns.routes[v_route]->time_table[cur].task == v)
+            v_pos = cur + 1;
+        route_task_v.push_back(ns.routes[v_route]->time_table[cur].task);
+    }
+
+    My_Assert(a_pos != -1 && v_pos != -1, "can't find chosen task!");
+
+    vector<int> buffer;
+    std::move(route_task_a.begin() + a_pos, route_task_a.end(), back_inserter(buffer));
+    route_task_a.erase(route_task_a.begin() + a_pos, route_task_a.end());
+
+    std::move(route_task_v.begin() + v_pos, route_task_v.end(), back_inserter(route_task_a));
+    route_task_v.erase(route_task_v.begin() + v_pos, route_task_v.end());
+
+    std::move(buffer.begin(), buffer.end(), back_inserter(route_task_v));
+
+    vector<int> time_tbl_u = mcgrp.cal_arrive_time(route_task_a);
+    vector<int> time_tbl_i = mcgrp.cal_arrive_time(route_task_v);
+
+    My_Assert(time_tbl_u.size() == route_task_a.size(), "wrong time table");
+    My_Assert(time_tbl_i.size() == route_task_v.size(), "wrong time table");
+
+    vector<MCGRPRoute::Timetable> intermediate_a;
+    vector<MCGRPRoute::Timetable> intermediate_v;
+    for (int k = 0; k < time_tbl_u.size(); k++) {
+        if (!allow_infeasible && time_tbl_u[k] > mcgrp.inst_tasks[route_task_a[k]].time_window.second)
+            return res;
+        intermediate_a.push_back({route_task_a[k], time_tbl_u[k]});
+    }
+
+    for (int k = 0; k < time_tbl_i.size(); k++) {
+        if (!allow_infeasible && time_tbl_i[k] > mcgrp.inst_tasks[route_task_v[k]].time_window.second)
+            return res;
+        intermediate_v.push_back({route_task_v[k], time_tbl_i[k]});
+    }
+
+    res[0] = intermediate_a;
+    res[1] = intermediate_v;
+
+    return res;
 }

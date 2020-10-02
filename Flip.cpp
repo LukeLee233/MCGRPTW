@@ -426,6 +426,8 @@ bool NewFlip::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
     vector<MCGRPRoute::Timetable> new_time_tbl{{{-1,-1}}};
     bool allow_infeasible = ns.policy.has_rule(FITNESS_ONLY) ? true : false;
 
+    new_time_tbl = expected_time_table(ns,mcgrp,candidate_seq,allow_infeasible);
+
     if(!mcgrp.isTimetableFeasible(new_time_tbl)){
         move_result.reset();
         return false;
@@ -473,7 +475,8 @@ bool NewFlip::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
     move_result.considerable = true;
 
     move_result.route_time_tbl.emplace_back(new_time_tbl);
-    move_result.vio_time_delta = mcgrp.get_vio_time(move_result.route_time_tbl[0]);
+    move_result.vio_time_delta = mcgrp.get_vio_time(move_result.route_time_tbl[0])
+                                - mcgrp.get_vio_time(ns.routes[route_id]->time_table);
     return true;
 }
 
@@ -565,7 +568,7 @@ NewFlip::expected_time_table(HighSpeedNeighBorSearch &ns,
             route_task.push_back(node.task);
     }
 
-    route_task.insert(route_task.end(),invert_seq.cbegin(),invert_seq.cend());
+    route_task.insert(route_task.end(),invert_seq.crbegin(),invert_seq.crend());
     vector<int> time_tbl = mcgrp.cal_arrive_time(route_task);
 
     vector<MCGRPRoute::Timetable> intermediate;

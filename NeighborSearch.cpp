@@ -2638,7 +2638,7 @@ void HighSpeedNeighBorSearch::infeasible_exploration(const MCGRP &mcgrp)
 }
 
 void HighSpeedNeighBorSearch::trace(const MCGRP &mcgrp){
-    if (total_vio_load == 0)
+    if (total_vio_load == 0 && total_vio_time == 0)
     {
         if(cur_solution_cost < this->best_solution_cost){
             this->best_solution_cost = cur_solution_cost;

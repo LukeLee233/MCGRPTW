@@ -457,7 +457,14 @@ bool NewTwoOpt::before(const int a,const int b,const NeighBorSearch &ns){
 }
 
 
-bool NewTwoOpt::considerable_move(NeighBorSearch &ns, const MCGRP &mcgrp, int a, int b, int c, int d){
+bool
+NewTwoOpt::considerable_move(
+    NeighBorSearch &ns,
+    const MCGRP &mcgrp,
+    int a,
+    int b,
+    int c,
+    int d){
     // A easy prediction for overlapping
     if ((a == c) || (a == d) || (b == c) || (b == d)) {
         return false;
@@ -1053,7 +1060,14 @@ bool NewTwoOpt::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chos
 }
 
 
-bool NewTwoOpt::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int a, int b, int c, int d){
+bool
+NewTwoOpt::considerable_move(
+    HighSpeedNeighBorSearch &ns,
+    const MCGRP &mcgrp,
+    int a,
+    int b,
+    int c,
+    int d){
     // A easy prediction for overlapping
     if ((a == c) || (a == d) || (b == c) || (b == d)) {
         return false;
@@ -1080,8 +1094,8 @@ bool NewTwoOpt::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgr
     }
 
 
-    if (a_route == c_route) {   //This is flip operation
-        //Definitely feasible
+    if (a_route == c_route) {   // This is flip operation
+        // Definitely feasible
         // same route: the 2opt move here corresponds to reversing the sequence of
         // the sub route that is between (a|b) and (c|d), open interval
         DEBUG_PRINT("Flip operator in 2-opt");
@@ -1110,18 +1124,19 @@ bool NewTwoOpt::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgr
             }
         }
     }
-    else //This is SwapEnds operation
+    else // This is SwapEnds operation
     {
-        //Cross routes, feasibility need checked
-        //different routes: the 2opt move here corresponds to swap the sequence of
-        // the sub route that is after a and c, open interval
+        // Cross routes, feasibility need checked
+        // different routes: the 2-opt move here corresponds to swap the sequence of
+        // the sub-route that is after a and c, open interval
 
-        /// Example: ( a & v input): DEPOT-i-a-b-j-k-l-DEPOT and DEPOT-t-u-v-w-x-y-z-DEPOT becomes
-        /// DEPOT-i-a-w-x-y-z-DEPOT and DEPOT-t-u-v-b-j-k-l-DEPOT
+        // Example: ( a & v input): DEPOT-i-a-b-j-k-l-DEPOT and DEPOT-t-u-v-w-x-y-z-DEPOT becomes
+        // DEPOT-i-a-w-x-y-z-DEPOT and DEPOT-t-u-v-b-j-k-l-DEPOT
         DEBUG_PRINT("SwapEnds operator in 2-opt");
         swapends_times++;
 
-        if(swap_ends.considerable_move(ns, mcgrp, a, c, a_route, c_route) && ns.policy.check_move(swap_ends.move_result)){
+        if(swap_ends.considerable_move(ns, mcgrp, a, c, a_route, c_route)
+        && ns.policy.check_move(swap_ends.move_result)){
             move_result = swap_ends.move_result;
             return true;
         }
@@ -1170,7 +1185,7 @@ void NewTwoOpt::unit_test(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
     mcgrp._rng.RandPerm(task_set);    //shuffle tasks
 
     auto original_policy = ns.policy.get();
-    ns.policy.set(FIRST_ACCEPT | DOWNHILL | FITNESS_ONLY);
+    ns.policy.set(FIRST_ACCEPT | DOWNHILL | DELTA_ONLY);
     ns.policy.beta = 0.5;
     ns.policy.tolerance = 0.003;
     ns.neigh_size = mcgrp.neigh_size;
