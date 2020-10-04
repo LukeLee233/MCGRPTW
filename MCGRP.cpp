@@ -988,7 +988,7 @@ vector<MCGRPRoute::Timetable> MCGRP::forecast_time_table(const vector<MCGRPRoute
                                              buffer.back().arrive_time, true);
 
             if (!allow_infeasible && drive_time > inst_tasks[old_table[cur].task].time_window.second)
-                return vector<MCGRPRoute::Timetable>();
+                return vector<MCGRPRoute::Timetable>({{-1, -1}});
             buffer.push_back(
                 {old_table[cur].task, drive_time});
         }
