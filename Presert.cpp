@@ -495,7 +495,9 @@ bool Presert::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
             move_result.considerable = true;
 
             move_result.route_time_tbl.emplace_back(new_time_tbl[0]);
-            move_result.vio_time_delta = mcgrp.get_vio_time(move_result.route_time_tbl[0]);
+            move_result.vio_time_delta =
+                mcgrp.get_vio_time(move_result.route_time_tbl[0])
+                - mcgrp.get_vio_time(ns.routes[u_route]->time_table);
             return true;
         }
         else {
@@ -534,7 +536,9 @@ bool Presert::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
             move_result.route_time_tbl = new_time_tbl;
             move_result.vio_time_delta =
                 mcgrp.get_vio_time(move_result.route_time_tbl[0])
-                    + mcgrp.get_vio_time(move_result.route_time_tbl[1]);
+                + mcgrp.get_vio_time(move_result.route_time_tbl[1])
+                - mcgrp.get_vio_time(ns.routes[u_route]->time_table)
+                - mcgrp.get_vio_time(ns.routes[i_route]->time_table);
             return true;
         }
 
@@ -602,7 +606,9 @@ bool Presert::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
             move_result.considerable = true;
 
             move_result.route_time_tbl.emplace_back(new_time_tbl[0]);
-            move_result.vio_time_delta = mcgrp.get_vio_time(move_result.route_time_tbl[0]);
+            move_result.vio_time_delta =
+                mcgrp.get_vio_time(move_result.route_time_tbl[0])
+                - mcgrp.get_vio_time(ns.routes[u_route]->time_table));
             return true;
         }
         else {
@@ -641,7 +647,9 @@ bool Presert::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
             move_result.route_time_tbl = new_time_tbl;
             move_result.vio_time_delta =
                 mcgrp.get_vio_time(move_result.route_time_tbl[0])
-                    + mcgrp.get_vio_time(move_result.route_time_tbl[1]);
+                + mcgrp.get_vio_time(move_result.route_time_tbl[1])
+                - mcgrp.get_vio_time(ns.routes[u_route]->time_table)
+                - mcgrp.get_vio_time(ns.routes[i_route]->time_table);
             return true;
         }
 
