@@ -2638,6 +2638,10 @@ void HighSpeedNeighBorSearch::infeasible_exploration(const MCGRP &mcgrp)
 }
 
 void HighSpeedNeighBorSearch::trace(const MCGRP &mcgrp){
+    for(int i : routes.activated_route_id){
+        My_Assert(routes[i]->time_table.size() == routes[i]->num_customers, "Wrong size");
+    }
+
     if (total_vio_load == 0 && total_vio_time == 0)
     {
         if(cur_solution_cost < this->best_solution_cost){

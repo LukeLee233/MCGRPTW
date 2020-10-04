@@ -561,14 +561,17 @@ NewFlip::expected_time_table(HighSpeedNeighBorSearch &ns,
     const int invert_route = ns.solution[invert_seq.front()]->route_id;
 
     vector<int> route_task;
-    for(const auto& node:ns.routes[invert_route]->time_table){
-        if(node.task == invert_seq.front())
-            break;
-        else
-            route_task.push_back(node.task);
+    for(int k = 0; k<ns.routes[invert_route]->time_table.size();){
+        if(ns.routes[invert_route]->time_table[k].task == invert_seq.front()){
+            route_task.insert(route_task.end(),invert_seq.crbegin(),invert_seq.crend());
+            k += invert_seq.size();
+        }
+        else{
+            route_task.push_back(ns.routes[invert_route]->time_table[k].task);
+            k++;
+        }
     }
 
-    route_task.insert(route_task.end(),invert_seq.crbegin(),invert_seq.crend());
     vector<int> time_tbl = mcgrp.cal_arrive_time(route_task);
 
     vector<MCGRPRoute::Timetable> intermediate;
