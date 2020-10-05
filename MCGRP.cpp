@@ -782,31 +782,6 @@ bool MCGRP::check_best_solution(const double total_route_length, const vector<in
     }
 }
 
-//bool MCGRP::check_best_infeasible_solution(const double route_length,const double beta, const double vio_load, const std::vector<int> &sol_seq) const
-//{
-//
-//    auto fitness = route_length + beta * vio_load;
-//    if ((fitness < best_total_route_length) &&
-//        !almost_equal(fitness, best_total_route_length)) {
-//
-//        best_total_route_length = fitness;
-//        best_sol_buff = sol_seq;
-//        struct timeb cur_time;
-//        ftime(&cur_time);
-//        best_sol_time =
-//            (cur_time.time - phase_start_time.time) + ((cur_time.millitm - phase_start_time.millitm) * 1.0 / 1000);
-//
-//        print(log_out, to_string((int) route_length)+','+to_string((int) vio_load) + ','+ to_string((double) beta)+','+to_string((double)fitness));
-//        return true;
-//    }
-//    else {
-//        print(log_out, to_string((int) route_length)+','+to_string((int) vio_load) + ','+ to_string((double) beta)+','+to_string((double)fitness));
-//        return false;
-//    }
-//}
-
-
-
 Individual MCGRP::parse_delimiter_seq(const vector<int> &seq) const
 {
     My_Assert(!seq.empty() && seq.front() == DUMMY && seq.back() == DUMMY, "invalid seq");

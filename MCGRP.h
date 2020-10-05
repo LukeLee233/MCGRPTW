@@ -100,8 +100,6 @@ public:
      */
     bool check_best_solution(const double total_route_length, const std::vector<int> &sol_seq) const;
 
-//    bool check_best_infeasible_solution(const double route_length,const double beta, const double vio_load, const std::vector<int> &sol_seq) const;
-
 
     /*!
      * 重置算例信息
