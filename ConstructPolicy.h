@@ -13,7 +13,7 @@
 /*!
  * nearest_scanning constructive algorithm
  * @param mcgrp: formatted instance
- * @param rs_indi: soluiton
+ * @param rs_indi: solution
  */
 void nearest_scanning(const MCGRP &mcgrp, Individual &rs_indi);
 
@@ -69,11 +69,11 @@ vector<int> maximum_yield_growing(const MCGRP &mcgrp, vector<int> tasks, const i
 vector<int> minimum_yield_growing(const MCGRP &mcgrp, vector<int> tasks, const int constraint);
 
 /*!
- * @details use mixtured policy to merge tasks
+ * @details use mixture policy to merge tasks
  * @param mcgrp
  * @param tasks
  * @return
  */
-vector<int> mixtured_growing(const MCGRP &mcgrp, vector<int> tasks, const int constraint);
+vector<int> mixture_growing(const MCGRP &mcgrp, vector<int> tasks, const int constraint);
 
 #endif //MCGRP_SEARCHPOLICY_H

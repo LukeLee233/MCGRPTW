@@ -9,7 +9,6 @@
 
 using namespace std;
 
-
 void nearest_scanning(const MCGRP &mcgrp, Individual &rs_indi)
 {
     int serve_task_num = mcgrp.req_arc_num + mcgrp.req_node_num + mcgrp.req_edge_num;
@@ -469,7 +468,7 @@ vector<int> split_task(Policy& policy, const MCGRP &mcgrp, const vector<int> &ta
     /*-----------------Max yield merge policy--------------------------*/
 
     /*-----------------mixtured merge policy--------------------------*/
-    merge_sequence = mixtured_growing(mcgrp, tasks,constraint);
+    merge_sequence = mixture_growing(mcgrp, tasks, constraint);
     Individual mixtured_indi;
     mixtured_indi = mcgrp.parse_delimiter_seq(merge_sequence);
     buffer = mixtured_indi.total_cost + policy.beta * mixtured_indi.total_vio_load;
@@ -750,7 +749,7 @@ vector<int> minimum_yield_growing(const MCGRP &mcgrp, vector<int> tasks, const i
     return sequence;
 }
 
-vector<int> mixtured_growing(const MCGRP &mcgrp, vector<int> tasks, const int constraint)
+vector<int> mixture_growing(const MCGRP &mcgrp, vector<int> tasks, const int constraint)
 {
     vector<int> sequence;
 

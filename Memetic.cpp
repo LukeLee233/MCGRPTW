@@ -1021,7 +1021,7 @@ void HighSpeedMemetic::merge_split_repair(const MCGRP &mcgrp,SOLUTION& solution,
     /*-----------------Max yield merge policy--------------------------*/
 
     /*-----------------mixtured merge policy--------------------------*/
-    merge_sequence = mixtured_growing(mcgrp, task_set,mcgrp.capacity);
+    merge_sequence = mixture_growing(mcgrp, task_set, mcgrp.capacity);
     Individual mixtured_indi;
     mixtured_indi = mcgrp.parse_delimiter_seq(merge_sequence);
     buffer = mixtured_indi.total_cost;

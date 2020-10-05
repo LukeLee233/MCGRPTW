@@ -11,7 +11,7 @@ double hamming_dist(const MCGRP &mcgrp, const vector<int> &a, const vector<int> 
     //include offset 1
     atom_link.resize(mcgrp.node_num + 1);
 
-    My_Assert(atom_link[0].empty(), "Incorrect initializetion!");
+    My_Assert(atom_link[0].empty(), "Incorrect initialization!");
 
     int pre_task, cur_task, next_task;
     int source_node, target_node;

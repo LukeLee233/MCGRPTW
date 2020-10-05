@@ -18,7 +18,6 @@ extern vector<double> prob;
 
 class NeighBorSearch
 {
-    friend class Memetic;
     friend class SingleInsert;
     friend class DoubleInsert;
     friend class NewSwap;
@@ -32,7 +31,6 @@ class NeighBorSearch
     friend class NewFlip;
     friend class Flip;
     friend class NewSwapEnds;
-    friend class SwapEnds;
     friend class Policy;
 
     friend void merge_split(NeighBorSearch &ns, const MCGRP &mcgrp, const int merge_size,const int pseudo_capacity);
@@ -91,7 +89,7 @@ public:
     void _neigh_search(const MCGRP &mcgrp, int mode);
 
     /*!
-     * sub proceduren in decode_seq method
+     * sub procedure in decode_seq method
      */
     void create_pred_array();
 
@@ -103,7 +101,7 @@ public:
     void create_search_neighborhood(const MCGRP &mcgrp, const int task);
 
     /*!
-     * @details pack current sol info to delimeter coding format
+     * @details pack current sol info to delimiter coding format
      * @param p
      */
     void create_individual(const MCGRP &mcgrp, Individual &p);
@@ -124,7 +122,7 @@ public:
     /*!
      * @details neighbor search
      * @param mcgrp
-     * @param max_nonimprove_times
+     * @param max non improve_times
      * @param accept [First accept | Bext accept]
      */
     void neighbor_search(const MCGRP &mcgrp);
@@ -206,13 +204,8 @@ public:
 
 };
 
-
-
-
-
 class HighSpeedNeighBorSearch
 {
-    friend class Memetic;
     friend class SingleInsert;
     friend class DoubleInsert;
     friend class NewSwap;
@@ -232,7 +225,6 @@ class HighSpeedNeighBorSearch
     friend class NewFlip;
     friend class Flip;
     friend class NewSwapEnds;
-    friend class SwapEnds;
     friend class Policy;
 
     friend void merge_split(NeighBorSearch &ns, const MCGRP &mcgrp, const int merge_size,const int pseudo_capacity);
@@ -360,7 +352,7 @@ private:
                 id = -id;
                 if(dummypool.pool[id].used == false)
                 {
-                    cerr << "This dummy task info is unavailble!" <<endl;
+                    cerr << "This dummy task info is unavailable!" <<endl;
                     abort();
                 }
                 return &dummypool.pool[id].task_info;
@@ -419,7 +411,7 @@ private:
         {
             if(pool[id].used == false)
             {
-                cerr << "This route info is unavailble!" <<endl;
+                cerr << "This route info is unavailable!" <<endl;
                 abort();
             }
 
@@ -449,8 +441,8 @@ private:
             pool[id].route_info.clear();
 
             unused.push(id);
-            auto succed = activated_route_id.erase(id);
-            My_Assert(succed == 1,"Bad Free");
+            auto succeed = activated_route_id.erase(id);
+            My_Assert(succeed == 1,"Bad Free");
             return;
         }
 
@@ -522,20 +514,16 @@ public:
 
     inline double get_fitness(){
         My_Assert(policy.beta != std::numeric_limits<decltype(policy.beta)>::max(), "beta is undefined!");
-        return cur_solution_cost + policy.beta * total_vio_load;
+        return cur_solution_cost + policy.beta * (total_vio_load + total_vio_time);
     }
 
     inline double get_cur_cost(){
         return cur_solution_cost;
     }
 
-    inline double get_cur_vio_load(){
-        return total_vio_load;
-    }
-
 
     /*!
-     * sub proceduren in decode_seq method
+     * sub procedure in decode_seq method
 
     /*!
      * @details 根据邻域表创建任务的邻域搜索空间
@@ -545,7 +533,7 @@ public:
     void create_search_neighborhood(const MCGRP &mcgrp, const int task);
 
     /*!
-     * @details pack current sol info to delimeter coding format
+     * @details pack current sol info to delimiter coding format
      * @param p
      */
     void create_individual(const MCGRP &mcgrp, Individual &p);
@@ -560,7 +548,7 @@ public:
     /*!
      * @details neighbor search
      * @param mcgrp
-     * @param max_nonimprove_times
+     * @param max non improve_times
      * @param accept [First accept | Bext accept]
      */
     void neighbor_search(const MCGRP &mcgrp);
