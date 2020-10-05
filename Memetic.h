@@ -9,7 +9,7 @@
 
 using std::vector;
 
-//several distance metrics to evalute the similarity among solutions
+//several distance metrics to evaluate the similarity among solutions
 enum SIMILARITY
 {
     COST_DISTANCE,
@@ -20,10 +20,10 @@ enum SIMILARITY
 class Memetic
 {
 private:
-    vector<vector<int>> population;                    //solutions in negative coding format, population[种群数][该解的遍历序列]
+    vector<vector<int>> population;              //solutions in negative coding format, population[种群数][该解的遍历序列]
 
-    vector<vector<double>> distMatrix;                    //距离矩阵，存放各个解之间的距离, distMatrix[种群大小][种群大小]
-    vector<double> indi_obj;                    //各解的目标函数值, indi_obj[种群数]
+    vector<vector<double>> distMatrix;           //距离矩阵，存放各个解之间的距离, distMatrix[种群大小][种群大小]
+    vector<double> indi_obj;                     //各解的目标函数值, indi_obj[种群数]
     int popSize;
 
     int evolve_num;
@@ -65,7 +65,7 @@ public:
     static double hamming_dist(const MCGRP &mcgrp, const vector<int> &a, const vector<int> &b);
 
     /*!
-     * @details remove duplicate task and statistic ommited task
+     * @details remove duplicate task and statistic omitted task
      * @param mcgrp
      * @param XRoutes
      * @param Omitted_task
@@ -73,7 +73,7 @@ public:
     void remove_duplicates(const MCGRP &mcgrp, vector<vector<int>> &XRoutes, vector<int> &Omitted_task);
 
     /*!
-     * @details generate distance matrix based on hamming diatance
+     * @details generate distance matrix based on hamming distance
      * @param mcgrp
      */
     void initDistMatrix(const MCGRP &mcgrp);
@@ -130,7 +130,7 @@ private:
 
     int hardware_threads;
     vector<UNIT> population;
-    vector<vector<double>> distMatrix;                //distance among solutions
+    vector<vector<double>> distMatrix;  //distance among solutions
 
     int cross_route_num = 1;
 
@@ -194,7 +194,7 @@ private:
         THREAD_MAN(int threads_num):max_allowed_activated_thread(threads_num){};
     } thread_pool;
 
-    static bool check_integrity(const MCGRP &mcgrp, const SOLUTION &solution, const vector<int>& ommited);
+    static bool check_integrity(const MCGRP &mcgrp, const SOLUTION &solution, const vector<int>& omitted);
     static bool check_empty_route(const MCGRP &mcgrp,const SOLUTION &solution);
 
     static SOLUTION unpack_seq(const MCGRP &mcgrp, const vector<int> &neg_seq);
@@ -238,7 +238,7 @@ public:
     static void merge_split_repair(const MCGRP &mcgrp,SOLUTION& solution, vector<int> Omitted_task);
 
     /*!
-     * @details remove duplicate task and statistic ommited task
+     * @details remove duplicate task and statistic omitted task
      * @param mcgrp
      * @param XRoutes
      * @param Omitted_task
@@ -246,7 +246,7 @@ public:
     static vector<int> remove_duplicates(const MCGRP &mcgrp, SOLUTION &solution);
 
     /*!
-     * @details generate distance matrix based on hamming diatance
+     * @details generate distance matrix based on hamming distance
      * @param mcgrp
      */
     void initDistMatrix(const MCGRP &mcgrp, SIMILARITY sim);

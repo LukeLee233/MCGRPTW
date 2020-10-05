@@ -15,6 +15,7 @@
 #include <algorithm>
 #include "config.h"
 #include "utils.h"
+#include "ConstructPolicy.h"
 
 using namespace std;
 
@@ -2192,181 +2193,6 @@ void HighSpeedNeighBorSearch::threshold_exploration_version_0(const MCGRP &mcgrp
     neigh_size = 0;
 }
 
-//void NeighBorSearch::threshold_exploration_version_1(const MCGRP &mcgrp)
-//{
-//    DEBUG_PRINT("Uphill and downhill...");
-//
-//    // Based on the best solution find so far, experiment shows this is better than the policy,especially on big instance
-//    // which start from current solution.
-//    policy.benchmark = mcgrp.best_total_route_length;
-//
-//    policy.tolerance = sel_ratio(prob, ratios, mcgrp._rng);
-//
-//    const auto original_policy = policy.get();
-//    policy.set(BEST_ACCEPT | TOLERANCE | DELTA_ONLY);
-//
-//    //you need to decide the dynamic neighbor size when you search based on different policy
-//    neigh_size = mcgrp.neigh_size;
-////    neigh_size = min(10,mcgrp.neigh_size);
-//
-//
-//    vector<NeighborOperator> neighbor_operator{
-//        NeighborOperator::SINGLE_INSERT,
-//        NeighborOperator::DOUBLE_INSERT,
-//        NeighborOperator::SWAP,
-//        NeighborOperator::INVERT,
-//        NeighborOperator::TWO_OPT
-//    };
-//
-//    double prior_cost;
-//
-//    do{
-//        prior_cost = cur_solution_cost;
-//        policy.benchmark = mcgrp.best_total_route_length;
-//
-//        mcgrp._rng.RandPerm(neighbor_operator);
-//
-//        vector<int> task_set(mcgrp.actual_task_num);
-//        std::generate(task_set.begin(), task_set.end(), Generator());
-//        int chosen_task = -1;
-//
-//        for (auto cur_operator:neighbor_operator) {
-//            if (cur_operator == NeighborOperator::SINGLE_INSERT) {
-//                mcgrp._rng.RandPerm(task_set);
-//
-//                for (int i = 0; i < mcgrp.actual_task_num; i++) {
-//                    chosen_task = task_set[i];
-//                    if (next_array[chosen_task]
-//                        == std::numeric_limits<identity<decltype(next_array)>::type::value_type>::max()) {
-//                        if (!mcgrp.is_edge(chosen_task)) {
-//                            cerr << "A non edge task has been missed!\n";
-//                            abort();
-//                        }
-//                        else {
-//                            chosen_task = mcgrp.inst_tasks[chosen_task].inverse;My_Assert(next_array[chosen_task]
-//                                                                                              != std::numeric_limits<
-//                                                                                                  identity<decltype(next_array)>::type::value_type>::max(),
-//                                                                                          "An edge task has been missed");
-//                        }
-//                    }
-//
-//                    SingleInsert::search(*this, mcgrp, chosen_task);
-//                }
-//            }
-//
-//            if (cur_operator == NeighborOperator::DOUBLE_INSERT) {
-//                mcgrp._rng.RandPerm(task_set);
-//                for (int i = 0; i < mcgrp.actual_task_num; i++) {
-//                    chosen_task = task_set[i];
-//                    if (next_array[chosen_task]
-//                        == std::numeric_limits<identity<decltype(next_array)>::type::value_type>::max()) {
-//                        if (!mcgrp.is_edge(chosen_task)) {
-//                            cerr << "A non edge task has been missed!\n";
-//                            abort();
-//                        }
-//                        else {
-//                            chosen_task = mcgrp.inst_tasks[chosen_task].inverse;My_Assert(next_array[chosen_task]
-//                                                                                              != std::numeric_limits<
-//                                                                                                  identity<decltype(next_array)>::type::value_type>::max(),
-//                                                                                          "An edge task has been missed");
-//                        }
-//                    }
-//
-//                    DoubleInsert::search(*this, mcgrp, chosen_task);
-//                }
-//            }
-//
-//
-//            if (cur_operator == NeighborOperator::SWAP) {
-//                mcgrp._rng.RandPerm(task_set);
-//                for (int i = 0; i < mcgrp.actual_task_num; i++) {
-//                    chosen_task = task_set[i];
-//                    if (next_array[chosen_task]
-//                        == std::numeric_limits<identity<decltype(next_array)>::type::value_type>::max()) {
-//                        if (!mcgrp.is_edge(chosen_task)) {
-//                            cerr << "A non edge task has been missed!\n";
-//                            abort();
-//                        }
-//                        else {
-//                            chosen_task = mcgrp.inst_tasks[chosen_task].inverse;My_Assert(next_array[chosen_task]
-//                                                                                              != std::numeric_limits<
-//                                                                                                  identity<decltype(next_array)>::type::value_type>::max(),
-//                                                                                          "An edge task has been missed");
-//                        }
-//                    }
-//
-//                    NewSwap::search(*this, mcgrp, chosen_task);
-//                }
-//            }
-//
-//            //Invert move
-//            if (cur_operator == NeighborOperator::INVERT) {
-//                if(mcgrp.req_edge_num == 0){
-//                    static bool once = true;
-//                    if(once){
-//                        cout<<"This instance doesn't need INVERT operator!\n";
-//                        once = false;
-//                    }
-//                    continue;
-//                }
-//                mcgrp._rng.RandPerm(task_set);
-//                for (int i = 0; i < mcgrp.actual_task_num; i++) {
-//                    chosen_task = task_set[i];
-//                    if (next_array[chosen_task]
-//                        == std::numeric_limits<identity<decltype(next_array)>::type::value_type>::max()) {
-//                        if (!mcgrp.is_edge(chosen_task)) {
-//                            cerr << "A non edge task has been missed!\n";
-//                            abort();
-//                        }
-//                        else {
-//                            chosen_task = mcgrp.inst_tasks[chosen_task].inverse;My_Assert(next_array[chosen_task]
-//                                                                                              != std::numeric_limits<
-//                                                                                                  identity<decltype(next_array)>::type::value_type>::max(),
-//                                                                                          "An edge task has been missed");
-//                        }
-//                    }
-//
-//                    Invert::search(*this, mcgrp, chosen_task);
-//                }
-//            }
-//
-//            //TwoOpt move
-//            if (cur_operator == NeighborOperator::TWO_OPT) {
-//                mcgrp._rng.RandPerm(task_set);
-//                for (int i = 0; i < mcgrp.actual_task_num; i++) {
-//                    chosen_task = task_set[i];
-//                    if (next_array[chosen_task]
-//                        == std::numeric_limits<identity<decltype(next_array)>::type::value_type>::max()) {
-//                        if (!mcgrp.is_edge(chosen_task)) {
-//                            cerr << "A non edge task has been missed!\n";
-//                            abort();
-//                        }
-//                        else {
-//                            chosen_task = mcgrp.inst_tasks[chosen_task].inverse;My_Assert(next_array[chosen_task]
-//                                                                                              != std::numeric_limits<
-//                                                                                                  identity<decltype(next_array)>::type::value_type>::max(),
-//                                                                                          "An edge task has been missed");
-//                        }
-//                    }
-//
-//                    NewTwoOpt::search(*this, mcgrp, chosen_task);
-//                }
-//            }
-//
-//        }
-//
-//        descent_exploration_version_1(mcgrp);
-//
-//    } while (cur_solution_cost >= prior_cost);
-//
-//
-//    policy.benchmark = 0;
-//    policy.set(original_policy);
-//    policy.tolerance = 0;
-//    neigh_size = 0;
-//}
-
-
 void HighSpeedNeighBorSearch::descent_exploration_version_0(const MCGRP &mcgrp)
 {
     DEBUG_PRINT("Downhill...");
@@ -2428,171 +2254,6 @@ void HighSpeedNeighBorSearch::descent_exploration_version_0(const MCGRP &mcgrp)
             }
         }while (cur_solution_cost < start_val);
     }
-
-    policy.set(original_policy);
-    neigh_size = 0;
-}
-
-void HighSpeedNeighBorSearch::descent_exploration_version_1(const MCGRP &mcgrp)
-{
-    DEBUG_PRINT("Downhill...");
-
-    const auto original_policy = policy.get();
-    policy.set(BEST_ACCEPT | DOWNHILL | DELTA_ONLY);
-
-    neigh_size = mcgrp.neigh_size;
-
-    vector<NeighborOperator> neighbor_operator{
-        NeighborOperator::SINGLE_INSERT,
-        NeighborOperator::DOUBLE_INSERT,
-        NeighborOperator::INVERT,
-        NeighborOperator::SWAP,
-        NeighborOperator::TWO_OPT,
-    };
-
-    int prior_search_step;
-    int prior_equal_step;
-
-    int search_step_delta;
-    int equal_step_delta;
-
-    double equal_ratio;
-
-    do{
-        prior_equal_step = this->equal_step;
-        prior_search_step = this->search_step;
-
-        int chosen_task = -1;
-        mcgrp._rng.RandPerm(neighbor_operator);
-        for (auto cur_operator:neighbor_operator) {
-            if (cur_operator == NeighborOperator::SINGLE_INSERT) {
-                mcgrp._rng.RandPerm(task_set);
-                for (int i = 0; i < mcgrp.actual_task_num; i++) {
-                    chosen_task = task_set[i];
-                    if (solution.tasks[chosen_task].next == nullptr) {
-                        if (!mcgrp.is_edge(chosen_task)) {
-                            cerr << "A non edge task has been missed!\n";
-                            abort();
-                        }
-                        else {
-                            chosen_task = mcgrp.inst_tasks[chosen_task].inverse;
-                            My_Assert(solution.tasks[chosen_task].next != nullptr,
-                                      "An edge task has been missed");
-                        }
-                    }
-
-                    single_insert->search(*this, mcgrp, chosen_task);
-                }
-            }
-
-            if (cur_operator == NeighborOperator::DOUBLE_INSERT) {
-//                mcgrp._rng.RandPerm(task_set);
-//                for (int i = 0; i < mcgrp.actual_task_num; i++) {
-//                    chosen_task = task_set[i];
-//                    if (next_array[chosen_task]
-//                        == std::numeric_limits<identity<decltype(next_array)>::type::value_type>::max()) {
-//                        if (!mcgrp.is_edge(chosen_task)) {
-//                            cerr << "A non edge task has been missed!\n";
-//                            abort();
-//                        }
-//                        else {
-//                            chosen_task = mcgrp.inst_tasks[chosen_task].inverse;My_Assert(next_array[chosen_task]
-//                                                                                              != std::numeric_limits<
-//                                                                                                  identity<decltype(next_array)>::type::value_type>::max(),
-//                                                                                          "An edge task has been missed");
-//                        }
-//                    }
-//
-//                    DoubleInsert::search(*this, mcgrp, chosen_task);
-//                }
-            }
-
-            if (cur_operator == NeighborOperator::SWAP) {
-//                mcgrp._rng.RandPerm(task_set);
-//                for (int i = 0; i < mcgrp.actual_task_num; i++) {
-//                    chosen_task = task_set[i];
-//                    if (next_array[chosen_task]
-//                        == std::numeric_limits<identity<decltype(next_array)>::type::value_type>::max()) {
-//                        if (!mcgrp.is_edge(chosen_task)) {
-//                            cerr << "A non edge task has been missed!\n";
-//                            abort();
-//                        }
-//                        else {
-//                            chosen_task = mcgrp.inst_tasks[chosen_task].inverse;My_Assert(next_array[chosen_task]
-//                                                                                              != std::numeric_limits<
-//                                                                                                  identity<decltype(next_array)>::type::value_type>::max(),
-//                                                                                          "An edge task has been missed");
-//                        }
-//                    }
-//
-//                    NewSwap::search(*this, mcgrp, chosen_task);
-//                }
-            }
-
-            if (cur_operator == NeighborOperator::INVERT) {
-//                mcgrp._rng.RandPerm(task_set);
-//                for (int i = 0; i < mcgrp.actual_task_num; i++) {
-//                    chosen_task = task_set[i];
-//                    if (next_array[chosen_task]
-//                        == std::numeric_limits<identity<decltype(next_array)>::type::value_type>::max()) {
-//                        if (!mcgrp.is_edge(chosen_task)) {
-//                            cerr << "A non edge task has been missed!\n";
-//                            abort();
-//                        }
-//                        else {
-//                            chosen_task = mcgrp.inst_tasks[chosen_task].inverse;My_Assert(next_array[chosen_task]
-//                                                                                              != std::numeric_limits<
-//                                                                                                  identity<decltype(next_array)>::type::value_type>::max(),
-//                                                                                          "An edge task has been missed");
-//                        }
-//                    }
-//
-//                    Invert::search(*this, mcgrp, chosen_task);
-//                }
-            }
-
-            if (cur_operator == NeighborOperator::TWO_OPT) {
-//                mcgrp._rng.RandPerm(task_set);
-//                for (int i = 0; i < mcgrp.actual_task_num; i++) {
-//                    chosen_task = task_set[i];
-//                    if (next_array[chosen_task]
-//                        == std::numeric_limits<identity<decltype(next_array)>::type::value_type>::max()) {
-//                        if (!mcgrp.is_edge(chosen_task)) {
-//                            cerr << "A non edge task has been missed!\n";
-//                            abort();
-//                        }
-//                        else {
-//                            chosen_task = mcgrp.inst_tasks[chosen_task].inverse;My_Assert(next_array[chosen_task]
-//                                                                                              != std::numeric_limits<
-//                                                                                                  identity<decltype(next_array)>::type::value_type>::max(),
-//                                                                                          "An edge task has been missed");
-//                        }
-//                    }
-//
-//                    NewTwoOpt::search(*this, mcgrp, chosen_task);
-//                }
-            }
-        }
-
-        search_step_delta = search_step - prior_search_step;
-        equal_step_delta = equal_step - prior_equal_step;
-
-        if (search_step_delta == 0) {
-            My_Assert(equal_step_delta == 0,"Wrong ratio!");
-            equal_ratio = 0;
-        }
-        else {
-            equal_ratio = double(equal_step_delta) / double(search_step_delta);
-        }
-
-        My_Assert(equal_ratio >= 0 && equal_ratio <= 1, "Wrong ratio!");
-
-
-    } while(
-        search_step_delta > significant_search_delta
-            && equal_ratio < local_ratio_threshold
-        );
-
 
     policy.set(original_policy);
     neigh_size = 0;
@@ -2997,14 +2658,29 @@ void HighSpeedNeighBorSearch::update(const MCGRP &mcgrp, const vector<int>& best
 void HighSpeedNeighBorSearch::repair_solution(const MCGRP &mcgrp)
 {
     // Repair infeasible solution
-    // Only violated load here
+    // Only violated load and time window here
     // No missed task, duplicated task problem here
 
     My_Assert(missed(mcgrp), "Some task missed!");
     My_Assert(check_duplicated(mcgrp), "Duplicated task!");
-    My_Assert(total_vio_load > 0, "This is not a infeasible task!");
 
-    DEBUG_PRINT("Repair infeasible solution...");
+    My_Assert(total_vio_load > 0 || total_vio_time > 0, "This is not a infeasible task!");
+
+    if(total_vio_load > 0)
+        _repair_load(mcgrp);
+
+    My_Assert(total_vio_load == 0, "load reparation mistake!");
+
+    if(total_vio_time > 0)
+        _repair_time_window(mcgrp);
+
+    My_Assert( total_vio_time == 0, "time window reparation mistake!");
+            
+}
+
+void HighSpeedNeighBorSearch::_repair_load(const MCGRP &mcgrp)
+{
+    DEBUG_PRINT("Repair Load infeasible solution...");
 
     struct Route
     {
@@ -3044,50 +2720,10 @@ void HighSpeedNeighBorSearch::repair_solution(const MCGRP &mcgrp)
         cur_solution_cost -= routes[current_route.route_id]->length;
         total_vio_load -= (routes[current_route.route_id]->load - mcgrp.capacity);
 
-
-        routes.free_route(current_route.route_id);
-
-        //remove solution
-        int dummy_marker = 0;
-        HighSpeedNeighBorSearch::TASK_NODE *reserve_dummy;
-        bool very_end_case = false;
-        if(solution[current_route.task_seq.back()]->next == solution.very_end){
-            dummy_marker = solution[current_route.task_seq.front()]->pre->ID;
-            reserve_dummy = solution[current_route.task_seq.back()]->next;
-            very_end_case = true;
-        }
-        else{
-            dummy_marker = solution[current_route.task_seq.back()]->next->ID;
-            reserve_dummy = solution[current_route.task_seq.front()]->pre;
-        }
-        My_Assert(dummy_marker < 0 ,"Wrong tasks");
-
-        if(very_end_case){
-            My_Assert(reserve_dummy == solution.very_end,"Wrong state");
-            if(solution[dummy_marker] != solution.very_start){
-                solution[dummy_marker]->pre->next = reserve_dummy;
-                reserve_dummy->pre = solution[dummy_marker]->pre;
-                solution.dummypool.free_dummy(dummy_marker);
-            }
-            else{
-                solution[dummy_marker]->next = reserve_dummy;
-                reserve_dummy->pre = solution[dummy_marker];
-            }
-
-        }
-        else{
-            reserve_dummy->next = solution[dummy_marker]->next;
-            solution[dummy_marker]->next->pre = reserve_dummy;
-            solution.dummypool.free_dummy(dummy_marker);
-        }
-
-
-        for(auto task: current_route.task_seq){
-            solution[task]->clear();
-            candidate_tasks.push_back(task);
-        }
-
-
+        delete_route(current_route.route_id,current_route.task_seq);
+        candidate_tasks.insert(candidate_tasks.end(),
+                               current_route.task_seq.begin(),
+                               current_route.task_seq.end());
     }
 
     My_Assert(valid_sol(mcgrp),"Wrong validation");
@@ -3179,35 +2815,11 @@ void HighSpeedNeighBorSearch::repair_solution(const MCGRP &mcgrp)
         //means a new route need to be created
         if (chosen_route == -1) {
             My_Assert(left_task == nullptr && right_task == nullptr,"Wrong tasks");
-            const auto new_route = routes.allocate_route();
 
             satisfied_routes.push_back(Route());
             satisfied_routes.back().task_seq.push_back(task);
             satisfied_routes.back().load = mcgrp.inst_tasks[task].demand;
-            satisfied_routes.back().route_id = new_route;
-
-            const auto dummy_task = mcgrp.min_cost[mcgrp.inst_tasks[DUMMY].tail_node][mcgrp.inst_tasks[task].head_node];
-            const auto task_dummy = mcgrp.min_cost[mcgrp.inst_tasks[task].tail_node][mcgrp.inst_tasks[DUMMY].head_node];
-
-            routes[new_route]->length = dummy_task + mcgrp.inst_tasks[task].serv_cost + task_dummy;
-            routes[new_route]->num_customers = 1;
-            routes[new_route]->load = mcgrp.inst_tasks[task].demand;
-
-            routes[new_route]->start = task;
-            routes[new_route]->end = task;
-
-            solution[task]->route_id = new_route;
-
-            cur_solution_cost += routes[new_route]->length;
-
-            //handle solution
-            auto new_dummy = solution.dummypool.get_new_dummy();
-            new_dummy->pre = solution.very_end->pre;
-            new_dummy->next = solution[task];
-            new_dummy->pre->next = new_dummy;
-            solution[task]->pre = new_dummy;
-            solution[task]->next = solution.very_end;
-            solution.very_end->pre = solution[task];
+            satisfied_routes.back().route_id = new_route(mcgrp, {task});
 
         }
         else {
@@ -3258,8 +2870,56 @@ void HighSpeedNeighBorSearch::repair_solution(const MCGRP &mcgrp)
     My_Assert(total_vio_load == 0, "This is not a infeasible task!");
 
     My_Assert(valid_sol(mcgrp), "Repair method doesn't work properly!");
+}
 
+void HighSpeedNeighBorSearch::_repair_time_window(const MCGRP &mcgrp)
+{
+    DEBUG_PRINT("Repair Time window infeasible solution...");
 
+    struct Route
+    {
+        int route_id;
+        vector<MCGRPRoute::Timetable> time_tbl;
+    };
+
+    vector<Route> violated_routes;
+
+    //generate tasks distribution in routes
+    for(auto route_id : routes.activated_route_id){
+        Route tmp;
+        tmp.route_id = route_id;
+        tmp.time_tbl = routes[route_id]->time_table;
+        if(!mcgrp.isTimetableFeasible(tmp.time_tbl, false))
+            violated_routes.push_back(tmp);
+    }
+
+    My_Assert(!violated_routes.empty(),"Wrong state");
+
+    for(auto current_route : violated_routes){
+        cur_solution_cost -= routes[current_route.route_id]->length;
+        total_vio_time -= mcgrp.get_vio_time(current_route.time_tbl);
+
+        vector<int> candidate_tasks;
+        for(const auto& node : current_route.time_tbl)
+            candidate_tasks.push_back(node.task);
+        delete_route(current_route.route_id,candidate_tasks);
+
+        My_Assert(valid_sol(mcgrp),"Wrong validation");
+
+        //insert task to repair
+        mcgrp.time_window_sort(candidate_tasks);
+
+        auto split_routes = nearest_scanning(mcgrp,candidate_tasks);
+
+        for(const auto cur_route : split_routes)
+            new_route(mcgrp,cur_route);
+    }
+
+    My_Assert(missed(mcgrp), "Some task missed!");
+    My_Assert(check_duplicated(mcgrp), "Duplicated task!");
+    My_Assert(total_vio_time == 0, "This is not a infeasible task!");
+
+    My_Assert(valid_sol(mcgrp), "Repair method doesn't work properly!");
 }
 
 bool HighSpeedNeighBorSearch::missed(const MCGRP &mcgrp)
@@ -3305,7 +2965,126 @@ bool HighSpeedNeighBorSearch::check_duplicated(const MCGRP &mcgrp)
     return true;
 }
 
-int HighSpeedNeighBorSearch::getSearch_step() const
-{
+int HighSpeedNeighBorSearch::getSearch_step() const{
     return search_step;
+}
+
+void HighSpeedNeighBorSearch::delete_route(int route_id, const vector<int> &route_seq){
+    My_Assert(routes[route_id]->start == route_seq.front() && routes[route_id]->end == route_seq.back(),
+              "Wrong route!");
+
+    routes.free_route(route_id);
+
+    //remove solution
+    int dummy_marker = 0;
+    HighSpeedNeighBorSearch::TASK_NODE *reserve_dummy;
+    bool very_end_case = false;
+    if(solution[route_seq.back()]->next == solution.very_end){
+        dummy_marker = solution[route_seq.front()]->pre->ID;
+        reserve_dummy = solution[route_seq.back()]->next;
+        very_end_case = true;
+    }
+    else{
+        dummy_marker = solution[route_seq.back()]->next->ID;
+        reserve_dummy = solution[route_seq.front()]->pre;
+    }
+    My_Assert(dummy_marker < 0 ,"Wrong tasks");
+
+    if(very_end_case){
+        My_Assert(reserve_dummy == solution.very_end,"Wrong state");
+        if(solution[dummy_marker] != solution.very_start){
+            solution[dummy_marker]->pre->next = reserve_dummy;
+            reserve_dummy->pre = solution[dummy_marker]->pre;
+            solution.dummypool.free_dummy(dummy_marker);
+        }
+        else{
+            solution[dummy_marker]->next = reserve_dummy;
+            reserve_dummy->pre = solution[dummy_marker];
+        }
+
+    }
+    else{
+        reserve_dummy->next = solution[dummy_marker]->next;
+        solution[dummy_marker]->next->pre = reserve_dummy;
+        solution.dummypool.free_dummy(dummy_marker);
+    }
+
+
+    for(auto task: route_seq)
+        solution[task]->clear();
+}
+
+int HighSpeedNeighBorSearch::new_route(const MCGRP& mcgrp, const vector<int> &route_seq)
+{
+    const auto new_route = routes.allocate_route();
+
+    const auto dummy_task = mcgrp.min_cost[mcgrp.inst_tasks[DUMMY].tail_node][mcgrp.inst_tasks[route_seq.front()].head_node];
+    const auto task_dummy = mcgrp.min_cost[mcgrp.inst_tasks[route_seq.back()].tail_node][mcgrp.inst_tasks[DUMMY].head_node];
+
+    // update meta info
+    routes[new_route]->num_customers = route_seq.size();
+    routes[new_route]->start = route_seq.front();
+    routes[new_route]->end = route_seq.back();
+
+    // update length and load info
+    routes[new_route]->length = dummy_task + task_dummy;
+    routes[new_route]->load = 0;
+    for(const int task : route_seq) {
+        routes[new_route]->load += mcgrp.inst_tasks[task].demand;
+        routes[new_route]->length += mcgrp.inst_tasks[task].serv_cost;
+        solution[task]->route_id = new_route;
+    }
+
+    for(int i = 1; i < route_seq.size();i++)
+        routes[new_route]->length +=
+            mcgrp.min_cost[mcgrp.inst_tasks[route_seq[i-1]].tail_node][mcgrp.inst_tasks[route_seq[i]].head_node];
+
+    cur_solution_cost += routes[new_route]->length;
+
+
+    // update time table
+    auto time_tbl = mcgrp.cal_arrive_time(route_seq);
+    routes[new_route]->time_table.clear();
+    for(int i = 0;i<route_seq.size();i++){
+        routes[new_route]->time_table.push_back({route_seq[i],time_tbl[i]});
+    }
+
+    //handle solution
+    auto new_dummy = solution.dummypool.get_new_dummy();
+    auto ends = solution.connect_tasks(route_seq);
+
+    new_dummy->pre = solution.very_end->pre;
+    new_dummy->pre->next = new_dummy;
+    new_dummy->next = ends.first;
+    ends.first->pre = new_dummy;
+
+    ends.second->next = solution.very_end;
+    solution.very_end->pre = ends.second;
+
+    return new_route;
+}
+
+pair<struct HighSpeedNeighBorSearch::TASK_NODE *, struct HighSpeedNeighBorSearch::TASK_NODE *>
+HighSpeedNeighBorSearch::SOLUTION::connect_tasks(const vector<int> &route_seq)
+{
+    if (route_seq.empty())
+        return {nullptr, nullptr};
+
+    if(route_seq.size() == 1)
+        return {&tasks[route_seq[0]],&tasks[route_seq[0]]};
+
+    for(int i = 0;i < route_seq.size();i++){
+        if(i == 0){
+            tasks[route_seq[i]].next = &tasks[route_seq[i+1]];
+        }
+        else if(i == route_seq.size() - 1){
+            tasks[route_seq[i]].pre = &tasks[route_seq[i-1]];
+        }
+        else{
+            tasks[route_seq[i]].next = &tasks[route_seq[i+1]];
+            tasks[route_seq[i]].pre = &tasks[route_seq[i-1]];
+        }
+    }
+
+    return {&tasks[route_seq.front()],&tasks[route_seq.back()]};
 }

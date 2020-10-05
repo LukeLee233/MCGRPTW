@@ -17,6 +17,9 @@
  */
 void nearest_scanning(const MCGRP &mcgrp, Individual &rs_indi);
 
+vector<vector<int>>
+nearest_scanning(const MCGRP &mcgrp, vector<int> unserved_task_set);
+
 /*!
  * execute merge and split to the current solution
  * @param ns

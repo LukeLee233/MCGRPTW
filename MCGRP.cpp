@@ -1054,3 +1054,54 @@ int MCGRP::get_vio_time(const vector<MCGRPRoute::Timetable> &tbl) const
     return ans;
 }
 
+void MCGRP::time_window_sort(vector<int> &sequence) const
+{
+    function<bool(const int,const int)> comp = [this](const int a,const int b){
+        if(this->inst_tasks[a].time_window.second == inst_tasks[b].time_window.second)
+            return this->inst_tasks[a].serve_time < inst_tasks[b].serve_time;
+        return this->inst_tasks[a].time_window.second < inst_tasks[b].time_window.second;
+    };
+
+    function<int(int,int)> partition = [&sequence,&comp](int low, int high){
+        int pivot = sequence[high]; // pivot
+        int i = (low - 1); // Index of smaller element
+
+        for (int j = low; j <= high - 1; j++){
+            // If current element is smaller than the pivot
+            if (comp(j,high)){
+                i++; // increment index of smaller element
+                swap(sequence[i], sequence[j]);
+            }
+        }
+
+        swap(sequence[i + 1], sequence[high]);
+        return (i + 1);
+    };
+
+    function<void(int,int)> quickSort = [&quickSort, &partition](int low, int high){
+        if (low < high)
+        {
+            /* pi is partitioning index, arr[p] is now at right place */
+            int pi = partition(low, high);
+
+            // Separately sort elements before
+            // partition and after partition
+            quickSort(low, pi - 1);
+            quickSort(pi + 1, high);
+        }
+    };
+
+    quickSort(0,(int)sequence.size() - 1);
+}
+
+bool MCGRP::isTimetableFeasible(const vector<MCGRPRoute::Timetable>& tbl, bool meta) const {
+    if(meta)
+        return tbl.empty() || tbl.front().task != -1;
+    else{
+        for(const auto & node : tbl){
+            if(node.arrive_time > inst_tasks[node.task].time_window.second)
+                return false;
+        }
+        return true;
+    }
+}

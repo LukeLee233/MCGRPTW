@@ -261,6 +261,7 @@ private:
             pre = nullptr;
             next = nullptr;
         }
+
     };
 
     struct DUMMYPOOL{
@@ -387,7 +388,11 @@ private:
             for(int i = 0;i<tasks.size();i++){
                 tasks[i].clear();
             }
-        };
+        }
+
+        pair<struct TASK_NODE*,struct TASK_NODE*>
+        connect_tasks(const vector<int>& route_seq)
+
     };
 
     class ROUTESPOOL{
@@ -499,6 +504,7 @@ private:
     unique_ptr<class NewTwoOpt> two_opt;
     unique_ptr<class Extraction> extraction;
     unique_ptr<class Slice> slice;
+
 public:
 
     HighSpeedNeighBorSearch(const MCGRP &mcgrp);
@@ -507,7 +513,8 @@ public:
 
     vector<int> get_solution(string mode="dummy");
 
-
+    void delete_route(int route_id,const vector<int>& route_seq);
+    int new_route(const MCGRP& mcgrp, const vector<int>& route_seq);
 
     void clear();
 
@@ -575,15 +582,12 @@ public:
      * @param mcgrp
      */
     void threshold_exploration_version_0(const MCGRP &mcgrp);
-    void threshold_exploration_version_1(const MCGRP &mcgrp);
 
     /*!
      * @details descent exploration
      * @param mcgrp
      */
     void descent_exploration_version_0(const MCGRP &mcgrp);
-
-    void descent_exploration_version_1(const MCGRP &mcgrp);
 
     /*!
      * @details Infeasible search
@@ -604,6 +608,10 @@ public:
      * @param mcgrp
      */
     void repair_solution(const MCGRP &mcgrp);
+    void _repair_load(const MCGRP &mcgrp);
+    void _repair_time_window(const MCGRP &mcgrp);
+
+
 
     /*!
      * @details Check if any tasks missed.

@@ -122,6 +122,122 @@ void nearest_scanning(const MCGRP &mcgrp, Individual &rs_indi)
     My_Assert(mcgrp.valid_sol(get_negative_coding(rs_indi.sequence),rs_indi.total_cost),"Wrong outcome!\n");
 }
 
+vector<vector<int>> nearest_scanning(const MCGRP &mcgrp, vector<int> unserved_task_set)
+{
+    int serve_task_num = unserved_task_set.size();
+
+    int load;
+    int trial;
+    int min_dist;
+    int drive_time; // the earliest time of a vehicle begins to search the task
+
+    std::vector<int> candidate_task_set;
+
+    std::vector<int> nearest_task_set;
+
+    int current_tail_task;
+    int chosen_task;
+
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    Individual rs_indi;
+    rs_indi.sequence.clear();
+    rs_indi.route_seg_load.clear();
+
+    //insert dummy task at the very beginning
+    rs_indi.sequence.push_back(DUMMY);
+
+    load = 0;
+    trial = 0;
+    drive_time = 0;
+    while (trial < serve_task_num) {
+        current_tail_task = rs_indi.sequence.back();
+
+        //Find all the tasks that satisfy the capacity constraint
+        candidate_task_set.clear();
+        for (auto unserved_task : unserved_task_set) {
+            if (mcgrp.inst_tasks[unserved_task].demand <= mcgrp.capacity - load
+                && mcgrp.cal_arrive_time(current_tail_task, unserved_task, drive_time, true)
+                    <= mcgrp.inst_tasks[unserved_task].time_window.second)
+            {
+                candidate_task_set.push_back(unserved_task);
+            }
+        }
+
+        if (candidate_task_set.empty()) {
+            rs_indi.sequence.push_back(DUMMY);
+            rs_indi.route_seg_load.push_back(load);
+            rs_indi.route_seg_time.push_back(drive_time);
+            load = 0;
+            drive_time = 0;
+            continue;
+        }
+
+        min_dist = MAX(min_dist);
+
+        //Find the nearest task from the current candidate task set
+        for (auto candidate_task : candidate_task_set) {
+            if (mcgrp.min_cost[mcgrp.inst_tasks[current_tail_task].tail_node][mcgrp.inst_tasks[candidate_task].head_node]
+                < min_dist) {
+                min_dist = mcgrp.min_cost[mcgrp.inst_tasks[current_tail_task].tail_node][mcgrp.inst_tasks[candidate_task]
+                    .head_node];
+                nearest_task_set.clear();
+                nearest_task_set.push_back(candidate_task);
+            }
+            else if (
+                mcgrp.min_cost[mcgrp.inst_tasks[current_tail_task].tail_node][mcgrp.inst_tasks[candidate_task].head_node]
+                    == min_dist) {
+                nearest_task_set.push_back(candidate_task);
+            }
+        }
+
+
+        //If multiple tasks both satisfy the capacity constraint and are closest, randomly choose one
+        int k = (int) mcgrp._rng.Randint(0, nearest_task_set.size() - 1);
+        chosen_task = nearest_task_set[k];
+
+        load += mcgrp.inst_tasks[chosen_task].demand;
+        drive_time = mcgrp.cal_arrive_time(current_tail_task,chosen_task,drive_time, true);
+
+        trial++;
+        rs_indi.sequence.push_back(chosen_task);
+
+        unserved_task_set.erase(std::find_if(unserved_task_set.begin(),
+                                                unserved_task_set.end(),
+                                                [chosen_task](const int &elem) -> bool
+                                                { return elem == chosen_task; }));
+
+        if (mcgrp.inst_tasks[chosen_task].inverse != ARC_NO_INVERSE
+            && mcgrp.inst_tasks[chosen_task].inverse != NODE_NO_INVERSE) {
+            int inverse_task = mcgrp.inst_tasks[chosen_task].inverse;
+            unserved_task_set.erase(std::find_if(unserved_task_set.begin(),
+                                                    unserved_task_set.end(),
+                                                    [inverse_task](const int &elem) -> bool
+                                                    { return elem == inverse_task; }));
+        }
+    }
+
+    if (rs_indi.sequence.back() != DUMMY) {
+        rs_indi.sequence.push_back(DUMMY);
+        rs_indi.route_seg_load.push_back(load);
+        rs_indi.route_seg_time.push_back(drive_time);
+    }
+
+    rs_indi.total_cost = mcgrp.get_task_seq_total_cost(rs_indi.sequence);
+    rs_indi.total_vio_load = mcgrp.get_total_vio_load(rs_indi.route_seg_load);
+    My_Assert(mcgrp.valid_sol(get_negative_coding(rs_indi.sequence),rs_indi.total_cost),"Wrong outcome!\n");
+
+    vector<vector<int>> routes;
+    for(int cur = 0; cur < rs_indi.sequence.size()-1 ; cur++){
+        if(rs_indi.sequence[cur] == DUMMY)
+            routes.push_back(vector<int>());
+        else
+            routes.back().push_back(rs_indi.sequence[cur]);
+    }
+
+    return routes;
+}
+
 const int max_merge_set_num = 20;
 
 void merge_split(NeighBorSearch &ns, const MCGRP &mcgrp, const int merge_size, const int pseudo_capacity)

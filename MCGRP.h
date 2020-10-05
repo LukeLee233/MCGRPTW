@@ -201,15 +201,21 @@ public:
                                                       string mode, int indicator_task = -1,
                                                       bool allow_infeasible = false) const;
 
-    bool isTimetableFeasible(const vector<MCGRPRoute::Timetable> tbl) const;
+    bool isTimetableFeasible(const vector<MCGRPRoute::Timetable>& tbl,bool meta = true) const;
 
     int get_vio_time(const vector<MCGRPRoute::Timetable>& tbl) const;
+
+    /*!
+     * sort a set of tasks based on time
+     * 1. the start of the time window
+     * 2. the serve time
+     * @param sequence
+     */
+    void time_window_sort(vector<int>& sequence) const;
 };
 
 inline int MCGRP::get_travel_time(int source_task, int sink_task) const {
         return min_time[inst_tasks[source_task].tail_node][inst_tasks[sink_task].head_node];
 }
 
-inline bool MCGRP::isTimetableFeasible(const vector<MCGRPRoute::Timetable> tbl) const {
-    return tbl.empty() || tbl.front().task != -1;
-}
+

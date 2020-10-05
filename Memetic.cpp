@@ -1283,7 +1283,7 @@ bool HighSpeedMemetic::valid(const MCGRP& mcgrp, const SOLUTION &solution){
     return total_load == solution.load && total_cost == solution.length;
 }
 
-bool HighSpeedMemetic::check_integrity(const MCGRP &mcgrp, const SOLUTION &solution, const vector<int>& ommited){
+bool HighSpeedMemetic::check_integrity(const MCGRP &mcgrp, const SOLUTION &solution, const vector<int>& omitted){
     vector<bool> tasks(mcgrp.actual_task_num + 1, false);
 
     tasks.front() = true;
@@ -1313,7 +1313,7 @@ bool HighSpeedMemetic::check_integrity(const MCGRP &mcgrp, const SOLUTION &solut
     }
 
 
-    for(auto task : ommited){
+    for(auto task : omitted){
         My_Assert(task != DUMMY,"Wrong state");
         if(tasks[task] == true){
             return false;
