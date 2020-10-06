@@ -15,7 +15,7 @@ bool Slice::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_t
 
     My_Assert(chosen_task != DUMMY, "Chosen task can't be dummy");
 
-    if (considerable_move(ns, mcgrp, chosen_task) && ns.policy.check_move(move_result)) {
+    if (considerable_move(ns, mcgrp, chosen_task)) {
         move(ns, mcgrp);
         return true;
     }
