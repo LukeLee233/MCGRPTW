@@ -30,6 +30,9 @@ public:
     bool considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, const int b);
 
     void move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp);
+
+    vector<vector<MCGRPRoute::Timetable>> expected_time_table(HighSpeedNeighBorSearch &ns,const MCGRP &mcgrp,
+                                                              const int b,bool allow_infeasible);
 };
 
 //low level operator
@@ -53,6 +56,10 @@ public:
     bool considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, const int b);
 
     void move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp);
+
+    vector<vector<MCGRPRoute::Timetable>> expected_time_table(HighSpeedNeighBorSearch &ns,const MCGRP &mcgrp,
+                                                              const int b,bool allow_infeasible);
+
 };
 
 
