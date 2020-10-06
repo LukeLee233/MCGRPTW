@@ -24,6 +24,9 @@ message(STATUS "Boost_VERSION: ${Boost_VERSION}")
 
 add_definitions(-D DEBUG)
 
+# disable compile warning flag
+add_definitions(-w)
+
 include_directories(${Boost_INCLUDE_DIRS})
 include_directories(${GSL_INCLUDE_DIR})
 
