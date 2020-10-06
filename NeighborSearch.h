@@ -383,7 +383,7 @@ private:
         }
 
         pair<struct TASK_NODE*,struct TASK_NODE*>
-        connect_tasks(const vector<int>& route_seq)
+        connect_tasks(const vector<int>& route_seq);
 
     };
 
