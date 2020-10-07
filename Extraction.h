@@ -14,6 +14,8 @@
  *   extraction will not violate load and time window constraints
  *   if the graph satisfy triangle inequality, then this operator will give a degenerate solution.
  *   Otherwise, this operator may improve the solution
+ *
+ *   This operator will only be used in the feasible search phase
  */
 
 class Extraction

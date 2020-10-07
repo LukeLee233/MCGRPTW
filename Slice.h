@@ -9,7 +9,16 @@
 #include "NeighborSearch.h"
 #include "utils.h"
 
-//low level operator
+/*
+ *   low level operator
+ *   slice will not violate load and time window constraints
+ *   if the graph satisfy triangle inequality, then this operator will give a degenerate solution.
+ *   Otherwise, this operator may improve the solution
+ *
+ *   This operator will only be used in the feasible search phase
+ */
+
+
 class Preslice
 {
 public:
@@ -32,7 +41,7 @@ public:
     void move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp);
 
     vector<vector<MCGRPRoute::Timetable>> expected_time_table(HighSpeedNeighBorSearch &ns,const MCGRP &mcgrp,
-                                                              const int b,bool allow_infeasible);
+                                                              const int b);
 };
 
 //low level operator
@@ -58,7 +67,7 @@ public:
     void move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp);
 
     vector<vector<MCGRPRoute::Timetable>> expected_time_table(HighSpeedNeighBorSearch &ns,const MCGRP &mcgrp,
-                                                              const int b,bool allow_infeasible);
+                                                              const int b);
 
 };
 

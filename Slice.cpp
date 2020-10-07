@@ -224,19 +224,10 @@ bool Preslice::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp
     const auto seg_after_b = get_segment_info(mcgrp, ns, b);
 
     bool allow_infeasible = ns.policy.has_rule(FITNESS_ONLY) ? true : false;
-    vector<vector<MCGRPRoute::Timetable>> new_time_tbl{{{-1, -1}}};
-    new_time_tbl = expected_time_table(ns, mcgrp, b, allow_infeasible);
-
-    if (!mcgrp.isTimetableFeasible(new_time_tbl[0])) {
-        move_result.reset();
-        return false;
-    }
+    auto new_time_tbl = expected_time_table(ns, mcgrp, b);
 
     move_result.route_time_tbl = new_time_tbl;
-    move_result.vio_time_delta =
-        mcgrp.get_vio_time(move_result.route_time_tbl[0])
-            + mcgrp.get_vio_time(move_result.route_time_tbl[1])
-            - mcgrp.get_vio_time(ns.routes[b_route]->time_table);
+    move_result.vio_time_delta = 0;
 
     move_result.task1 = b;
     if (seg_after_b.num_custs != 0) {
@@ -395,7 +386,7 @@ void Preslice::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
 }
 
 vector<vector<MCGRPRoute::Timetable>>
-Preslice::expected_time_table(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, const int b, bool allow_infeasible)
+Preslice::expected_time_table(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, const int b)
 {
     vector<vector<MCGRPRoute::Timetable>>
         res(2, vector<MCGRPRoute::Timetable>({{-1, -1}}));
@@ -422,17 +413,11 @@ Preslice::expected_time_table(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, c
 
     vector<MCGRPRoute::Timetable> intermediate_sliced;
     vector<MCGRPRoute::Timetable> intermediate_new;
-    for (int k = 0; k < time_tbl_sliced.size(); k++) {
-        if (!allow_infeasible && time_tbl_sliced[k] > mcgrp.inst_tasks[sliced_route[k]].time_window.second)
-            return res;
+    for (int k = 0; k < time_tbl_sliced.size(); k++)
         intermediate_sliced.push_back({sliced_route[k], time_tbl_sliced[k]});
-    }
 
-    for (int k = 0; k < time_tbl_new.size(); k++) {
-        if (!allow_infeasible && time_tbl_new[k] > mcgrp.inst_tasks[new_route[k]].time_window.second)
-            return res;
+    for (int k = 0; k < time_tbl_new.size(); k++)
         intermediate_new.push_back({new_route[k], time_tbl_new[k]});
-    }
 
     res[0] = intermediate_sliced;
     res[1] = intermediate_new;
@@ -461,14 +446,7 @@ bool Postslice::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgr
     move_result.move_arguments.push_back(seg_after_b.segment_start);
     move_result.move_arguments.push_back(seg_after_b.segment_end);
 
-    bool allow_infeasible = ns.policy.has_rule(FITNESS_ONLY) ? true : false;
-    vector<vector<MCGRPRoute::Timetable>> new_time_tbl{{{-1, -1}}};
-    new_time_tbl = expected_time_table(ns, mcgrp, b, allow_infeasible);
-
-    if (!mcgrp.isTimetableFeasible(new_time_tbl[0])) {
-        move_result.reset();
-        return false;
-    }
+    auto new_time_tbl = expected_time_table(ns, mcgrp, b);
 
     double new_load_delta = seg_after_b.load;
     My_Assert(new_load_delta <= mcgrp.capacity, "Wrong tasks");
@@ -508,10 +486,7 @@ bool Postslice::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgr
     move_result.considerable = true;
 
     move_result.route_time_tbl = new_time_tbl;
-    move_result.vio_time_delta =
-        mcgrp.get_vio_time(move_result.route_time_tbl[0])
-            + mcgrp.get_vio_time(move_result.route_time_tbl[1])
-            - mcgrp.get_vio_time(ns.routes[b_route]->time_table);
+    move_result.vio_time_delta = 0;
     return true;
 }
 
@@ -580,8 +555,7 @@ void Postslice::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
 vector<vector<MCGRPRoute::Timetable>>
 Postslice::expected_time_table(HighSpeedNeighBorSearch &ns,
                                const MCGRP &mcgrp,
-                               const int b,
-                               bool allow_infeasible)
+                               const int b)
 {
     vector<vector<MCGRPRoute::Timetable>>
         res(2, vector<MCGRPRoute::Timetable>({{-1, -1}}));
@@ -608,17 +582,11 @@ Postslice::expected_time_table(HighSpeedNeighBorSearch &ns,
 
     vector<MCGRPRoute::Timetable> intermediate_sliced;
     vector<MCGRPRoute::Timetable> intermediate_new;
-    for (int k = 0; k < time_tbl_sliced.size(); k++) {
-        if (!allow_infeasible && time_tbl_sliced[k] > mcgrp.inst_tasks[sliced_route[k]].time_window.second)
-            return res;
+    for (int k = 0; k < time_tbl_sliced.size(); k++)
         intermediate_sliced.push_back({sliced_route[k], time_tbl_sliced[k]});
-    }
 
-    for (int k = 0; k < time_tbl_new.size(); k++) {
-        if (!allow_infeasible && time_tbl_new[k] > mcgrp.inst_tasks[new_route[k]].time_window.second)
-            return res;
+    for (int k = 0; k < time_tbl_new.size(); k++)
         intermediate_new.push_back({new_route[k], time_tbl_new[k]});
-    }
 
     res[0] = intermediate_sliced;
     res[1] = intermediate_new;
