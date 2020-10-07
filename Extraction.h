@@ -9,12 +9,20 @@
 #include "NeighborSearch.h"
 #include "utils.h"
 
-//low level operator
+/*
+ *   low level operator
+ *   extraction will not violate load and time window constraints
+ *   if the graph satisfy triangle inequality, then this operator will give a degenerate solution.
+ *   Otherwise, this operator may improve the solution
+ */
+
 class Extraction
 {
     MCGRPMOVE move_result;
 public:
-    Extraction():move_result(MCGRPMOVE(NeighborOperator::EXTRACTION)){};
+    Extraction()
+        : move_result(MCGRPMOVE(NeighborOperator::EXTRACTION))
+    {};
 
     /*----------------High speed neighbor search---------------------*/
     bool search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_task);
@@ -29,11 +37,15 @@ public:
      * @param policy
      * @return
      */
-    bool considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,const int b);
+    bool considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, const int b);
 
     void move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp);
 
     void unit_test(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp);
+
+    vector<vector<MCGRPRoute::Timetable>>
+    expected_time_table(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
+                        const int b);
 };
 
 #endif //EXTRACTION_H
