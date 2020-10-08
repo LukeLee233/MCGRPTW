@@ -151,9 +151,18 @@ private:
     pair<int,int> choose_parents(const MCGRP &mcgrp);
 
     struct ROUTE{
-        vector<int> seq;
+        vector<int> seq; // DUMMY—a—b...—c—d—DUMMY
+        vector<int> time_tbl; // a-b...-c-d
         double length = 0;
         double load = 0;
+
+        vector<MCGRPRoute::Timetable> ToTimeTbl(){
+            vector<MCGRPRoute::Timetable> buffer;
+            My_Assert(time_tbl.size() + 2 == seq.size(), "Wrong state of route");
+            for(int i = 1; i<seq.size() - 1 ;i++)
+                buffer.push_back({seq[i],time_tbl[i - 1]});
+            return buffer;
+        }
     };
 
     struct SOLUTION{
@@ -163,15 +172,14 @@ private:
 
         vector<int> get_route_sequence(int route_id,bool with_dummy){
             My_Assert(route_id>=0 && route_id < routes.size(),"Wrong arguments");
-            if(with_dummy){
+            if(with_dummy)
                 return routes[route_id].seq;
-            }
-            else{
+            else
                 return vector<int>(routes[route_id].seq.begin()+1,routes[route_id].seq.end()-1);
-            }
         }
+
         vector<int> get_whole_sequence(){
-            //without dummy
+            // without dummy
             vector<int> buffer;
             for(int i = 0;i< routes.size();i++){
                 auto tmp = get_route_sequence(i, false);
@@ -214,7 +222,7 @@ public:
 
     void memetic_search(const MCGRP &mcgrp);
 
-    void search_child(const MCGRP &mcgrp, vector<int> child);
+    void educate(const MCGRP &mcgrp, vector<int> child);
 
     static void repair_solution(const MCGRP &mcgrp, SOLUTION & solution);
 
