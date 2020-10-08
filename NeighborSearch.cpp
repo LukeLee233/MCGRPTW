@@ -2730,6 +2730,7 @@ void HighSpeedNeighBorSearch::_repair_load(const MCGRP &mcgrp)
         //remove the violated routes info
         cur_solution_cost -= routes[current_route.route_id]->length;
         total_vio_load -= (routes[current_route.route_id]->load - mcgrp.capacity);
+        total_vio_time -= mcgrp.get_vio_time(routes[current_route.route_id]->time_table);
 
         delete_route(current_route.route_id, current_route.task_seq);
         candidate_tasks.insert(candidate_tasks.end(),
@@ -2911,6 +2912,7 @@ void HighSpeedNeighBorSearch::_repair_time_window(const MCGRP &mcgrp)
 
     for (auto current_route : violated_routes) {
         cur_solution_cost -= routes[current_route.route_id]->length;
+        total_vio_load -= (routes[current_route.route_id]->load - mcgrp.capacity);
         total_vio_time -= mcgrp.get_vio_time(current_route.time_tbl);
 
         vector<int> candidate_tasks;
