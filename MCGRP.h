@@ -80,6 +80,11 @@ public:
 
     MCGRP(const instance_num_information &instance_info, RNG &rng);
 
+    /*!
+     * convert a delimiter format solution into individual style
+     * @param seq
+     * @return
+     */
     Individual parse_delimiter_seq(const vector<int> &seq) const;
 
     inline double get_yield(int task_num) const
@@ -210,6 +215,8 @@ public:
      * @param sequence
      */
     void time_window_sort(vector<int>& sequence) const;
+
+    vector<vector<MCGRPRoute::Timetable>> get_time_tbl(const vector<int>& sequence, string mode) const;
 };
 
 inline int MCGRP::get_travel_time(int source_task, int sink_task) const {

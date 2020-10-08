@@ -9,10 +9,8 @@
 
 using namespace std;
 
-void nearest_scanning(const MCGRP &mcgrp, Individual &rs_indi)
+Individual nearest_scanning(const MCGRP &mcgrp, vector<int> unserved_task_set)
 {
-    int serve_task_num = mcgrp.req_arc_num + mcgrp.req_node_num + mcgrp.req_edge_num;
-
     int load;
     int trial;
     int min_dist;
@@ -29,38 +27,40 @@ void nearest_scanning(const MCGRP &mcgrp, Individual &rs_indi)
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    rs_indi.sequence.clear();
-    rs_indi.route_seg_load.clear();
-
-    //insert dummy task at the very beginning
-    rs_indi.sequence.push_back(DUMMY);
-
-    //统计未服务任务
-    for (int i = 1; i <= mcgrp.actual_task_num; i++) {
-        unserved_task_id_set.push_back(i);
+    // 统计未服务任务
+    int serve_task_num = 0;
+    if(!unserved_task_set.empty()){
+        serve_task_num = unserved_task_set.size();
+        unserved_task_id_set = unserved_task_set;
+    }
+    else{
+        serve_task_num = mcgrp.req_arc_num + mcgrp.req_node_num + mcgrp.req_edge_num;
+        for (int i = 1; i <= mcgrp.actual_task_num; i++)
+            unserved_task_id_set.push_back(i);
     }
 
     load = 0;
     trial = 0;
     drive_time = 0;
+
+    vector<int> solution;
+    solution.push_back(DUMMY);
+
     while (trial < serve_task_num) {
-        current_tail_task = rs_indi.sequence.back();
+        current_tail_task = solution.back();
 
         //Find all the tasks that satisfy the capacity constraint
         candidate_task_set.clear();
         for (auto unserved_task : unserved_task_id_set) {
             if (mcgrp.inst_tasks[unserved_task].demand <= mcgrp.capacity - load
-            && mcgrp.cal_arrive_time(current_tail_task, unserved_task, drive_time, true)
-            <= mcgrp.inst_tasks[unserved_task].time_window.second)
-            {
+                && mcgrp.cal_arrive_time(current_tail_task, unserved_task, drive_time, true)
+                    <= mcgrp.inst_tasks[unserved_task].time_window.second) {
                 candidate_task_set.push_back(unserved_task);
             }
         }
 
         if (candidate_task_set.empty()) {
-            rs_indi.sequence.push_back(DUMMY);
-            rs_indi.route_seg_load.push_back(load);
-            rs_indi.route_seg_time.push_back(drive_time);
+            solution.push_back(DUMMY);
             load = 0;
             drive_time = 0;
             continue;
@@ -70,30 +70,32 @@ void nearest_scanning(const MCGRP &mcgrp, Individual &rs_indi)
 
         //Find the nearest task from the current candidate task set
         for (auto candidate_task : candidate_task_set) {
-            if (mcgrp.min_cost[mcgrp.inst_tasks[current_tail_task].tail_node][mcgrp.inst_tasks[candidate_task].head_node]
+            if (mcgrp.min_cost[mcgrp.inst_tasks[current_tail_task].tail_node][mcgrp.inst_tasks[candidate_task]
+                .head_node]
                 < min_dist) {
-                min_dist = mcgrp.min_cost[mcgrp.inst_tasks[current_tail_task].tail_node][mcgrp.inst_tasks[candidate_task]
-                    .head_node];
+                min_dist =
+                    mcgrp.min_cost[mcgrp.inst_tasks[current_tail_task].tail_node][mcgrp.inst_tasks[candidate_task]
+                        .head_node];
                 nearest_task_set.clear();
                 nearest_task_set.push_back(candidate_task);
             }
             else if (
-                mcgrp.min_cost[mcgrp.inst_tasks[current_tail_task].tail_node][mcgrp.inst_tasks[candidate_task].head_node]
+                mcgrp.min_cost[mcgrp.inst_tasks[current_tail_task].tail_node][mcgrp.inst_tasks[candidate_task]
+                    .head_node]
                     == min_dist) {
                 nearest_task_set.push_back(candidate_task);
             }
         }
-
 
         //If multiple tasks both satisfy the capacity constraint and are closest, randomly choose one
         int k = (int) mcgrp._rng.Randint(0, nearest_task_set.size() - 1);
         chosen_task = nearest_task_set[k];
 
         load += mcgrp.inst_tasks[chosen_task].demand;
-        drive_time = mcgrp.cal_arrive_time(current_tail_task,chosen_task,drive_time, true);
+        drive_time = mcgrp.cal_arrive_time(current_tail_task, chosen_task, drive_time, true);
 
         trial++;
-        rs_indi.sequence.push_back(chosen_task);
+        solution.push_back(chosen_task);
 
         unserved_task_id_set.erase(std::find_if(unserved_task_id_set.begin(),
                                                 unserved_task_id_set.end(),
@@ -110,132 +112,13 @@ void nearest_scanning(const MCGRP &mcgrp, Individual &rs_indi)
         }
     }
 
-    if (rs_indi.sequence.back() != DUMMY) {
-        rs_indi.sequence.push_back(DUMMY);
-        rs_indi.route_seg_load.push_back(load);
-        rs_indi.route_seg_time.push_back(drive_time);
+    if (solution.back() != DUMMY) {
+        solution.push_back(DUMMY);
     }
 
-    rs_indi.total_cost = mcgrp.get_task_seq_total_cost(rs_indi.sequence);
-    rs_indi.total_vio_load = mcgrp.get_total_vio_load(rs_indi.route_seg_load);
-    My_Assert(mcgrp.valid_sol(get_negative_coding(rs_indi.sequence),rs_indi.total_cost),"Wrong outcome!\n");
+    return mcgrp.parse_delimiter_seq(solution);
 }
 
-vector<vector<int>> nearest_scanning(const MCGRP &mcgrp, vector<int> unserved_task_set)
-{
-    int serve_task_num = unserved_task_set.size();
-
-    int load;
-    int trial;
-    int min_dist;
-    int drive_time; // the earliest time of a vehicle begins to search the task
-
-    std::vector<int> candidate_task_set;
-
-    std::vector<int> nearest_task_set;
-
-    int current_tail_task;
-    int chosen_task;
-
-    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-    Individual rs_indi;
-    rs_indi.sequence.clear();
-    rs_indi.route_seg_load.clear();
-
-    //insert dummy task at the very beginning
-    rs_indi.sequence.push_back(DUMMY);
-
-    load = 0;
-    trial = 0;
-    drive_time = 0;
-    while (trial < serve_task_num) {
-        current_tail_task = rs_indi.sequence.back();
-
-        //Find all the tasks that satisfy the capacity constraint
-        candidate_task_set.clear();
-        for (auto unserved_task : unserved_task_set) {
-            if (mcgrp.inst_tasks[unserved_task].demand <= mcgrp.capacity - load
-                && mcgrp.cal_arrive_time(current_tail_task, unserved_task, drive_time, true)
-                    <= mcgrp.inst_tasks[unserved_task].time_window.second)
-            {
-                candidate_task_set.push_back(unserved_task);
-            }
-        }
-
-        if (candidate_task_set.empty()) {
-            rs_indi.sequence.push_back(DUMMY);
-            rs_indi.route_seg_load.push_back(load);
-            rs_indi.route_seg_time.push_back(drive_time);
-            load = 0;
-            drive_time = 0;
-            continue;
-        }
-
-        min_dist = MAX(min_dist);
-
-        //Find the nearest task from the current candidate task set
-        for (auto candidate_task : candidate_task_set) {
-            if (mcgrp.min_cost[mcgrp.inst_tasks[current_tail_task].tail_node][mcgrp.inst_tasks[candidate_task].head_node]
-                < min_dist) {
-                min_dist = mcgrp.min_cost[mcgrp.inst_tasks[current_tail_task].tail_node][mcgrp.inst_tasks[candidate_task]
-                    .head_node];
-                nearest_task_set.clear();
-                nearest_task_set.push_back(candidate_task);
-            }
-            else if (
-                mcgrp.min_cost[mcgrp.inst_tasks[current_tail_task].tail_node][mcgrp.inst_tasks[candidate_task].head_node]
-                    == min_dist) {
-                nearest_task_set.push_back(candidate_task);
-            }
-        }
-
-
-        //If multiple tasks both satisfy the capacity constraint and are closest, randomly choose one
-        int k = (int) mcgrp._rng.Randint(0, nearest_task_set.size() - 1);
-        chosen_task = nearest_task_set[k];
-
-        load += mcgrp.inst_tasks[chosen_task].demand;
-        drive_time = mcgrp.cal_arrive_time(current_tail_task,chosen_task,drive_time, true);
-
-        trial++;
-        rs_indi.sequence.push_back(chosen_task);
-
-        unserved_task_set.erase(std::find_if(unserved_task_set.begin(),
-                                                unserved_task_set.end(),
-                                                [chosen_task](const int &elem) -> bool
-                                                { return elem == chosen_task; }));
-
-        if (mcgrp.inst_tasks[chosen_task].inverse != ARC_NO_INVERSE
-            && mcgrp.inst_tasks[chosen_task].inverse != NODE_NO_INVERSE) {
-            int inverse_task = mcgrp.inst_tasks[chosen_task].inverse;
-            unserved_task_set.erase(std::find_if(unserved_task_set.begin(),
-                                                    unserved_task_set.end(),
-                                                    [inverse_task](const int &elem) -> bool
-                                                    { return elem == inverse_task; }));
-        }
-    }
-
-    if (rs_indi.sequence.back() != DUMMY) {
-        rs_indi.sequence.push_back(DUMMY);
-        rs_indi.route_seg_load.push_back(load);
-        rs_indi.route_seg_time.push_back(drive_time);
-    }
-
-    rs_indi.total_cost = mcgrp.get_task_seq_total_cost(rs_indi.sequence);
-    rs_indi.total_vio_load = mcgrp.get_total_vio_load(rs_indi.route_seg_load);
-    My_Assert(mcgrp.valid_sol(get_negative_coding(rs_indi.sequence),rs_indi.total_cost),"Wrong outcome!\n");
-
-    vector<vector<int>> routes;
-    for(int cur = 0; cur < rs_indi.sequence.size()-1 ; cur++){
-        if(rs_indi.sequence[cur] == DUMMY)
-            routes.push_back(vector<int>());
-        else
-            routes.back().push_back(rs_indi.sequence[cur]);
-    }
-
-    return routes;
-}
 
 const int max_merge_set_num = 20;
 
@@ -290,7 +173,7 @@ void merge_split(NeighBorSearch &ns, const MCGRP &mcgrp, const int merge_size, c
 
 
         vector<int> seq_buffer;
-        seq_buffer = split_task(ns.policy,mcgrp, candidate_tasks,pseudo_capacity);
+        seq_buffer = split_task(ns.policy, mcgrp, candidate_tasks, pseudo_capacity);
         My_Assert(seq_buffer.back() == DUMMY, "incorrect sequence!");
         seq_buffer.pop_back();
 
@@ -322,49 +205,47 @@ void merge_split(NeighBorSearch &ns, const MCGRP &mcgrp, const int merge_size, c
     ns.check_missed(mcgrp);
 }
 
-
-
-void merge_split(class HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, const int merge_size, const int pseudo_capacity){
+void merge_split(class HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, const int merge_size, const int pseudo_capacity)
+{
     if (ns.routes.activated_route_id.size() < merge_size) {
         DEBUG_PRINT("Too few routes to merge!");
         return;
     }
-    else if(ns.routes.activated_route_id.size() == merge_size){
+    else if (ns.routes.activated_route_id.size() == merge_size) {
         DEBUG_PRINT("Merge whole routes");
         ns.clear();
 
         auto candidate_tasks = ns.get_tasks_set();
-        auto seq_buffer = split_task(ns.policy,mcgrp, candidate_tasks,pseudo_capacity);
+        auto seq_buffer = split_task(ns.policy, mcgrp, candidate_tasks, pseudo_capacity);
 
-        ns.unpack_seq(get_delimiter_coding(mcgrp.best_sol_buff), mcgrp);
+        ns.unpack_seq(seq_buffer, mcgrp);
 
         return;
     }
 
-    My_Assert(ns.valid_sol(mcgrp),"Wrong state!");
+    My_Assert(ns.valid_sol(mcgrp), "Wrong state!");
 
 
-    //generate tasks disturbution in routes
-    unordered_map<int,vector<int>> task_routes;
-    for(auto route_id : ns.routes.activated_route_id){
+    //generate tasks distribution in routes
+    unordered_map<int, vector<int>> task_routes;
+    for (auto route_id : ns.routes.activated_route_id) {
         int cur_task = ns.routes[route_id]->start;
         vector<int> buffer;
-        while (cur_task != ns.routes[route_id]->end){
+        while (cur_task != ns.routes[route_id]->end) {
             buffer.push_back(cur_task);
             cur_task = ns.solution[cur_task]->next->ID;
         }
         buffer.push_back(cur_task);
-        task_routes.emplace(route_id,buffer);
+        task_routes.emplace(route_id, buffer);
     }
 
 
     vector<int> total_routes_id;
-    for(auto i:ns.routes.activated_route_id){
+    for (auto i:ns.routes.activated_route_id) {
         total_routes_id.push_back(i);
     }
     COMB combination_manager(ns.routes.activated_route_id.size(), merge_size);
     vector<int> permutation;
-
 
     double best_choice = MAX(best_choice);
     vector<int> best_buffer;
@@ -373,17 +254,18 @@ void merge_split(class HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, const in
     int count = 0;
     while (count < max_merge_set_num && combination_manager.get_combinations(permutation)) {
         count++;
-        My_Assert(permutation.size() == merge_size,"Wrong state!");
+        My_Assert(permutation.size() == merge_size, "Wrong state!");
 
         vector<int> chosen_routes_id;
-        for(auto i: permutation){
+        for (auto i: permutation) {
             chosen_routes_id.push_back(total_routes_id[i]);
         }
 
         //extract chosen tasks
         vector<int> candidate_tasks;
         for (auto route_id : chosen_routes_id) {
-            My_Assert(ns.routes.activated_route_id.find(route_id)!=ns.routes.activated_route_id.end(),"Invalid route");
+            My_Assert(ns.routes.activated_route_id.find(route_id) != ns.routes.activated_route_id.end(),
+                      "Invalid route");
 
 
             for (auto task : task_routes.at(route_id)) {
@@ -396,7 +278,7 @@ void merge_split(class HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, const in
         }
 
 
-        vector<int> seq_buffer = split_task(ns.policy,mcgrp, candidate_tasks,pseudo_capacity);
+        vector<int> seq_buffer = split_task(ns.policy, mcgrp, candidate_tasks, pseudo_capacity);
         My_Assert(seq_buffer.front() == DUMMY && seq_buffer.back() == DUMMY, "Incorrect sequence!");
 
         //Best Accept
@@ -410,14 +292,12 @@ void merge_split(class HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, const in
     }
 
     //Update neighbor search info
-    My_Assert(!best_buffer.empty() && !best_routes.empty(),"Wrong state");
-    ns.update(mcgrp,best_buffer,best_routes);
+    My_Assert(!best_buffer.empty() && !best_routes.empty(), "Wrong state");
+    ns.update(mcgrp, best_buffer, best_routes);
 
 }
 
-
-
-vector<int> split_task(Policy& policy, const MCGRP &mcgrp, const vector<int> &tasks,const int constraint)
+vector<int> split_task(Policy &policy, const MCGRP &mcgrp, const vector<int> &tasks, const int load_constraint)
 {
     vector<int> merge_sequence;
 
@@ -427,7 +307,7 @@ vector<int> split_task(Policy& policy, const MCGRP &mcgrp, const vector<int> &ta
 
 
     /*-----------------Nearest L2 distance merge policy--------------------------*/
-    merge_sequence = nearest_growing(mcgrp, tasks, constraint);
+    merge_sequence = nearest_growing(mcgrp, tasks, load_constraint);
     Individual nearest_L2_indi;
     nearest_L2_indi = mcgrp.parse_delimiter_seq(merge_sequence);
     res = nearest_L2_indi;
@@ -435,7 +315,7 @@ vector<int> split_task(Policy& policy, const MCGRP &mcgrp, const vector<int> &ta
     /*-----------------Nearest L2 distance merge policy--------------------------*/
 
     /*-----------------Furthest L2 distance merge policy--------------------------*/
-    merge_sequence = nearest_depot_growing(mcgrp, tasks,constraint);
+    merge_sequence = nearest_depot_growing(mcgrp, tasks, load_constraint);
     Individual nearest_depot_indi;
     nearest_depot_indi = mcgrp.parse_delimiter_seq(merge_sequence);
     buffer = nearest_depot_indi.total_cost + policy.beta * nearest_depot_indi.total_vio_load;
@@ -446,7 +326,7 @@ vector<int> split_task(Policy& policy, const MCGRP &mcgrp, const vector<int> &ta
     /*-----------------Furthest L2 distance merge policy--------------------------*/
 
     /*-----------------Max yield merge policy--------------------------*/
-    merge_sequence = maximum_yield_growing(mcgrp, tasks,constraint);
+    merge_sequence = maximum_yield_growing(mcgrp, tasks, load_constraint);
     Individual maximum_yield_indi;
     maximum_yield_indi = mcgrp.parse_delimiter_seq(merge_sequence);
     buffer = maximum_yield_indi.total_cost + policy.beta * maximum_yield_indi.total_vio_load;
@@ -457,7 +337,7 @@ vector<int> split_task(Policy& policy, const MCGRP &mcgrp, const vector<int> &ta
     /*-----------------Max yield merge policy--------------------------*/
 
     /*-----------------Min yield merge policy--------------------------*/
-    merge_sequence = minimum_yield_growing(mcgrp, tasks,constraint);
+    merge_sequence = minimum_yield_growing(mcgrp, tasks, load_constraint);
     Individual minimum_yield_indi;
     minimum_yield_indi = mcgrp.parse_delimiter_seq(merge_sequence);
     buffer = minimum_yield_indi.total_cost + policy.beta * minimum_yield_indi.total_vio_load;
@@ -468,7 +348,7 @@ vector<int> split_task(Policy& policy, const MCGRP &mcgrp, const vector<int> &ta
     /*-----------------Max yield merge policy--------------------------*/
 
     /*-----------------mixtured merge policy--------------------------*/
-    merge_sequence = mixture_growing(mcgrp, tasks, constraint);
+    merge_sequence = mixture_growing(mcgrp, tasks, load_constraint);
     Individual mixtured_indi;
     mixtured_indi = mcgrp.parse_delimiter_seq(merge_sequence);
     buffer = mixtured_indi.total_cost + policy.beta * mixtured_indi.total_vio_load;
@@ -489,6 +369,7 @@ vector<int> nearest_growing(const MCGRP &mcgrp, vector<int> tasks, const int con
     sequence.push_back(DUMMY);
     int current_task;
     int current_load = 0;
+    int drive_time = 0;
     vector<int> candidate_tasks;
     vector<int> nearest_tasks;
 
@@ -497,7 +378,9 @@ vector<int> nearest_growing(const MCGRP &mcgrp, vector<int> tasks, const int con
 
         candidate_tasks.clear();
         for (auto task : tasks) {
-            if (mcgrp.inst_tasks[task].demand <= constraint - current_load) {
+            if (mcgrp.inst_tasks[task].demand <= constraint - current_load
+                && mcgrp.cal_arrive_time(sequence.back(), task, drive_time, true)
+                    <= mcgrp.inst_tasks[task].time_window.second) {
                 candidate_tasks.push_back(task);
             }
         }
@@ -506,6 +389,7 @@ vector<int> nearest_growing(const MCGRP &mcgrp, vector<int> tasks, const int con
         if (candidate_tasks.empty()) {
             sequence.push_back(DUMMY);
             current_load = 0;
+            drive_time = 0;
             continue;
         }
 
@@ -529,9 +413,9 @@ vector<int> nearest_growing(const MCGRP &mcgrp, vector<int> tasks, const int con
         My_Assert(!nearest_tasks.empty(), "you cannot have an empty nearest task set!");
 
         int chosen_task = nearest_tasks[0];
+        drive_time = mcgrp.cal_arrive_time(sequence.back(), chosen_task, drive_time, true);
         sequence.push_back(chosen_task);
         current_load += mcgrp.inst_tasks[chosen_task].demand;
-
 
         auto ite = find(tasks.begin(), tasks.end(), chosen_task);
         My_Assert(ite != tasks.end(), "Cannot find chosen tasks!");
@@ -557,13 +441,16 @@ vector<int> nearest_depot_growing(const MCGRP &mcgrp, vector<int> tasks, const i
 
     sequence.push_back(DUMMY);
     int current_load = 0;
+    int drive_time = 0;
     vector<int> candidate_tasks;
     vector<int> nearest_tasks;
 
     while (!tasks.empty()) {
         candidate_tasks.clear();
         for (auto task : tasks) {
-            if (mcgrp.inst_tasks[task].demand <= constraint - current_load) {
+            if (mcgrp.inst_tasks[task].demand <= constraint - current_load
+                && mcgrp.cal_arrive_time(sequence.back(), task, drive_time, true)
+                    <= mcgrp.inst_tasks[task].time_window.second) {
                 candidate_tasks.push_back(task);
             }
         }
@@ -572,6 +459,7 @@ vector<int> nearest_depot_growing(const MCGRP &mcgrp, vector<int> tasks, const i
         if (candidate_tasks.empty()) {
             sequence.push_back(DUMMY);
             current_load = 0;
+            drive_time = 0;
             continue;
         }
 
@@ -595,6 +483,7 @@ vector<int> nearest_depot_growing(const MCGRP &mcgrp, vector<int> tasks, const i
         My_Assert(!nearest_tasks.empty(), "you cannot have an empty nearest task set!");
 
         int chosen_task = nearest_tasks[0];
+        drive_time = mcgrp.cal_arrive_time(sequence.back(), chosen_task, drive_time, true);
         sequence.push_back(chosen_task);
         current_load += mcgrp.inst_tasks[chosen_task].demand;
 
@@ -623,13 +512,16 @@ vector<int> maximum_yield_growing(const MCGRP &mcgrp, vector<int> tasks, const i
 
     sequence.push_back(DUMMY);
     int current_load = 0;
+    int drive_time = 0;
     vector<int> candidate_tasks;
     vector<int> maximum_tasks;
 
     while (!tasks.empty()) {
         candidate_tasks.clear();
         for (auto task : tasks) {
-            if (mcgrp.inst_tasks[task].demand <= constraint - current_load) {
+            if (mcgrp.inst_tasks[task].demand <= constraint - current_load
+                && mcgrp.cal_arrive_time(sequence.back(), task, drive_time, true)
+                    <= mcgrp.inst_tasks[task].time_window.second) {
                 candidate_tasks.push_back(task);
             }
         }
@@ -638,6 +530,7 @@ vector<int> maximum_yield_growing(const MCGRP &mcgrp, vector<int> tasks, const i
         if (candidate_tasks.empty()) {
             sequence.push_back(DUMMY);
             current_load = 0;
+            drive_time = 0;
             continue;
         }
 
@@ -661,6 +554,7 @@ vector<int> maximum_yield_growing(const MCGRP &mcgrp, vector<int> tasks, const i
         My_Assert(!maximum_tasks.empty(), "you cannot have an empty nearest task set!");
 
         int chosen_task = maximum_tasks[0];
+        drive_time = mcgrp.cal_arrive_time(sequence.back(), chosen_task, drive_time, true);
         sequence.push_back(chosen_task);
         current_load += mcgrp.inst_tasks[chosen_task].demand;
 
@@ -689,13 +583,16 @@ vector<int> minimum_yield_growing(const MCGRP &mcgrp, vector<int> tasks, const i
 
     sequence.push_back(DUMMY);
     int current_load = 0;
+    int drive_time = 0;
     vector<int> candidate_tasks;
     vector<int> minimum_tasks;
 
     while (!tasks.empty()) {
         candidate_tasks.clear();
         for (auto task : tasks) {
-            if (mcgrp.inst_tasks[task].demand <= constraint - current_load) {
+            if (mcgrp.inst_tasks[task].demand <= constraint - current_load
+                && mcgrp.cal_arrive_time(sequence.back(), task, drive_time, true)
+                    <= mcgrp.inst_tasks[task].time_window.second) {
                 candidate_tasks.push_back(task);
             }
         }
@@ -704,6 +601,7 @@ vector<int> minimum_yield_growing(const MCGRP &mcgrp, vector<int> tasks, const i
         if (candidate_tasks.empty()) {
             sequence.push_back(DUMMY);
             current_load = 0;
+            drive_time = 0;
             continue;
         }
 
@@ -727,6 +625,7 @@ vector<int> minimum_yield_growing(const MCGRP &mcgrp, vector<int> tasks, const i
         My_Assert(!minimum_tasks.empty(), "you cannot have an empty nearest task set!");
 
         int chosen_task = minimum_tasks[0];
+        drive_time = mcgrp.cal_arrive_time(sequence.back(), chosen_task, drive_time, true);
         sequence.push_back(chosen_task);
         current_load += mcgrp.inst_tasks[chosen_task].demand;
 
@@ -755,13 +654,16 @@ vector<int> mixture_growing(const MCGRP &mcgrp, vector<int> tasks, const int con
 
     sequence.push_back(DUMMY);
     int current_load = 0;
+    int drive_time = 0;
     vector<int> candidate_tasks;
     vector<int> potential_tasks;
 
     while (!tasks.empty()) {
         candidate_tasks.clear();
         for (auto task : tasks) {
-            if (mcgrp.inst_tasks[task].demand <= constraint - current_load) {
+            if (mcgrp.inst_tasks[task].demand <= constraint - current_load
+                && mcgrp.cal_arrive_time(sequence.back(), task, drive_time, true)
+                    <= mcgrp.inst_tasks[task].time_window.second) {
                 candidate_tasks.push_back(task);
             }
         }
@@ -770,6 +672,7 @@ vector<int> mixture_growing(const MCGRP &mcgrp, vector<int> tasks, const int con
         if (candidate_tasks.empty()) {
             sequence.push_back(DUMMY);
             current_load = 0;
+            drive_time = 0;
             continue;
         }
 
@@ -796,6 +699,7 @@ vector<int> mixture_growing(const MCGRP &mcgrp, vector<int> tasks, const int con
             My_Assert(!potential_tasks.empty(), "you cannot have an empty nearest task set!");
 
             int chosen_task = potential_tasks[0];
+            drive_time = mcgrp.cal_arrive_time(sequence.back(), chosen_task, drive_time, true);
             sequence.push_back(chosen_task);
             current_load += mcgrp.inst_tasks[chosen_task].demand;
 

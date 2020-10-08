@@ -797,6 +797,7 @@ Individual MCGRP::parse_delimiter_seq(const vector<int> &seq) const
     int load = 0;
     double total_cost = 0;
     total_cost = inst_tasks[buffer.sequence.front()].serv_cost;
+
     for (auto cursor = 1; cursor < buffer.sequence.size(); cursor++) {
         total_cost +=
             min_cost[inst_tasks[buffer.sequence[cursor - 1]].tail_node][inst_tasks[buffer.sequence[cursor]].head_node];
@@ -813,6 +814,11 @@ Individual MCGRP::parse_delimiter_seq(const vector<int> &seq) const
     }
 
     buffer.total_cost = total_cost;
+
+    buffer.time_tbl = get_time_tbl(seq,"delimiter");
+    buffer.total_vio_time = 0;
+    for(const auto & time_tbl : buffer.time_tbl)
+        buffer.total_vio_time +=  get_vio_time(time_tbl);
 
     return buffer;
 }
@@ -1079,4 +1085,38 @@ bool MCGRP::isTimetableFeasible(const vector<MCGRPRoute::Timetable>& tbl, bool m
         }
         return true;
     }
+}
+
+vector<vector<MCGRPRoute::Timetable>> MCGRP::get_time_tbl(const vector<int> &sequence, string mode) const
+{
+    vector<vector<int>> route_tasks;
+    if(mode == "delimiter"){
+        for(int cursor = 0;cursor<sequence.size() - 1;cursor++){
+            if(sequence[cursor] == DUMMY)
+                route_tasks.push_back(vector<int>());
+            else
+                route_tasks.back().push_back(sequence[cursor]);
+        }
+    }else if(mode == "negative"){
+        for(const auto task : sequence){
+            if(task < 0)
+                route_tasks.push_back({-task});
+            else
+                route_tasks.back().push_back(task);
+        }
+    }else{
+        cerr << "Invalid mode\n";
+        abort();
+    }
+
+    vector<vector<MCGRPRoute::Timetable>> res;
+
+    for(const auto & cur_route : route_tasks){
+        res.push_back(vector<MCGRPRoute::Timetable>());
+        auto time_tbl = cal_arrive_time(cur_route);
+        for(int i = 0;i<time_tbl.size();i++)
+            res.back().push_back({cur_route[i],time_tbl[i]});
+    }
+
+    return res;
 }

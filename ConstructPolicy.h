@@ -11,14 +11,12 @@
 #include "NeighborSearch.h"
 
 /*!
- * nearest_scanning constructive algorithm
- * @param mcgrp: formatted instance
- * @param rs_indi: solution
+ *
+ * @param mcgrp
+ * @param unserved_task_set if not empty, means execute a partial construction
+ * @return
  */
-void nearest_scanning(const MCGRP &mcgrp, Individual &rs_indi);
-
-vector<vector<int>>
-nearest_scanning(const MCGRP &mcgrp, vector<int> unserved_task_set);
+Individual nearest_scanning(const MCGRP &mcgrp, vector<int> unserved_task_set);
 
 /*!
  * execute merge and split to the current solution
@@ -34,7 +32,7 @@ void merge_split(class HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, const in
  * @param tasks
  * @return
  */
-vector<int> split_task(Policy& policy,const MCGRP &mcgrp, const vector<int> &tasks, const int constraint);
+vector<int> split_task(Policy& policy,const MCGRP &mcgrp, const vector<int> &tasks, const int load_constraint);
 
 /*!
  * @details use nearest L2 distance policy to merge tasks

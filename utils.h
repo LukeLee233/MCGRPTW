@@ -154,9 +154,10 @@ struct Individual
 {
     std::vector<int> sequence;  // dummy sequence
     std::vector<int> route_seg_load;
-    std::vector<int> route_seg_time;
+    std::vector<vector<MCGRPRoute::Timetable>> time_tbl;
     double total_cost;
     int total_vio_load;
+    int total_vio_time;
 };
 
 struct POPOrder

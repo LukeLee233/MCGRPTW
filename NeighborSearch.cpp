@@ -34,12 +34,6 @@ NeighBorSearch::NeighBorSearch(const MCGRP &mcgrp)
     cur_solution_cost = 0;
     total_vio_load = 0;
     policy.tolerance = 0;
-
-
-//    nearest_scanning(mcgrp, ns_indi);
-//    unpack_seq(ns_indi.sequence, mcgrp);
-//    mcgrp.check_best_solution(cur_solution_cost, negative_coding_sol);
-//    policy.beta = cur_solution_cost / double(mcgrp.capacity * 30);
 }
 
 NeighBorSearch::~NeighBorSearch() = default;
@@ -1768,11 +1762,10 @@ void HighSpeedNeighBorSearch::DUMMYPOOL::extend()
 }
 
 HighSpeedNeighBorSearch::HighSpeedNeighBorSearch(const MCGRP &mcgrp)
-    : solution(mcgrp.actual_task_num), routes(mcgrp.actual_task_num), task_set(mcgrp
-                                                                                   .actual_task_num), single_insert(new SingleInsert), double_insert(
-    new DoubleInsert), two_opt(new NewTwoOpt), invert(new Invert), swap(new NewSwap), extraction(new Extraction), slice(
-    new Slice)
-{
+    : solution(mcgrp.actual_task_num), routes(mcgrp.actual_task_num),
+    task_set(mcgrp.actual_task_num), single_insert(new SingleInsert),
+    double_insert(new DoubleInsert), two_opt(new NewTwoOpt),
+    invert(new Invert), swap(new NewSwap), extraction(new Extraction), slice(new Slice) {
     search_step = 0;
     equal_step = 0;
     cur_solution_cost = numeric_limits<decltype(best_solution_cost)>::max();
@@ -2506,11 +2499,11 @@ void HighSpeedNeighBorSearch::small_step_infeasible_tabu_search(const MCGRP &mcg
 void HighSpeedNeighBorSearch::large_step_infeasible_search(const MCGRP &mcgrp)
 {
     DEBUG_PRINT("Trigger large step break movement");
-    //decide how many routes need to be merged, self-adaptive
+    // decide how many routes need to be merged, self-adaptive
 //    int merge_size = routes.size() / 3;
     int merge_size = 10;
 
-    //enlarge the capacity for infeasible search to decide whether use infeasible consideration
+    // enlarge the capacity for infeasible search to decide whether use infeasible consideration
 //    double scale = mcgrp.capacity * policy.beta;
 //    int pseudo_capacity = int(mcgrp.capacity *(1+ (scale / (policy.beta*sqrt(1+scale*scale)))));
     int pseudo_capacity = mcgrp.capacity;
@@ -2521,7 +2514,9 @@ void HighSpeedNeighBorSearch::large_step_infeasible_search(const MCGRP &mcgrp)
 //    mcgrp.check_best_infeasible_solution(cur_solution_cost,beta,total_vio_load,negative_coding_sol);
 }
 
-void HighSpeedNeighBorSearch::update(const MCGRP &mcgrp, const vector<int> &best_buffer, const vector<int> &best_routes)
+void HighSpeedNeighBorSearch::update(const MCGRP &mcgrp,
+                                     const vector<int> &best_buffer,
+                                     const vector<int> &best_routes)
 {
     My_Assert(valid_sol(mcgrp), "Wrong state!");
 
@@ -2925,13 +2920,15 @@ void HighSpeedNeighBorSearch::_repair_time_window(const MCGRP &mcgrp)
 
         My_Assert(valid_sol(mcgrp), "Wrong validation");
 
-        //insert task to repair
-        mcgrp.time_window_sort(candidate_tasks);
+        Individual individual =  nearest_scanning(mcgrp, candidate_tasks);
 
-        auto split_routes = nearest_scanning(mcgrp, candidate_tasks);
-
-        for (const auto cur_route : split_routes)
-            new_route(mcgrp, cur_route);
+        for (const auto& cur_route : individual.time_tbl){
+            vector<int> tasks_id;
+            for(const auto& task : cur_route){
+                tasks_id.push_back(task.task);
+            }
+            new_route(mcgrp, tasks_id);
+        }
     }
 
     My_Assert(missed(mcgrp), "Some task missed!");

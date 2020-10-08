@@ -609,8 +609,9 @@ void Memetic::init_population(const MCGRP &mcgrp)
     cout << "Initialization pool...\n";
     for (auto try_count = 0; try_count < 3 * popSize && population.size() < popSize; try_count++) {
         //initialize a solution sequence for local search
-        Individual buffer;
-        nearest_scanning(mcgrp, buffer);
+        Individual buffer = nearest_scanning(mcgrp,vector<int>());
+        My_Assert(mcgrp.valid_sol(get_negative_coding(buffer.sequence), buffer.total_cost), "Wrong outcome!\n");
+
 
         /* local search on construct solution */
         ns.unpack_seq(buffer.sequence, mcgrp);
@@ -1581,8 +1582,9 @@ void HighSpeedMemetic::create_citizen(const MCGRP& mcgrp){
     DEBUG_PRINT("A new thread has been created!\n");
     cout<<this_thread::get_id()<<endl;
 
-    Individual buffer;
-    nearest_scanning(mcgrp, buffer);
+    Individual buffer = nearest_scanning(mcgrp, vector<int>());
+    My_Assert(mcgrp.valid_sol(get_negative_coding(buffer.sequence), buffer.total_cost), "Wrong outcome!\n");
+
 
     HighSpeedNeighBorSearch  ns_(mcgrp);
     ns_.unpack_seq(buffer.sequence, mcgrp);
