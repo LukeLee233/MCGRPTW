@@ -2292,7 +2292,7 @@ void HighSpeedNeighBorSearch::infeasible_exploration(const MCGRP &mcgrp)
     large_step_infeasible_search(mcgrp);
 
     My_Assert(total_vio_load >= 0, "Wrong total violated load!");
-    if (total_vio_load > 0) {
+    if (total_vio_load > 0 || total_vio_time > 0) {
         repair_solution(mcgrp);
     }
 
