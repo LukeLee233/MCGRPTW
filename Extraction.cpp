@@ -8,7 +8,6 @@
 
 using namespace std;
 
-
 bool Extraction::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_task)
 {
     // No search space in Extraction operator, No accept rule for invert operator
@@ -294,7 +293,7 @@ Extraction::expected_time_table(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
     My_Assert(b_ite != original_route.end(), "Cannot find task b!");
 
     vector<int> left_route(original_route.begin(), b_ite);
-    vector<int> middle_route(b);
+    vector<int> middle_route{b};
     vector<int> right_route(b_ite + 1, original_route.end());
 
     vector<int> left_time_tbl = mcgrp.cal_arrive_time(left_route);
@@ -320,4 +319,3 @@ Extraction::expected_time_table(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
 
     return res;
 }
-
