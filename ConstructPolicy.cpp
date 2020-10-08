@@ -14,9 +14,9 @@ Individual nearest_scanning(const MCGRP &mcgrp, vector<int> unserved_task_set)
     int load;
     int trial;
     int min_dist;
-    int drive_time; // the earliest time of a vehicle begins to search the task
+    int drive_time; // the earliest time of a vehicle begins to serve the task
 
-    std::vector<int> unserved_task_id_set;
+    unordered_set<int> unserved_task_id_set;
 
     std::vector<int> candidate_task_set;
 
@@ -31,12 +31,12 @@ Individual nearest_scanning(const MCGRP &mcgrp, vector<int> unserved_task_set)
     int serve_task_num = 0;
     if(!unserved_task_set.empty()){
         serve_task_num = unserved_task_set.size();
-        unserved_task_id_set = unserved_task_set;
+        unserved_task_id_set = unordered_set<int>(unserved_task_set.begin(),unserved_task_set.end());
     }
     else{
         serve_task_num = mcgrp.req_arc_num + mcgrp.req_node_num + mcgrp.req_edge_num;
         for (int i = 1; i <= mcgrp.actual_task_num; i++)
-            unserved_task_id_set.push_back(i);
+            unserved_task_id_set.insert(i);
     }
 
     load = 0;
@@ -97,18 +97,13 @@ Individual nearest_scanning(const MCGRP &mcgrp, vector<int> unserved_task_set)
         trial++;
         solution.push_back(chosen_task);
 
-        unserved_task_id_set.erase(std::find_if(unserved_task_id_set.begin(),
-                                                unserved_task_id_set.end(),
-                                                [chosen_task](const int &elem) -> bool
-                                                { return elem == chosen_task; }));
+        unserved_task_id_set.erase(chosen_task);
 
         if (mcgrp.inst_tasks[chosen_task].inverse != ARC_NO_INVERSE
             && mcgrp.inst_tasks[chosen_task].inverse != NODE_NO_INVERSE) {
             int inverse_task = mcgrp.inst_tasks[chosen_task].inverse;
-            unserved_task_id_set.erase(std::find_if(unserved_task_id_set.begin(),
-                                                    unserved_task_id_set.end(),
-                                                    [inverse_task](const int &elem) -> bool
-                                                    { return elem == inverse_task; }));
+            if(unserved_task_id_set.find(inverse_task) != unserved_task_id_set.end())
+                unserved_task_id_set.erase(inverse_task);
         }
     }
 

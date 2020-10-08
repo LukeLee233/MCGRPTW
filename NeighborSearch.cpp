@@ -2113,6 +2113,8 @@ bool HighSpeedNeighBorSearch::valid_sol(const MCGRP &mcgrp)
     double routes_cost_sum = 0;
     int vio_time = 0;
     for (auto id : routes.activated_route_id) {
+        if(routes[id]->num_customers != routes[id]->time_table.size())
+            return false;
         if (routes[id]->load > mcgrp.capacity) {
             vio_load += routes[id]->load - mcgrp.capacity;
         }
@@ -2756,6 +2758,7 @@ void HighSpeedNeighBorSearch::_repair_load(const MCGRP &mcgrp)
 
         auto demand = mcgrp.inst_tasks[task].demand;
 
+        // choose the best insert route
         for (int row = 0; row < satisfied_routes.size(); row++) {
             //load constraint check
             if (demand + satisfied_routes[row].load > mcgrp.capacity) {
@@ -2859,6 +2862,13 @@ void HighSpeedNeighBorSearch::_repair_load(const MCGRP &mcgrp)
             routes[route_id]->num_customers += 1;
             routes[route_id]->load += demand;
 
+            total_vio_time -= mcgrp.get_vio_time(routes[route_id]->time_table);
+            vector<int> time_tbl = mcgrp.cal_arrive_time(satisfied_routes[chosen_route].task_seq);
+            routes[route_id]->time_table.clear();
+            for(int i = 0;i<time_tbl.size();i++)
+                routes[route_id]->time_table.push_back({satisfied_routes[chosen_route].task_seq[i],time_tbl[i]});
+            total_vio_time += mcgrp.get_vio_time(routes[route_id]->time_table);
+
             solution[task]->route_id = route_id;
 
             if (a < 0) {
@@ -2869,7 +2879,6 @@ void HighSpeedNeighBorSearch::_repair_load(const MCGRP &mcgrp)
             }
 
             cur_solution_cost += best_delta;
-
             //handle solution
             solution[a]->next = solution[task];
             solution[b]->pre = solution[task];
@@ -2912,7 +2921,6 @@ void HighSpeedNeighBorSearch::_repair_time_window(const MCGRP &mcgrp)
 
     for (auto current_route : violated_routes) {
         cur_solution_cost -= routes[current_route.route_id]->length;
-        total_vio_load -= (routes[current_route.route_id]->load - mcgrp.capacity);
         total_vio_time -= mcgrp.get_vio_time(current_route.time_tbl);
 
         vector<int> candidate_tasks;
