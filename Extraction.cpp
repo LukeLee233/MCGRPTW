@@ -298,7 +298,7 @@ Extraction::expected_time_table(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
 
     vector<int> left_time_tbl = mcgrp.cal_arrive_time(left_route);
     vector<int> middle_time_tbl = mcgrp.cal_arrive_time(middle_route);
-    vector<int> right_time_tbl = mcgrp.cal_arrive_time(right_time_tbl);
+    vector<int> right_time_tbl = mcgrp.cal_arrive_time(right_route);
 
     vector<MCGRPRoute::Timetable> intermediate_left;
     vector<MCGRPRoute::Timetable> intermediate_middle;
