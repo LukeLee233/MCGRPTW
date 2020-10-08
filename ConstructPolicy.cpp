@@ -139,7 +139,7 @@ void merge_split(NeighBorSearch &ns, const MCGRP &mcgrp, const int merge_size, c
 
         vector<vector<int>> task_routes(ns.routes.size());
 
-        //generate tasks disturbution in routes
+        //generate tasks distribution in routes
         int cursor = -1;
         for (auto task : ns.negative_coding_sol) {
             if (task < 0) {

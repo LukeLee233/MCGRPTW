@@ -2522,13 +2522,14 @@ void HighSpeedNeighBorSearch::update(const MCGRP &mcgrp,
 {
     My_Assert(valid_sol(mcgrp), "Wrong state!");
 
-    //remove old info
+    //remove old routes
     for (auto route_id : best_routes) {
         My_Assert(routes.activated_route_id.find(route_id) != routes.activated_route_id.end(), "Invalid route");
         cur_solution_cost -= routes[route_id]->length;
         if (routes[route_id]->load > mcgrp.capacity) {
             total_vio_load -= (routes[route_id]->load - mcgrp.capacity);
         }
+        total_vio_time -= mcgrp.get_vio_time(routes[route_id]->time_table);
 
         //remove solution
         vector<int> seq;
@@ -2589,6 +2590,7 @@ void HighSpeedNeighBorSearch::update(const MCGRP &mcgrp,
         }
     }
 
+    // insert new routes
     for (int row = 0; row < seqs.size(); row++) {
         int new_route = routes.allocate_route();
         double
@@ -2617,10 +2619,17 @@ void HighSpeedNeighBorSearch::update(const MCGRP &mcgrp,
         routes[new_route]->start = seqs[row].front();
         routes[new_route]->end = seqs[row].back();
         routes[new_route]->num_customers = seqs[row].size();
+        vector<int> time_tbl = mcgrp.cal_arrive_time(seqs[row]);
+        routes[new_route]->time_table.clear();
+        for(int i = 0;i< time_tbl.size();i++){
+            routes[new_route]->time_table.push_back({seqs[row][i],time_tbl[i]});
+        }
 
+        total_vio_time += mcgrp.get_vio_time(routes[new_route]->time_table);
         if (load > mcgrp.capacity) {
             total_vio_load += (load - mcgrp.capacity);
         }
+
         cur_solution_cost += length;
 
         //handle solution
