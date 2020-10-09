@@ -1482,6 +1482,7 @@ vector<int> HighSpeedMemetic::remove_duplicates(const MCGRP &mcgrp, SOLUTION &so
 
                     Reserve_Info reserve_info;
                     vector<double> deltas;
+
                     for (auto pos : distribution) {
                         auto pre = solution.routes[pos.route].seq[pos.pos - 1];
                         auto cur = solution.routes[pos.route].seq[pos.pos];
@@ -1515,6 +1516,7 @@ vector<int> HighSpeedMemetic::remove_duplicates(const MCGRP &mcgrp, SOLUTION &so
                             solution.routes[distribution[ii].route].length += deltas[ii];
                             solution.length += deltas[ii];
                             solution.routes[distribution[ii].route].seq.erase(ite);
+                            solution.routes[distribution[ii].route].update_time_tbl(mcgrp);
                             My_Assert(valid(mcgrp, solution), "Wrong remove");
                         }
                     }
@@ -1577,6 +1579,7 @@ vector<int> HighSpeedMemetic::remove_duplicates(const MCGRP &mcgrp, SOLUTION &so
                         solution.routes[distribution[ii].route].length += deltas[ii];
                         solution.length += deltas[ii];
                         solution.routes[distribution[ii].route].seq.erase(ite);
+                        solution.routes[distribution[ii].route].update_time_tbl(mcgrp);
                         My_Assert(valid(mcgrp, solution), "Wrong remove");
                     }
                 }
@@ -1589,7 +1592,8 @@ vector<int> HighSpeedMemetic::remove_duplicates(const MCGRP &mcgrp, SOLUTION &so
     }
 
     My_Assert(valid(mcgrp, solution), "Wrong state");
-    //remove empty routes
+
+    // remove empty routes
     int cursor = 0;
     while (cursor < solution.routes.size()) {
         if (solution.routes[cursor].seq.size() == 2) {

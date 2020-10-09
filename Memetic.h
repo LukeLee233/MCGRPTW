@@ -156,6 +156,11 @@ private:
         double length = 0;
         double load = 0;
 
+        void update_time_tbl(const MCGRP &mcgrp){
+            vector<int> seq_without_dummy(seq.begin()+1,seq.end()-1);
+            time_tbl = mcgrp.cal_arrive_time(seq_without_dummy);
+        };
+
         vector<MCGRPRoute::Timetable> ToTimeTbl(){
             vector<MCGRPRoute::Timetable> buffer;
             My_Assert(time_tbl.size() + 2 == seq.size(), "Wrong state of route");
