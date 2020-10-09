@@ -817,7 +817,8 @@ void HighSpeedMemetic::memetic_search(const MCGRP &mcgrp)
 
         clear_buffer();
 
-        for (auto iter = 0; get_time_difference(search_start_time, cur_time) < search_time;) {
+        for (auto iter = 0; get_time_difference(search_start_time, cur_time) < search_time
+        && iter < evolve_num;) {
             ftime(&cur_time);
 
             unique_lock<mutex> citizen_buffer_lock(buffer_lock);
