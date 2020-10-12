@@ -171,7 +171,6 @@ void MCGRP::load_file_info(std::string input_file, const instance_num_informatio
             DEPOT = stoi(dummy_string);
         }
         else if (dummy_string == "ReE.") {
-            //edge task
             getline(fin, dummy_string);
             for (int i = 1; i <= req_edge_num; i++) {
                 fin >> dummy_string;
@@ -307,13 +306,9 @@ void MCGRP::load_file_info(std::string input_file, const instance_num_informatio
             }
         }
         else if (dummy_string == "ReN.") {
-            //required node
-            fin >> dummy_string;
-            fin >> dummy_string;
-            fin >> dummy_string;
+            getline(fin, dummy_string);
 
             for (int i = 2 * req_edge_num + req_arc_num + 1; i <= 2 * req_edge_num + req_arc_num + req_node_num; i++) {
-                //Node task
                 fin >> dummy_string;
                 dummy_string = dummy_string.substr(1);
                 int node = stoi(dummy_string);
@@ -325,10 +320,20 @@ void MCGRP::load_file_info(std::string input_file, const instance_num_informatio
                 inst_tasks[i].demand = stoi(dummy_string);
 
                 fin >> dummy_string;
-//				inst_tasks[i].serv_cost = stoi(dummy_string);
-                inst_tasks[i].serv_cost = 0;
-
+				inst_tasks[i].serv_cost = stoi(dummy_string);
                 inst_tasks[i].trave_cost = 0;
+
+                fin >> dummy_string;
+                inst_tasks[i].serve_time = stoi(dummy_string);
+                inst_tasks[i].trave_time = 0;
+
+                task::Window window;
+                fin >> dummy_string;
+                window.first = stoi(dummy_string);
+                fin >> dummy_string;
+                window.second = stoi(dummy_string);
+                inst_tasks[i].time_window = window;
+
                 inst_tasks[i].inverse = NODE_NO_INVERSE;
             }
         }

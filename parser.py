@@ -125,6 +125,8 @@ def transfer_xlsx(filename: str):
             nodes_num = int(lines[0].strip())
 
             capacity = int(lines[-5])
+            phi = int(lines[-4])
+            psi = int(lines[-3])
 
         data = []
         for row in sheet.iter_rows(min_row=4):
@@ -171,7 +173,7 @@ def transfer_xlsx(filename: str):
             fp.write('\n')
             fp.write('ReN.\tDEMAND\tS. COST\tS. TIME\tB. TIME\tE. TIME\n')
             for node in req_nodes:
-                fp.write(f'N{node.source + 1}\t'
+                fp.write(f'N{node.source}\t'
                          f'{node.demand}\t'
                          f'{node.cost}\t'
                          f'{node.serve_time}\t'
@@ -182,13 +184,13 @@ def transfer_xlsx(filename: str):
             fp.write('ReE.\tFrom N.\tTo N.\tT. COST\tDEMAND\tS. COST\tT. TIME\tS. TIME\tB. TIME\tE. TIME\n')
             for idx, edge in enumerate(req_edges, start=1):
                 fp.write(f'E{idx}\t'
-                         f'{edge.source + 1}\t'
-                         f'{edge.sink + 1}\t'
+                         f'{edge.source}\t'
+                         f'{edge.sink}\t'
                          f'{edge.cost}\t'
                          f'{edge.demand}\t'
                          f'{edge.cost}\t'
-                         f'{edge.travel_time}\t'
-                         f'{edge.serve_time}\t'
+                         f'{phi * edge.cost}\t'
+                         f'{psi * edge.cost}\t'
                          f'{edge.begin_window}\t'
                          f'{edge.end_window}\n')
 
@@ -196,21 +198,22 @@ def transfer_xlsx(filename: str):
             fp.write('EDGE\tFROM N.\tTO N.\tT. COST\tT. TIME\n')
             for idx, edge in enumerate(non_req_edges, start=1):
                 fp.write(f'NrE{idx}\t'
-                         f'{edge.source + 1}\t'
-                         f'{edge.sink + 1}\t'
+                         f'{edge.source}\t'
+                         f'{edge.sink}\t'
                          f'{edge.cost}\t'
-                         f'{edge.travel_time}\n')
+                         f'{phi * edge.cost}\n')
 
             fp.write('\n')
             fp.write('ReA.\tFrom N.\tTo N.\tT. COST\tDEMAND\tS. COST\tT. TIME\tS. TIME\tB. TIME\tE. TIME\n')
             for idx, arc in enumerate(req_arcs, start=1):
                 fp.write(f'A{idx}\t'
-                         f'{arc.source + 1}\t'
-                         f'{arc.sink + 1}\t'
+                         f'{arc.source}\t'
+                         f'{arc.sink}\t'
                          f'{arc.cost}\t'
                          f'{arc.demand}\t'
-                         f'{arc.travel_time}\t'
-                         f'{arc.serve_time}\t'
+                         f'{arc.cost}\t'
+                         f'{phi * arc.cost}\t'
+                         f'{psi * arc.cost}\t'
                          f'{arc.begin_window}\t'
                          f'{arc.end_window}\n')
 
@@ -218,10 +221,10 @@ def transfer_xlsx(filename: str):
             fp.write('ARC\tFROM N.\tTO N.\tT. COST\tT. TIME\n')
             for idx, arc in enumerate(non_req_arcs, start=1):
                 fp.write(f'NrA{idx}\t'
-                         f'{arc.source + 1}\t'
-                         f'{arc.sink + 1}\t'
+                         f'{arc.source}\t'
+                         f'{arc.sink}\t'
                          f'{arc.cost}\t'
-                         f'{arc.travel_time}\n')
+                         f'{phi * arc.cost}\n')
 
 
 if __name__ == '__main__':
