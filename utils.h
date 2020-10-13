@@ -150,9 +150,15 @@ struct arc
     int trav_time;
 };
 
+/*!
+ * Individual has two format:
+ * 1. delimiter sequence
+ * 2. giant tour sequence
+ */
 struct Individual
 {
-    std::vector<int> sequence;  // dummy sequence
+    bool giant_tour = false;
+    std::vector<int> sequence;
     std::vector<int> route_seg_load;
     std::vector<vector<MCGRPRoute::Timetable>> time_tbl;
     double total_cost;

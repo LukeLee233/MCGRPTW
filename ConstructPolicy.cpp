@@ -150,7 +150,7 @@ void merge_split(NeighBorSearch &ns, const MCGRP &mcgrp, const int merge_size, c
                 task_routes[cursor].push_back(task);
             }
             else {
-                My_Assert(false, "dummy task cannot occur in negative coding soluiton!");
+                My_Assert(false, "dummy task cannot occur in negative coding solution!");
             }
         }
 
@@ -342,13 +342,13 @@ vector<int> split_task(Policy &policy, const MCGRP &mcgrp, const vector<int> &ta
     }
     /*-----------------Max yield merge policy--------------------------*/
 
-    /*-----------------mixtured merge policy--------------------------*/
+    /*-----------------mixture merge policy--------------------------*/
     merge_sequence = mixture_growing(mcgrp, tasks, load_constraint);
-    Individual mixtured_indi;
-    mixtured_indi = mcgrp.parse_delimiter_seq(merge_sequence);
-    buffer = mixtured_indi.total_cost + policy.beta * mixtured_indi.total_vio_load;
+    Individual mixture_indi;
+    mixture_indi = mcgrp.parse_delimiter_seq(merge_sequence);
+    buffer = mixture_indi.total_cost + policy.beta * mixture_indi.total_vio_load;
     if (buffer < fitness) {
-        res = mixtured_indi;
+        res = mixture_indi;
         fitness = buffer;
     }
     /*-----------------Max yield merge policy--------------------------*/
@@ -752,3 +752,187 @@ vector<int> mixture_growing(const MCGRP &mcgrp, vector<int> tasks, const int con
 
     return sequence;
 }
+
+Individual RTF(const MCGRP &mcgrp, const vector<int> &task_list, bool giant)
+{
+    int capacity = giant ? mcgrp.total_demand : mcgrp.capacity;
+
+    int load;
+    int min_dist;
+    int arrival_time;
+
+    unordered_set<int> unserved_task_set;
+
+    std::vector<int> FCL; // feasible candidate list
+
+    std::vector<int> RCL1; // restricted candidate list which drive away from the depot
+    std::vector<int> RCL2; // restricted candidate list which drive towards the depot
+
+    if(!task_list.empty())
+        unserved_task_set = unordered_set<int>(task_list.begin(), task_list.end());
+    else{
+        for (int i = 1; i <= mcgrp.actual_task_num; i++)
+            unserved_task_set.insert(i);
+    }
+
+    load = 0;
+    arrival_time = 0;
+
+    vector<int> solution;
+    solution.push_back(DUMMY);
+
+    while (!unserved_task_set.empty()){
+        int tail_task = solution.back();
+
+        FCL.clear();
+        if(giant){
+            FCL = vector<int>(unserved_task_set.begin(),unserved_task_set.end());
+        }
+        else{
+            for (auto unserved_task : unserved_task_set) {
+                if (mcgrp.inst_tasks[unserved_task].demand <= capacity - load
+                    && mcgrp.cal_arrive_time(tail_task, unserved_task, arrival_time, true)
+                        <= mcgrp.inst_tasks[unserved_task].time_window.second) {
+                    FCL.push_back(unserved_task);
+                }
+            }
+        }
+
+
+        if (FCL.empty()) {
+            solution.push_back(DUMMY);
+            load = 0;
+            arrival_time = 0;
+            continue;
+        }
+
+        min_dist = MAX(min_dist);
+        for (const auto& task : FCL) {
+            int d_uz = mcgrp.min_cost[mcgrp.inst_tasks[tail_task].tail_node][mcgrp.inst_tasks[task].head_node];
+            int d_udummy = mcgrp.min_cost[mcgrp.inst_tasks[tail_task].tail_node][mcgrp.inst_tasks[DUMMY].head_node];
+            int d_zdummy = mcgrp.min_cost[mcgrp.inst_tasks[task].tail_node][mcgrp.inst_tasks[DUMMY].head_node];
+
+            if (d_uz > min_dist) continue;
+
+            if (d_uz < min_dist) {
+                min_dist = d_uz;
+                RCL1.clear();
+                RCL2.clear();
+            }
+
+            if(d_udummy < d_zdummy) RCL1.push_back(task);
+            else RCL2.push_back(task);
+        }
+
+        int chosen_task = -1;
+        if(RCL1.empty()){
+            int seed = (int) mcgrp._rng.Randint(0, RCL2.size() - 1);
+            chosen_task = RCL2[seed];
+        }
+        else if(RCL2.empty()){
+            int seed = (int) mcgrp._rng.Randint(0, RCL1.size() - 1);
+            chosen_task = RCL1.front();
+        }else{
+            if((load % capacity) < (capacity / 2)){
+                int seed = (int) mcgrp._rng.Randint(0, RCL1.size() - 1);
+                chosen_task = RCL1.front();
+            }else{
+                int seed = (int) mcgrp._rng.Randint(0, RCL2.size() - 1);
+                chosen_task = RCL2[seed];
+            }
+        }
+
+        My_Assert(chosen_task != -1,"cannot find a task");
+
+        load += mcgrp.inst_tasks[chosen_task].demand;
+        arrival_time = mcgrp.cal_arrive_time(tail_task, chosen_task, arrival_time, true);
+
+        solution.push_back(chosen_task);
+
+        unserved_task_set.erase(chosen_task);
+
+        if (mcgrp.inst_tasks[chosen_task].inverse != ARC_NO_INVERSE
+            && mcgrp.inst_tasks[chosen_task].inverse != NODE_NO_INVERSE) {
+            int inverse_task = mcgrp.inst_tasks[chosen_task].inverse;
+            if(unserved_task_set.find(inverse_task) != unserved_task_set.end())
+                unserved_task_set.erase(inverse_task);
+        }
+
+    }
+
+
+    if(!giant){
+        if (solution.back() != DUMMY) solution.push_back(DUMMY);
+        return mcgrp.parse_delimiter_seq(solution);
+    }else{
+        Individual res;
+        res.giant_tour = true;
+        solution.erase(solution.begin());
+        My_Assert(find(solution.begin(),solution.end(),DUMMY) == solution.end(),"Wrong giant tour");
+        My_Assert(solution.size() == mcgrp.req_arc_num + mcgrp.req_node_num + mcgrp.req_edge_num, "Wrong giant tour");
+        res.sequence = solution;
+        return res;
+    }
+
+}
+
+vector<vector<int>> tour_splitting(const MCGRP &mcgrp,const vector<int>& task_list)
+{
+    int nsize = task_list.size() + 1;
+
+    vector<int> W(nsize,0);
+    vector<int> P(nsize,DUMMY);
+
+    for(int i = 1;i<W.size();i++)
+        W[i] = INT32_MAX;
+
+    for(int i = 1;i<nsize;i++){
+        int j = i;
+        int load = 0;
+        int length = 0;
+        int DepartureTime = 0;
+        int u = 0;
+        while (true){
+            int v = j;
+            load += mcgrp.inst_tasks[v].demand;
+            length = length - mcgrp.min_cost[mcgrp.inst_tasks[u].tail_node][mcgrp.inst_tasks[DUMMY].head_node]
+                + mcgrp.min_cost[mcgrp.inst_tasks[u].tail_node][mcgrp.inst_tasks[v].head_node]
+                + mcgrp.inst_tasks[v].serv_cost
+                + mcgrp.min_cost[mcgrp.inst_tasks[v].tail_node][mcgrp.inst_tasks[DUMMY].head_node];
+
+            int ArrivalTime = DepartureTime
+                + mcgrp.min_time[mcgrp.inst_tasks[u].tail_node][mcgrp.inst_tasks[v].head_node];
+
+            DepartureTime = ArrivalTime + max(0, mcgrp.inst_tasks[v].time_window.first - ArrivalTime)
+                + mcgrp.inst_tasks[v].serve_time;
+
+            if (load <= mcgrp.capacity
+                && W[i - 1] + length < W[j]
+                && ArrivalTime <= mcgrp.inst_tasks[v].time_window.second){
+                W[j] = W[i - 1] + length;
+                P[j] = i - 1;
+            }
+
+            j += 1;
+            u = v;
+            if(j >= nsize || load > mcgrp.capacity || ArrivalTime > mcgrp.inst_tasks[u].time_window.second){
+                break;
+            }
+        }
+    }
+
+    vector<vector<int>> routes;
+    int cur = nsize - 1;
+    int pred = P[cur];
+    while(cur != 0){
+        vector<int> route;
+        for(int i = pred + 1;i <= cur;i++)
+            route.push_back(task_list[i - 1]);
+        routes.emplace_back(route);
+        cur = pred;
+        pred = P[cur];
+    }
+
+    return routes;
+}
+

@@ -233,14 +233,51 @@ int main(int argc, char *argv[])
             HighSpeedNeighBorSearch NBS(Mixed_Instance);
 
             /*----------------------------------------------------------*/
-            cout << "Begin Memetic search..." << endl;
-            HighSpeedMemetic MA(NBS, pool_size, evolve_steps, QNDF_weights);
-            ftime(&phase_start_time);
-            MA.memetic_search(Mixed_Instance);
-            ftime(&cur_time);
-            cout << "Finish " << start_seed - random_seed << "th search, spent: "
-                 << get_time_difference(phase_start_time, cur_time) << 's' << endl;
+            // High Speed Local Search Test
+            {
+                /*------------------------------construct a start point-------------------------------*/
+                Individual initial_solution = nearest_scanning(Mixed_Instance,vector<int>());
+                NBS.unpack_seq(initial_solution.sequence, Mixed_Instance);
+                Mixed_Instance.check_best_solution(initial_solution.total_cost,get_negative_coding(initial_solution.sequence));
+                My_Assert(NBS.get_cur_cost() == initial_solution.total_cost && NBS.getTotal_vio_load() == initial_solution.total_vio_load,
+                          "Incorrect unpack!");
+                Mixed_Instance.check_best_solution(NBS.get_cur_cost(), NBS.get_solution("negative"));
+                /*------------------------------construct a start point-------------------------------*/
 
+
+                ftime(&phase_start_time);
+                cout << "Begin Local search...\n";
+
+                /*------------------------------specify a start point-------------------------------*/
+//                vector<int> test{-3,155,19,154,16,-60,65,174,117,177,130,185,184,148,145,142,-37,83,85,163,63,21,-17,38,42,164,66,-50,70,72,52,34,31,-20,39,64,162,159,-7,12,158,28,10,150,2,-41,160,49,90,91,69,43,68,-75,79,99,179,133,178,-80,96,97,170,98,95,54,-59,166,82,77,161,57,18,-9,30,44,114,126,122,121,140,136,180,134,132,-62,87,105,172,103,167,-5,23,27,29,33,35,47,26,-1,55,165,78,74,-51,73,93,169,94,118,71,45,-58,61,84,102,171,104,101,81,-86,111,124,143,144,175,125,112,-120,123,149,129,176,128,127,146,147,116,-6,157,22,156,4,-8,24,67,113,115,168,92,89,40,-88,109,173,110,107,-14,36,48,53,46,32,25,-11,152,13,153,15,151,-56,76,131,135,137,182,138,181,100,-106,141,183,139,119,108};
+//                NBS.delimiter_coding_sol = get_delimiter_coding(test);
+//                NBS.unpack_seq(NBS.delimiter_coding_sol, Mixed_Instance);
+//                Mixed_Instance.check_best_solution(NBS.cur_solution_cost, NBS.negative_coding_sol);
+                /*------------------------------specify a start point-------------------------------*/
+
+                struct timeb start_time;
+                ftime(&start_time);
+                int max_search_step = 1;
+                for (int i = 1; i <=  max_search_step; i++) {
+                    cout << "Starting Point: " << NBS.get_cur_cost() << endl;
+                    ftime(&start_time);
+                    NBS.neighbor_search(Mixed_Instance);
+                    struct timeb end_time;
+                    ftime(&end_time);
+                    cout << "Finish " << i << "th search, spent: "
+                         <<fixed << (end_time.time - start_time.time)
+                             + ((end_time.millitm - start_time.millitm) * 1.0 / 1000) << 's' << endl;
+                }
+                struct timeb end_time;
+                ftime(&end_time);
+                cout << "Finish " << start_seed << "th search, spent: "
+                     <<fixed << (end_time.time - start_time.time)
+                         + ((end_time.millitm - start_time.millitm) * 1.0 / 1000) << 's' << endl;
+
+                Mixed_Instance.check_best_solution(NBS.get_cur_cost(), NBS.get_solution("negative"));
+                log_out.close();
+                cout << "Finished!\n\n\n";
+            }
             /*----------------------------------------------------------*/
 
             /* solution record */
