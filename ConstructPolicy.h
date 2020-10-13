@@ -19,6 +19,15 @@
 Individual nearest_scanning(const MCGRP &mcgrp, vector<int> unserved_task_set);
 
 /*!
+ * Random Task Flower construction policy
+ * @param mcgrp
+ * @param task_list
+ * @param giant if true, a giant tour is going to be built
+ * @return
+ */
+Individual RTF(const MCGRP &mcgrp, const vector<int>& task_list, bool giant);
+
+/*!
  * execute merge and split to the current solution
  * @param ns
  * @param mcgrp

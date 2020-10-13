@@ -32,6 +32,7 @@ public:
     int total_arc_num;
     int vehicle_num;
     int capacity;
+    int total_demand;
 
     int DEPOT;
 
@@ -187,7 +188,6 @@ public:
      * @return
      */
     int cal_arrive_time(int source, int sink, int start, bool head_of_source) const;
-
 
     /*!
      * forecast the time table when modify the serve sequence

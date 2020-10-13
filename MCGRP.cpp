@@ -4,7 +4,6 @@
 #include <algorithm>
 #include <string>
 #include <sys/timeb.h>
-#include <iomanip>
 #include "utils.h"
 #include "json.hpp"
 
@@ -145,6 +144,7 @@ void MCGRP::load_file_info(std::string input_file, const instance_num_informatio
     //one is dummy arcs
     inst_arcs.resize(total_arc_num + 1);
 
+    total_demand = 0;
     while (fin >> dummy_string) {
         if (dummy_string == "Name:") {
             fin >> dummy_string;
@@ -186,6 +186,7 @@ void MCGRP::load_file_info(std::string input_file, const instance_num_informatio
 
                 fin >> dummy_string;
                 inst_tasks[i].demand = stoi(dummy_string);
+                total_demand += inst_tasks[i].demand;
 
                 fin >> dummy_string;
                 //inst_tasks[i].serv_cost = stoi(dummy_string);
@@ -257,6 +258,7 @@ void MCGRP::load_file_info(std::string input_file, const instance_num_informatio
 
                 fin >> dummy_string;
                 inst_tasks[i].demand = stoi(dummy_string);
+                total_demand += inst_tasks[i].demand;
 
                 fin >> dummy_string;
 //                inst_tasks[i].serv_cost = stoi(dummy_string);
@@ -318,6 +320,7 @@ void MCGRP::load_file_info(std::string input_file, const instance_num_informatio
 
                 fin >> dummy_string;
                 inst_tasks[i].demand = stoi(dummy_string);
+                total_demand += inst_tasks[i].demand;
 
                 fin >> dummy_string;
 				inst_tasks[i].serv_cost = stoi(dummy_string);
