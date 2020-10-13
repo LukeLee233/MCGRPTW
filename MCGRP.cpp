@@ -833,7 +833,6 @@ Individual MCGRP::parse_delimiter_seq(const vector<int> &seq) const
 
 bool MCGRP::valid_sol(const vector<int> &neg_seq, const double sol_cost) const
 {
-    //cout << "sol cost is " << sol_cost << endl;
     int valid_length = 0;
     int load = 0;
     int drive_time = 0;
@@ -890,7 +889,6 @@ bool MCGRP::valid_sol(const vector<int> &neg_seq, const double sol_cost) const
     valid_length += inst_tasks[abs(neg_seq[j])].serv_cost;
 
     valid_length += min_cost[inst_tasks[abs(neg_seq[j])].tail_node][inst_tasks[DUMMY].head_node];
-    //cout << "valid length is: " << valid_length << endl;
 
     return valid_length == sol_cost;
 }

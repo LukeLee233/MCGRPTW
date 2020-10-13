@@ -230,13 +230,12 @@ int main(int argc, char *argv[])
             Mixed_Instance.best_total_route_length = numeric_limits<double>::max();
             Mixed_Instance.best_sol_time = numeric_limits<double>::max();
 
-            HighSpeedNeighBorSearch NBS(Mixed_Instance);
 
             /*----------------------------------------------------------*/
-            cout << "Begin Memetic search..." << endl;
-            HighSpeedMemetic MA(NBS, pool_size, evolve_steps, QNDF_weights);
+            cout << "Begin RTF test..." << endl;
             ftime(&phase_start_time);
-            MA.memetic_search(Mixed_Instance);
+            auto solution = RTF(Mixed_Instance,vector<int>(), false);
+            if(!solution.giant_tour) Mixed_Instance.check_best_solution(solution.total_cost,get_negative_coding(solution.sequence));
             ftime(&cur_time);
             cout << "Finish " << start_seed - random_seed << "th search, spent: "
                  << get_time_difference(phase_start_time, cur_time) << 's' << endl;
