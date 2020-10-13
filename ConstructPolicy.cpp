@@ -785,13 +785,19 @@ Individual RTF(const MCGRP &mcgrp, const vector<int> &task_list, bool giant)
         int tail_task = solution.back();
 
         FCL.clear();
-        for (auto unserved_task : unserved_task_set) {
-            if (mcgrp.inst_tasks[unserved_task].demand <= capacity - load
-                && mcgrp.cal_arrive_time(tail_task, unserved_task, arrival_time, true)
-                    <= mcgrp.inst_tasks[unserved_task].time_window.second) {
-                FCL.push_back(unserved_task);
+        if(giant){
+            FCL = vector<int>(unserved_task_set.begin(),unserved_task_set.end());
+        }
+        else{
+            for (auto unserved_task : unserved_task_set) {
+                if (mcgrp.inst_tasks[unserved_task].demand <= capacity - load
+                    && mcgrp.cal_arrive_time(tail_task, unserved_task, arrival_time, true)
+                        <= mcgrp.inst_tasks[unserved_task].time_window.second) {
+                    FCL.push_back(unserved_task);
+                }
             }
         }
+
 
         if (FCL.empty()) {
             solution.push_back(DUMMY);
@@ -863,6 +869,7 @@ Individual RTF(const MCGRP &mcgrp, const vector<int> &task_list, bool giant)
         res.giant_tour = true;
         solution.erase(solution.begin());
         My_Assert(find(solution.begin(),solution.end(),DUMMY) == solution.end(),"Wrong giant tour");
+        My_Assert(solution.size() == mcgrp.req_arc_num + mcgrp.req_node_num + mcgrp.req_edge_num, "Wrong giant tour");
         res.sequence = solution;
         return res;
     }
