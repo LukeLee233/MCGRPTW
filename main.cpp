@@ -235,6 +235,7 @@ int main(int argc, char *argv[])
             cout << "Begin RTF test..." << endl;
             ftime(&phase_start_time);
             auto solution = RTF(Mixed_Instance,vector<int>(), false);
+            auto routes = tour_splitting(Mixed_Instance,solution.sequence);
             if(!solution.giant_tour) Mixed_Instance.check_best_solution(solution.total_cost,get_negative_coding(solution.sequence));
             ftime(&cur_time);
             cout << "Finish " << start_seed - random_seed << "th search, spent: "
