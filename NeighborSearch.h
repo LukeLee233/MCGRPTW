@@ -598,7 +598,7 @@ public:
     void repair_solution(const MCGRP &mcgrp);
     void _repair_load(const MCGRP &mcgrp);
     void _repair_time_window(const MCGRP &mcgrp);
-
+    void _tour_splitting_repair(const MCGRP &mcgrp);
 
 
     /*!

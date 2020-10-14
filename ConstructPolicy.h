@@ -83,4 +83,5 @@ vector<int> minimum_yield_growing(const MCGRP &mcgrp, vector<int> tasks, const i
  */
 vector<int> mixture_growing(const MCGRP &mcgrp, vector<int> tasks, const int constraint);
 
+vector<vector<int>> tour_splitting(const MCGRP &mcgrp, vector<int>& task_list);
 #endif //MCGRP_SEARCHPOLICY_H

@@ -876,3 +876,65 @@ Individual RTF(const MCGRP &mcgrp, const vector<int> &task_list, bool giant)
 
 }
 
+vector<vector<int>> tour_splitting(const MCGRP &mcgrp,vector<int>& task_list)
+{
+    task_list.insert(task_list.begin(),DUMMY);
+    int nsize = task_list.size();
+
+    vector<int> W(nsize,0);
+    vector<int> P(nsize,DUMMY);
+
+    for(int i = 1;i<W.size();i++)
+        W[i] = INT32_MAX;
+
+    for(int i = 1;i<nsize;i++){
+        int j = i;
+        int load = 0;
+        int length = 0;
+        int DepartureTime = 0;
+        int u = 0;
+        while (true){
+            int v = j;
+            load += mcgrp.inst_tasks[task_list[v]].demand;
+            length = length - mcgrp.min_cost[mcgrp.inst_tasks[task_list[u]].tail_node][mcgrp.inst_tasks[DUMMY].head_node]
+                + mcgrp.min_cost[mcgrp.inst_tasks[task_list[u]].tail_node][mcgrp.inst_tasks[task_list[v]].head_node]
+                + mcgrp.inst_tasks[task_list[v]].serv_cost
+                + mcgrp.min_cost[mcgrp.inst_tasks[task_list[v]].tail_node][mcgrp.inst_tasks[DUMMY].head_node];
+
+            int ArrivalTime = DepartureTime
+                + mcgrp.min_time[mcgrp.inst_tasks[task_list[u]].tail_node][mcgrp.inst_tasks[task_list[v]].head_node];
+
+            DepartureTime = ArrivalTime + max(0, mcgrp.inst_tasks[task_list[v]].time_window.first - ArrivalTime)
+                + mcgrp.inst_tasks[task_list[v]].serve_time;
+
+            if (load <= mcgrp.capacity
+                && W[i - 1] + length < W[j]
+                && ArrivalTime <= mcgrp.inst_tasks[task_list[v]].time_window.second){
+                W[j] = W[i - 1] + length;
+                P[j] = i - 1;
+            }
+
+            j += 1;
+            u = v;
+            if(j >= nsize || load > mcgrp.capacity || ArrivalTime > mcgrp.inst_tasks[task_list[u]].time_window.second){
+                break;
+            }
+        }
+    }
+
+    vector<vector<int>> routes;
+    int cur = nsize - 1;
+    int pred = P[cur];
+    while(cur != 0){
+        vector<int> route;
+        for(int i = pred + 1;i <= cur;i++)
+            route.push_back(task_list[i]);
+        routes.emplace_back(route);
+        cur = pred;
+        pred = P[cur];
+    }
+
+    task_list.erase(task_list.begin());
+    return routes;
+}
+
