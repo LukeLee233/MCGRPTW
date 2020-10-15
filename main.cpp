@@ -30,6 +30,13 @@ struct timeb phase_start_time;
 
 struct timeb cur_time;
 
+int factorial(int i){
+   if(i == 0 || i == 1){
+       return 1;
+   }
+   return i * factorial(i - 1);
+}
+
 int main(int argc, char *argv[])
 {
     /*-------------------------parse command line----------------------------*/
@@ -184,24 +191,13 @@ int main(int argc, char *argv[])
     log_out.close();
 /*----------------------------------------------------------------*/
 
-
-    vector<string> file_set = read_directory(instance_directory);
+    vector<string> file_set = {"TWB10A_t.dat"};
     for (auto file_name : file_set) {
         cout << string(2, '\n') << string(24, '-')
              << "Start instance: "
              << file_name
              << string(24, '-') << string(2, '\n')
              << flush;
-
-        /* global info */
-        double bestobj = numeric_limits<decltype(bestobj)>::max();
-        double best_solution_time = numeric_limits<decltype(best_solution_time)>::max();
-        int best_phase = -1;
-        vector<int> best_buffer;
-        vector<double> FitnessVec;
-        vector<double> BestTimeVec;
-        vector<double> SearchTimeVec;
-        vector<vector<int>> SolutionVec;
 
         /************************************************************************************************/
         /* initialize the instance object */
@@ -214,189 +210,114 @@ int main(int argc, char *argv[])
         Mixed_Instance.load_file_info(instance_directory + '/' + file_name, instance_info);
         Mixed_Instance.create_neighbor_lists(neighbor_size);
 
-#ifdef DEBUG
-        log_out.open(date_folder + '/' + file_name + ".log", ios::out);
-#endif
         struct timeb search_start_time;
         ftime(&search_start_time);
-        ftime(&cur_time);
-        for (int start_seed = random_seed; start_seed < random_seed + phase_number
-            && get_time_difference(search_start_time, cur_time) < search_time; start_seed++) {
-            cout << string(24, '-') << "Start "
-                 << start_seed - random_seed + 1
-                 << "th times search" << string(24, '-') << endl;
-
-            Mixed_Instance._rng.change(seed[start_seed % seed_size]);
-            Mixed_Instance.best_total_route_length = numeric_limits<double>::max();
-            Mixed_Instance.best_sol_time = numeric_limits<double>::max();
-
-            HighSpeedNeighBorSearch NBS(Mixed_Instance);
-
-            /*----------------------------------------------------------*/
-            cout << "Begin Memetic search..." << endl;
-            vector<int> nums{1,2,5,6,7,8,9,10,11,12,13};
-            vector<int> best_solution;
-            int best_cost = INT32_MAX;
-            do{
-                vector<int> buffer = nums;
-                int pos1 = -1;
-                int pos2 = -1;
-                for(int i = 0;i<buffer.size();i++){
-                    if(buffer[i] == 1) pos1 = i;
-                    if(buffer[i] == 2) pos2 = i;
-                }
-
-                auto routes = tour_splitting(Mixed_Instance,buffer);
-                reverse(routes.begin(),routes.end());
-                vector<int> ans;
-                for(const auto& route : routes){
-                    for(int i = 0;i<route.size();i++){
-                        if(i == 0) ans.push_back(-route[i]);
-                        else ans.push_back(route[i]);
-                    }
-                }
-
-                int tmp = Mixed_Instance.valid_sol(ans);
-                if(tmp < best_cost){
-                    cout<<"better solution: "<< tmp<<endl;
-                    best_solution = ans;
-                    best_cost = tmp;
-                }
-
-                buffer[pos1] = 3;
-                buffer[pos2] = 2;
-                routes = tour_splitting(Mixed_Instance,buffer);
-                reverse(routes.begin(),routes.end());
-                ans.clear();
-                for(const auto& route : routes){
-                    for(int i = 0;i<route.size();i++){
-                        if(i == 0) ans.push_back(-route[i]);
-                        else ans.push_back(route[i]);
-                    }
-                }
-
-                tmp = Mixed_Instance.valid_sol(ans);
-                if(tmp < best_cost){
-                    cout<<"better solution: "<< tmp<<endl;
-                    best_solution = ans;
-                    best_cost = tmp;
-                }
-
-                buffer[pos1] = 1;
-                buffer[pos2] = 4;
-                routes = tour_splitting(Mixed_Instance,buffer);
-                reverse(routes.begin(),routes.end());
-                ans.clear();
-                for(const auto& route : routes){
-                    for(int i = 0;i<route.size();i++){
-                        if(i == 0) ans.push_back(-route[i]);
-                        else ans.push_back(route[i]);
-                    }
-                }
-
-                tmp = Mixed_Instance.valid_sol(ans);
-                if(tmp < best_cost){
-                    cout<<"better solution: "<< tmp<<endl;
-                    best_solution = ans;
-                    best_cost = tmp;
-                }
-
-                buffer[pos1] = 3;
-                buffer[pos2] = 4;
-                routes = tour_splitting(Mixed_Instance,buffer);
-                reverse(routes.begin(),routes.end());
-                ans.clear();
-                for(const auto& route : routes){
-                    for(int i = 0;i<route.size();i++){
-                        if(i == 0) ans.push_back(-route[i]);
-                        else ans.push_back(route[i]);
-                    }
-                }
-
-                tmp = Mixed_Instance.valid_sol(ans);
-                if(tmp < best_cost){
-                    cout<<"better solution: "<< tmp<<endl;
-                    best_solution = ans;
-                    best_cost = tmp;
-                }
-
-            }while (next_permutation(nums.begin(),nums.end()));
-            ftime(&cur_time);
-
-            cout << best_cost;
-            cout << "Finish " << start_seed - random_seed << "th search, spent: "
-                 << get_time_difference(phase_start_time, cur_time) << 's' << endl;
-
-            /*----------------------------------------------------------*/
-
-            /* solution record */
-            ftime(&cur_time);
-            SearchTimeVec.push_back(get_time_difference(phase_start_time, cur_time));
-
-            /* record the best info of each epoch */
-            FitnessVec.push_back(Mixed_Instance.best_total_route_length);
-            BestTimeVec.push_back(Mixed_Instance.best_sol_time);
-            SolutionVec.push_back(Mixed_Instance.best_sol_buff);
-
-            cout << "Finish " << start_seed - random_seed + 1 << "th times\n";
-
-            /* record the best solution during the whole searching process*/
-            if (Mixed_Instance.best_total_route_length < bestobj) {
-                best_solution_time = Mixed_Instance.best_sol_time;
-                bestobj = Mixed_Instance.best_total_route_length;
-                best_buffer = Mixed_Instance.best_sol_buff;
-                best_phase = start_seed - random_seed + 1;
+        cout << "Begin Brute Force search..." << endl;
+        // 1, 2 are edge tasks, which have its inverse task 3, 4
+        vector<int> nums{1,2,5,6,7,8,9,10,11,12,13};
+        int total_combination = factorial(nums.size());
+        vector<int> best_solution;
+        int best_cost = INT32_MAX;
+        int count = 0;
+        do{
+            if(count % 100000 == 0){
+                cout<< "total progress: "<< ((double) count / total_combination) * 100 << "%"<<endl;
+            }
+            count++;
+            vector<int> buffer = nums;
+            int pos1 = -1;
+            int pos2 = -1;
+            for(int i = 0;i<buffer.size();i++){
+                if(buffer[i] == 1) pos1 = i;
+                if(buffer[i] == 2) pos2 = i;
             }
 
+            auto routes = tour_splitting(Mixed_Instance,buffer);
+            reverse(routes.begin(),routes.end());
+            vector<int> ans;
+            for(const auto& route : routes){
+                for(int i = 0;i<route.size();i++){
+                    if(i == 0) ans.push_back(-route[i]);
+                    else ans.push_back(route[i]);
+                }
+            }
+
+            int tmp = Mixed_Instance.valid_sol(ans);
+            if(tmp < best_cost){
+                cout<<"better solution: "<< tmp<<endl;
+                best_solution = ans;
+                best_cost = tmp;
+            }
+
+            buffer[pos1] = 3;
+            buffer[pos2] = 2;
+            routes = tour_splitting(Mixed_Instance,buffer);
+            reverse(routes.begin(),routes.end());
+            ans.clear();
+            for(const auto& route : routes){
+                for(int i = 0;i<route.size();i++){
+                    if(i == 0) ans.push_back(-route[i]);
+                    else ans.push_back(route[i]);
+                }
+            }
+
+            tmp = Mixed_Instance.valid_sol(ans);
+            if(tmp < best_cost){
+                cout<<"better solution: "<< tmp<<endl;
+                best_solution = ans;
+                best_cost = tmp;
+            }
+
+            buffer[pos1] = 1;
+            buffer[pos2] = 4;
+            routes = tour_splitting(Mixed_Instance,buffer);
+            reverse(routes.begin(),routes.end());
+            ans.clear();
+            for(const auto& route : routes){
+                for(int i = 0;i<route.size();i++){
+                    if(i == 0) ans.push_back(-route[i]);
+                    else ans.push_back(route[i]);
+                }
+            }
+
+            tmp = Mixed_Instance.valid_sol(ans);
+            if(tmp < best_cost){
+                cout<<"better solution: "<< tmp<<endl;
+                best_solution = ans;
+                best_cost = tmp;
+            }
+
+            buffer[pos1] = 3;
+            buffer[pos2] = 4;
+            routes = tour_splitting(Mixed_Instance,buffer);
+            reverse(routes.begin(),routes.end());
+            ans.clear();
+            for(const auto& route : routes){
+                for(int i = 0;i<route.size();i++){
+                    if(i == 0) ans.push_back(-route[i]);
+                    else ans.push_back(route[i]);
+                }
+            }
+
+            tmp = Mixed_Instance.valid_sol(ans);
+            if(tmp < best_cost){
+                cout<<"better solution: "<< tmp<<endl;
+                best_solution = ans;
+                best_cost = tmp;
+            }
+
+        }while (next_permutation(nums.begin(),nums.end()));
+        ftime(&cur_time);
+
+
+        cout <<"Best cost: " << best_cost << endl;
+
+        for(auto task : best_solution){
+            cout<< task << "->";
         }
-
-#ifdef DEBUG
-        log_out.close();
-#endif
-
-        /***********************************output part********************************************/
-        if (bestobj == numeric_limits<decltype(bestobj)>::max()) {
-            cerr << "ERROR! Can't find a solution\n";
-            abort();
-        }
-        double total_cost = accumulate(FitnessVec.begin(), FitnessVec.end(), 0);
-        double best_total_time = accumulate(BestTimeVec.begin(), BestTimeVec.end(), 0);
-        double total_time = accumulate(SearchTimeVec.begin(), SearchTimeVec.end(), 0);
-        double average_cost = total_cost / FitnessVec.size();
-        double average_best_time = best_total_time / BestTimeVec.size();
-        double average_search_time = total_time / SearchTimeVec.size();
-
-        cout << string(2, '\n') << string(24, '*')
-             << "Searching Finish!" << string(24, '*') << endl;
-        cout << "Searching result:" << string(2, '\n') << flush;
-
-
-        result_out.open(result_dir + '/' + file_name + ".res", ios::out);
-        result_out << setprecision(2) << fixed;
-
-        print(cout, result_out, "Instance: " + file_name);
-        print(cout, result_out, "Best Cost: " + to_string(bestobj));
-        print(cout, result_out, "Best Cost Epoch: " + to_string(best_phase));
-        print(cout, result_out, "Best Solution Search Time: " + to_string(best_solution_time) + 's');
-        print(cout, result_out, "Best Solution: ");
-
-        string buff = "";
-        for (int i = 0; i < best_buffer.size(); i++) {
-            if (i == best_buffer.size() - 1)
-                buff += to_string(best_buffer[i]);
-            else
-                buff += (to_string(best_buffer[i]) + "->");
-        }
-        print(cout, result_out, buff);
-
-        print(cout, result_out, "\n\nSearch time: " + to_string(FitnessVec.size()));
-
-
-        print(cout, result_out, "\n\nAverage cost: " + to_string(average_cost));
-        print(cout, result_out, "Average best solution search time: " + to_string(average_best_time) + 's');
-        print(cout, result_out, "Average search time: " + to_string(average_search_time) + 's');
-        result_out.close();
+        cout<<"\b\b";
     }
+    ftime(&cur_time);
 
     return 0;
 }
