@@ -316,8 +316,11 @@ int main(int argc, char *argv[])
             cout<< task << "->";
         }
         cout<<"\b\b";
+
+        ftime(&cur_time);
+        cout << "Spend: " << get_time_difference(search_start_time, cur_time) << 's' << endl;
     }
-    ftime(&cur_time);
+
 
     return 0;
 }
