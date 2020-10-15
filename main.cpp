@@ -186,6 +186,7 @@ int main(int argc, char *argv[])
 
 
     vector<string> file_set = read_directory(instance_directory);
+    // The test use TW-B10A.dat
     for (auto file_name : file_set) {
         cout << string(2, '\n') << string(24, '-')
              << "Start instance: "
@@ -214,102 +215,31 @@ int main(int argc, char *argv[])
         Mixed_Instance.load_file_info(instance_directory + '/' + file_name, instance_info);
         Mixed_Instance.create_neighbor_lists(neighbor_size);
 
-#ifdef DEBUG
-        log_out.open(date_folder + '/' + file_name + ".log", ios::out);
-#endif
-        struct timeb search_start_time;
-        ftime(&search_start_time);
-        ftime(&cur_time);
-        for (int start_seed = random_seed; start_seed < random_seed + phase_number
-            && get_time_difference(search_start_time, cur_time) < search_time; start_seed++) {
-            cout << string(24, '-') << "Start "
-                 << start_seed - random_seed + 1
-                 << "th times search" << string(24, '-') << endl;
-
+        for (int start_seed = random_seed; start_seed < random_seed + phase_number ; start_seed++) {
             Mixed_Instance._rng.change(seed[start_seed % seed_size]);
             Mixed_Instance.best_total_route_length = numeric_limits<double>::max();
             Mixed_Instance.best_sol_time = numeric_limits<double>::max();
 
-
             /*----------------------------------------------------------*/
-            cout << "Begin RTF test..." << endl;
+            cout << "Begin tour-splitting test..." << endl;
             ftime(&phase_start_time);
-            auto solution = RTF(Mixed_Instance,vector<int>(), false);
-            auto routes = tour_splitting(Mixed_Instance,solution.sequence);
-            if(!solution.giant_tour) Mixed_Instance.check_best_solution(solution.total_cost,get_negative_coding(solution.sequence));
-            ftime(&cur_time);
-            cout << "Finish " << start_seed - random_seed << "th search, spent: "
-                 << get_time_difference(phase_start_time, cur_time) << 's' << endl;
-
-            /*----------------------------------------------------------*/
-
-            /* solution record */
-            ftime(&cur_time);
-            SearchTimeVec.push_back(get_time_difference(phase_start_time, cur_time));
-
-            /* record the best info of each epoch */
-            FitnessVec.push_back(Mixed_Instance.best_total_route_length);
-            BestTimeVec.push_back(Mixed_Instance.best_sol_time);
-            SolutionVec.push_back(Mixed_Instance.best_sol_buff);
-
-            cout << "Finish " << start_seed - random_seed + 1 << "th times\n";
-
-            /* record the best solution during the whole searching process*/
-            if (Mixed_Instance.best_total_route_length < bestobj) {
-                best_solution_time = Mixed_Instance.best_sol_time;
-                bestobj = Mixed_Instance.best_total_route_length;
-                best_buffer = Mixed_Instance.best_sol_buff;
-                best_phase = start_seed - random_seed + 1;
+            // we use a specified giant_tour to test splitting algorithm
+            vector<int> giant_tour{13,2,9,7,8,11,10,5,12,6,3};
+            auto routes = tour_splitting(Mixed_Instance,giant_tour);
+            reverse(routes.begin(),routes.end());
+            vector<int> negative_solution;
+            for(const auto& route : routes){
+                for(int i = 0;i<route.size();i++){
+                    if(i == 0) negative_solution.push_back(-route[i]);
+                    else negative_solution.push_back(route[i]);
+                }
             }
+            int solution_cost = Mixed_Instance.cal_cost(negative_solution);
+            cout<< "splitting algorithm result: "<< solution_cost << endl;
+            cout<< "expected result: 93" << endl;
 
         }
 
-#ifdef DEBUG
-        log_out.close();
-#endif
-
-        /***********************************output part********************************************/
-        if (bestobj == numeric_limits<decltype(bestobj)>::max()) {
-            cerr << "ERROR! Can't find a solution\n";
-            abort();
-        }
-        double total_cost = accumulate(FitnessVec.begin(), FitnessVec.end(), 0);
-        double best_total_time = accumulate(BestTimeVec.begin(), BestTimeVec.end(), 0);
-        double total_time = accumulate(SearchTimeVec.begin(), SearchTimeVec.end(), 0);
-        double average_cost = total_cost / FitnessVec.size();
-        double average_best_time = best_total_time / BestTimeVec.size();
-        double average_search_time = total_time / SearchTimeVec.size();
-
-        cout << string(2, '\n') << string(24, '*')
-             << "Searching Finish!" << string(24, '*') << endl;
-        cout << "Searching result:" << string(2, '\n') << flush;
-
-
-        result_out.open(result_dir + '/' + file_name + ".res", ios::out);
-        result_out << setprecision(2) << fixed;
-
-        print(cout, result_out, "Instance: " + file_name);
-        print(cout, result_out, "Best Cost: " + to_string(bestobj));
-        print(cout, result_out, "Best Cost Epoch: " + to_string(best_phase));
-        print(cout, result_out, "Best Solution Search Time: " + to_string(best_solution_time) + 's');
-        print(cout, result_out, "Best Solution: ");
-
-        string buff = "";
-        for (int i = 0; i < best_buffer.size(); i++) {
-            if (i == best_buffer.size() - 1)
-                buff += to_string(best_buffer[i]);
-            else
-                buff += (to_string(best_buffer[i]) + "->");
-        }
-        print(cout, result_out, buff);
-
-        print(cout, result_out, "\n\nSearch time: " + to_string(FitnessVec.size()));
-
-
-        print(cout, result_out, "\n\nAverage cost: " + to_string(average_cost));
-        print(cout, result_out, "Average best solution search time: " + to_string(average_best_time) + 's');
-        print(cout, result_out, "Average search time: " + to_string(average_search_time) + 's');
-        result_out.close();
     }
 
     return 0;
