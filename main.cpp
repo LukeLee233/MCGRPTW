@@ -238,56 +238,88 @@ int main(int argc, char *argv[])
             vector<int> best_solution;
             int best_cost = INT32_MAX;
             do{
-                auto routes = tour_splitting(Mixed_Instance,nums);
+                vector<int> buffer = nums;
                 int pos1 = -1;
-                int sign1 = 1;
                 int pos2 = -1;
-                int sign2 = 1;
-                vector<int> ans;
+                for(int i = 0;i<buffer.size();i++){
+                    if(buffer[i] == 1) pos1 = i;
+                    if(buffer[i] == 2) pos2 = 1;
+                }
+
+                auto routes = tour_splitting(Mixed_Instance,buffer);
                 reverse(routes.begin(),routes.end());
+                vector<int> ans;
                 for(const auto& route : routes){
                     for(int i = 0;i<route.size();i++){
                         if(i == 0) ans.push_back(-route[i]);
                         else ans.push_back(route[i]);
-
-                        if(route[i] == 1){
-                            pos1 = ans.size() - 1;
-                            sign1 = ans.back() < 0 ? -1 : 1;
-                        }
-                        if(route[i] == 2){
-                            pos2 = ans.size() - 1;
-                            sign2 = ans.back() < 0 ? -1 : 1;
-                        }
                     }
                 }
 
                 int tmp = Mixed_Instance.valid_sol(ans);
                 if(tmp < best_cost){
+                    cout<<"better solution: "<< tmp<<endl;
                     best_solution = ans;
                     best_cost = tmp;
                 }
 
-                ans[pos1] = 3 * sign1;
+                buffer[pos1] = 3;
+                buffer[pos2] = 2;
+                routes = tour_splitting(Mixed_Instance,buffer);
+                reverse(routes.begin(),routes.end());
+                ans.clear();
+                for(const auto& route : routes){
+                    for(int i = 0;i<route.size();i++){
+                        if(i == 0) ans.push_back(-route[i]);
+                        else ans.push_back(route[i]);
+                    }
+                }
+
                 tmp = Mixed_Instance.valid_sol(ans);
                 if(tmp < best_cost){
+                    cout<<"better solution: "<< tmp<<endl;
                     best_solution = ans;
                     best_cost = tmp;
                 }
 
-                ans[pos2] = 4 * sign2;
-                ans[pos1] = 1 * sign1;
+                buffer[pos1] = 1;
+                buffer[pos2] = 4;
+                routes = tour_splitting(Mixed_Instance,buffer);
+                reverse(routes.begin(),routes.end());
+                ans.clear();
+                for(const auto& route : routes){
+                    for(int i = 0;i<route.size();i++){
+                        if(i == 0) ans.push_back(-route[i]);
+                        else ans.push_back(route[i]);
+                    }
+                }
+
                 tmp = Mixed_Instance.valid_sol(ans);
                 if(tmp < best_cost){
+                    cout<<"better solution: "<< tmp<<endl;
                     best_solution = ans;
                     best_cost = tmp;
                 }
 
-                ans[pos1] = 3 * sign1;
+                buffer[pos1] = 3;
+                buffer[pos2] = 4;
+                routes = tour_splitting(Mixed_Instance,buffer);
+                reverse(routes.begin(),routes.end());
+                ans.clear();
+                for(const auto& route : routes){
+                    for(int i = 0;i<route.size();i++){
+                        if(i == 0) ans.push_back(-route[i]);
+                        else ans.push_back(route[i]);
+                    }
+                }
+
                 tmp = Mixed_Instance.valid_sol(ans);
                 if(tmp < best_cost){
+                    cout<<"better solution: "<< tmp<<endl;
                     best_solution = ans;
                     best_cost = tmp;
                 }
+
             }while (next_permutation(nums.begin(),nums.end()));
             ftime(&cur_time);
 
