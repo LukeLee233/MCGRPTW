@@ -876,9 +876,10 @@ Individual RTF(const MCGRP &mcgrp, const vector<int> &task_list, bool giant)
 
 }
 
-vector<vector<int>> tour_splitting(const MCGRP &mcgrp,const vector<int>& task_list)
+vector<vector<int>> tour_splitting(const MCGRP &mcgrp,vector<int>& task_list)
 {
-    int nsize = task_list.size() + 1;
+    task_list.insert(task_list.begin(),DUMMY);
+    int nsize = task_list.size();
 
     vector<int> W(nsize,0);
     vector<int> P(nsize,DUMMY);
@@ -894,28 +895,28 @@ vector<vector<int>> tour_splitting(const MCGRP &mcgrp,const vector<int>& task_li
         int u = 0;
         while (true){
             int v = j;
-            load += mcgrp.inst_tasks[v].demand;
-            length = length - mcgrp.min_cost[mcgrp.inst_tasks[u].tail_node][mcgrp.inst_tasks[DUMMY].head_node]
-                + mcgrp.min_cost[mcgrp.inst_tasks[u].tail_node][mcgrp.inst_tasks[v].head_node]
-                + mcgrp.inst_tasks[v].serv_cost
-                + mcgrp.min_cost[mcgrp.inst_tasks[v].tail_node][mcgrp.inst_tasks[DUMMY].head_node];
+            load += mcgrp.inst_tasks[task_list[v]].demand;
+            length = length - mcgrp.min_cost[mcgrp.inst_tasks[task_list[u]].tail_node][mcgrp.inst_tasks[DUMMY].head_node]
+                + mcgrp.min_cost[mcgrp.inst_tasks[task_list[u]].tail_node][mcgrp.inst_tasks[task_list[v]].head_node]
+                + mcgrp.inst_tasks[task_list[v]].serv_cost
+                + mcgrp.min_cost[mcgrp.inst_tasks[task_list[v]].tail_node][mcgrp.inst_tasks[DUMMY].head_node];
 
             int ArrivalTime = DepartureTime
-                + mcgrp.min_time[mcgrp.inst_tasks[u].tail_node][mcgrp.inst_tasks[v].head_node];
+                + mcgrp.min_time[mcgrp.inst_tasks[task_list[u]].tail_node][mcgrp.inst_tasks[task_list[v]].head_node];
 
-            DepartureTime = ArrivalTime + max(0, mcgrp.inst_tasks[v].time_window.first - ArrivalTime)
-                + mcgrp.inst_tasks[v].serve_time;
+            DepartureTime = ArrivalTime + max(0, mcgrp.inst_tasks[task_list[v]].time_window.first - ArrivalTime)
+                + mcgrp.inst_tasks[task_list[v]].serve_time;
 
             if (load <= mcgrp.capacity
                 && W[i - 1] + length < W[j]
-                && ArrivalTime <= mcgrp.inst_tasks[v].time_window.second){
+                && ArrivalTime <= mcgrp.inst_tasks[task_list[v]].time_window.second){
                 W[j] = W[i - 1] + length;
                 P[j] = i - 1;
             }
 
             j += 1;
             u = v;
-            if(j >= nsize || load > mcgrp.capacity || ArrivalTime > mcgrp.inst_tasks[u].time_window.second){
+            if(j >= nsize || load > mcgrp.capacity || ArrivalTime > mcgrp.inst_tasks[task_list[u]].time_window.second){
                 break;
             }
         }
@@ -927,12 +928,13 @@ vector<vector<int>> tour_splitting(const MCGRP &mcgrp,const vector<int>& task_li
     while(cur != 0){
         vector<int> route;
         for(int i = pred + 1;i <= cur;i++)
-            route.push_back(task_list[i - 1]);
+            route.push_back(task_list[i]);
         routes.emplace_back(route);
         cur = pred;
         pred = P[cur];
     }
 
+    task_list.erase(task_list.begin());
     return routes;
 }
 
