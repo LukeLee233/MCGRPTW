@@ -174,6 +174,8 @@ public:
      * @return
      */
     bool valid_sol(const std::vector<int> &neg_seq, const double sol_cost) const;
+    int valid_sol(const std::vector<int> &neg_seq) const;
+
 
     int get_travel_time(int source_task,int sink_task) const;
 

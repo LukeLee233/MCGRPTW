@@ -895,6 +895,69 @@ bool MCGRP::valid_sol(const vector<int> &neg_seq, const double sol_cost) const
     return valid_length == sol_cost;
 }
 
+int MCGRP::valid_sol(const vector<int> &neg_seq) const
+{
+    int valid_length = 0;
+    int load = 0;
+    int drive_time = 0;
+
+    for (int j = 0; j < neg_seq.size() - 1; j++) {
+        My_Assert(neg_seq[j] != 0, "solution can't has dummy task!");
+        if (neg_seq[j] < 0) {
+            valid_length += min_cost[inst_tasks[DUMMY].tail_node][inst_tasks[-neg_seq[j]].head_node];
+            load = inst_tasks[-neg_seq[j]].demand;
+
+            drive_time = cal_arrive_time(DUMMY, -neg_seq[j],0, true);
+            My_Assert(load <= capacity && drive_time <= inst_tasks[-neg_seq[j]].time_window.second,
+                      "solution violate constraints!");
+        }
+        else {
+            My_Assert(j != 0, "First task must be negative!");
+            valid_length += min_cost[inst_tasks[abs(neg_seq[j - 1])].tail_node][inst_tasks[neg_seq[j]].head_node];
+            load += inst_tasks[neg_seq[j]].demand;
+            drive_time = cal_arrive_time(abs(neg_seq[j - 1]),neg_seq[j],drive_time,true);
+
+            My_Assert(load <= capacity && drive_time <= inst_tasks[neg_seq[j]].time_window.second,
+                      "solution violate constraints!");
+        }
+
+        valid_length += inst_tasks[abs(neg_seq[j])].serv_cost;
+
+        if (neg_seq[j + 1] < 0) {
+            valid_length += min_cost[inst_tasks[abs(neg_seq[j])].tail_node][inst_tasks[DUMMY].head_node];
+        }
+    }
+
+    int j = neg_seq.size() - 1;
+    My_Assert(neg_seq[j] != 0, "solution can't has dummy task!");
+
+    if (neg_seq[j] < 0) {
+        load = inst_tasks[abs(neg_seq[j])].demand;
+
+        drive_time = cal_arrive_time(DUMMY,-neg_seq[j],0,true);
+
+        valid_length += min_cost[inst_tasks[DUMMY].tail_node][inst_tasks[-neg_seq[j]].head_node];
+        My_Assert(load <= capacity && drive_time <= inst_tasks[abs(neg_seq[j])].time_window.second,
+                  "solution violate constraints!");
+    }
+    else {
+        valid_length += min_cost[inst_tasks[abs(neg_seq[j - 1])].tail_node][inst_tasks[neg_seq[j]].head_node];
+
+        load += inst_tasks[neg_seq[j]].demand;
+        drive_time = cal_arrive_time(abs(neg_seq[j - 1]),neg_seq[j],drive_time,true);
+
+        My_Assert(load <= capacity && drive_time <= inst_tasks[abs(neg_seq[j])].time_window.second,
+                  "solution violate constraints!");
+    }
+
+    valid_length += inst_tasks[abs(neg_seq[j])].serv_cost;
+
+    valid_length += min_cost[inst_tasks[abs(neg_seq[j])].tail_node][inst_tasks[DUMMY].head_node];
+    //cout << "valid length is: " << valid_length << endl;
+
+    return valid_length;
+}
+
 void MCGRP::get_trave_matrix()
 {
     for (int i = 1; i <= node_num; i++) {

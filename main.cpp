@@ -234,10 +234,64 @@ int main(int argc, char *argv[])
 
             /*----------------------------------------------------------*/
             cout << "Begin Memetic search..." << endl;
-            HighSpeedMemetic MA(NBS, pool_size, evolve_steps, QNDF_weights);
-            ftime(&phase_start_time);
-            MA.memetic_search(Mixed_Instance);
+            vector<int> nums{1,2,5,6,7,8,9,10,11,12,13};
+            vector<int> best_solution;
+            int best_cost = INT32_MAX;
+            do{
+                auto routes = tour_splitting(Mixed_Instance,nums);
+                int pos1 = -1;
+                int sign1 = 1;
+                int pos2 = -1;
+                int sign2 = 1;
+                vector<int> ans;
+                reverse(routes.begin(),routes.end());
+                for(const auto& route : routes){
+                    for(int i = 0;i<route.size();i++){
+                        if(i == 0) ans.push_back(-route[i]);
+                        else ans.push_back(route[i]);
+
+                        if(route[i] == 1){
+                            pos1 = ans.size() - 1;
+                            sign1 = ans.back() < 0 ? -1 : 1;
+                        }
+                        if(route[i] == 2){
+                            pos2 = ans.size() - 1;
+                            sign2 = ans.back() < 0 ? -1 : 1;
+                        }
+                    }
+                }
+
+                int tmp = Mixed_Instance.valid_sol(ans);
+                if(tmp < best_cost){
+                    best_solution = ans;
+                    best_cost = tmp;
+                }
+
+                ans[pos1] = 3 * sign1;
+                tmp = Mixed_Instance.valid_sol(ans);
+                if(tmp < best_cost){
+                    best_solution = ans;
+                    best_cost = tmp;
+                }
+
+                ans[pos2] = 4 * sign2;
+                ans[pos1] = 1 * sign1;
+                tmp = Mixed_Instance.valid_sol(ans);
+                if(tmp < best_cost){
+                    best_solution = ans;
+                    best_cost = tmp;
+                }
+
+                ans[pos1] = 3 * sign1;
+                tmp = Mixed_Instance.valid_sol(ans);
+                if(tmp < best_cost){
+                    best_solution = ans;
+                    best_cost = tmp;
+                }
+            }while (next_permutation(nums.begin(),nums.end()));
             ftime(&cur_time);
+
+            cout << best_cost;
             cout << "Finish " << start_seed - random_seed << "th search, spent: "
                  << get_time_difference(phase_start_time, cur_time) << 's' << endl;
 
