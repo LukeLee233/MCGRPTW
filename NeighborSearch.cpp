@@ -3146,7 +3146,7 @@ void HighSpeedNeighBorSearch::_tour_splitting_repair(const MCGRP &mcgrp)
             route_seq.push_back(node.task);
 
         delete_route(current_route.route_id, route_seq);
-        task_list.insert(task_list.end(),route_seq.begin(),route_seq.end())
+        task_list.insert(task_list.end(),route_seq.begin(),route_seq.end());
         My_Assert(valid_sol(mcgrp), "Wrong validation");
     }
 
