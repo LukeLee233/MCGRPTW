@@ -185,7 +185,7 @@ int main(int argc, char *argv[])
 /*----------------------------------------------------------------*/
 
 
-    vector<string> file_set = read_directory(instance_directory);
+    vector<string> file_set = {"TWB10A_t.dat"};
     // The test use TW-B10A.dat
     for (auto file_name : file_set) {
         cout << string(2, '\n') << string(24, '-')
@@ -194,18 +194,6 @@ int main(int argc, char *argv[])
              << string(24, '-') << string(2, '\n')
              << flush;
 
-        /* global info */
-        double bestobj = numeric_limits<decltype(bestobj)>::max();
-        double best_solution_time = numeric_limits<decltype(best_solution_time)>::max();
-        int best_phase = -1;
-        vector<int> best_buffer;
-        vector<double> FitnessVec;
-        vector<double> BestTimeVec;
-        vector<double> SearchTimeVec;
-        vector<vector<int>> SolutionVec;
-
-        /************************************************************************************************/
-        /* initialize the instance object */
         instance_num_information instance_info;
         GetTasksNum(instance_directory + '/' + file_name, instance_info);
 
