@@ -3138,13 +3138,15 @@ void HighSpeedNeighBorSearch::_tour_splitting_repair(const MCGRP &mcgrp)
 
     vector<int> task_list;
     for (auto current_route : violated_routes) {
+        vector<int> route_seq;
         cur_solution_cost -= routes[current_route.route_id]->length;
         total_vio_time -= mcgrp.get_vio_time(current_route.time_tbl);
 
         for (const auto &node : current_route.time_tbl)
-            task_list.push_back(node.task);
+            route_seq.push_back(node.task);
 
-        delete_route(current_route.route_id, task_list);
+        delete_route(current_route.route_id, route_seq);
+        task_list.insert(task_list.end(),route_seq.end(),route_seq.end())
         My_Assert(valid_sol(mcgrp), "Wrong validation");
     }
 
