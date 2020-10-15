@@ -243,7 +243,7 @@ int main(int argc, char *argv[])
                 int pos2 = -1;
                 for(int i = 0;i<buffer.size();i++){
                     if(buffer[i] == 1) pos1 = i;
-                    if(buffer[i] == 2) pos2 = 1;
+                    if(buffer[i] == 2) pos2 = i;
                 }
 
                 auto routes = tour_splitting(Mixed_Instance,buffer);
