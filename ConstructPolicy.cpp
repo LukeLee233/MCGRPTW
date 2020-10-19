@@ -2,10 +2,10 @@
 // Created by luke on 2019/11/29.
 //
 
-#include <algorithm>
+
 #include "ConstructPolicy.h"
 #include "RNG.h"
-#include <unordered_map>
+#include <bits/stdc++.h>
 
 using namespace std;
 
@@ -938,3 +938,99 @@ vector<vector<int>> tour_splitting(const MCGRP &mcgrp,vector<int>& task_list)
     return routes;
 }
 
+BestServeSeq viterbi_decoding(const MCGRP &mcgrp, const vector<int>& task_list)
+{
+    BestServeSeq ans;
+
+    vector<vector<int>> DAG;
+    DAG.push_back(vector<int>(1,DUMMY));
+    for(int i = 0;i<task_list.size();i++){
+        if(mcgrp.is_edge(task_list[i])){
+            DAG.push_back(vector<int>{task_list[i], mcgrp.inst_tasks[task_list[i]].inverse});
+        }else{
+            DAG.push_back(vector<int>{task_list[i]});
+        }
+    }
+    DAG.push_back(vector<int>(1,DUMMY));
+
+
+    vector<vector<int>> W(task_list.size(),vector<int>());
+    vector<vector<int>> P(task_list.size(),vector<int>());
+    vector<vector<int>> ArriveTime(task_list.size(), vector<int>());
+
+    W[0].push_back(0);
+    P[0].push_back(0);
+    ArriveTime[0].push_back(0);
+
+    function<pair<int,int>(const vector<int>&)> argmin_ = [](const vector<int>& seq){
+        int index = -1;
+        int val = INT32_MAX;
+        for(int ii = 0;ii < seq.size();ii++){
+            if (seq[ii] < INT32_MAX){
+                index  = ii;
+                val = seq[ii];
+            }
+        }
+
+        return make_pair(index, val);
+    };
+
+
+    for(int i = 1; i < DAG.size();i++){
+        for(int j = 0;j < DAG[i].size() ;j++){
+            vector<int> distance_;
+            vector<int> ArriveTime_;
+            for(int k = 0; k < W[i-1].size();k++){
+                if(W[i - 1][k] == INT32_MAX ||
+                    ArriveTime[i - 1][k] == INT32_MAX ||
+                    ArriveTime[i - 1][k] + mcgrp.inst_tasks[DAG[i - 1][k]].serve_time +
+                    mcgrp.min_time[mcgrp.inst_tasks[DAG[i - 1][k]].tail_node][mcgrp.inst_tasks[DAG[i][j]].head_node]
+                    > mcgrp.inst_tasks[DAG[i][j]].time_window.second){
+                    distance_.push_back(INT32_MAX);
+                    ArriveTime_.push_back(INT32_MAX);
+                }
+                else{
+                    distance_.push_back(W[i - 1][k] +
+                    mcgrp.inst_tasks[DAG[i - 1][k]].serv_cost +
+                    mcgrp.min_cost[mcgrp.inst_tasks[DAG[i - 1][k]].tail_node][mcgrp.inst_tasks[DAG[i][j]].head_node]);
+                    ArriveTime_.push_back(max(mcgrp.inst_tasks[DAG[i][j]].time_window.first,
+                                              ArriveTime[i - 1][k] + mcgrp.inst_tasks[DAG[i - 1][k]].serve_time +
+                                              mcgrp.min_time[mcgrp.inst_tasks[DAG[i-1][k]].tail_node][mcgrp.inst_tasks[DAG[i][j]].head_node]));
+                }
+            }
+
+            int idx;
+            int val;
+            auto tmp = argmin_(distance_);
+            idx = tmp.first;
+            val = tmp.second;
+
+            P[i].push_back(idx);
+            W[i].push_back(val);
+            if (idx == -1)
+                ArriveTime[i].push_back(INT32_MAX);
+            else
+                ArriveTime[i].push_back(ArriveTime_[idx]);
+        }
+    }
+
+    if (W.size() == 1 || W.back() == vector<int>{0}){
+        ans.cost = INT_MAX;
+    }else{
+        My_Assert(W.back().size() == 1, "Wrong status!");
+        ans.cost = W.back().back();
+        vector<int> indices{P.back().back()};
+        for(int ii = (int)P.size() - 2; ii >= 0 ; ii--){
+            indices.push_back(P[ii][indices.back()]);
+        }
+        My_Assert(indices.size() == P.size() , "Wrong decode sequence!");
+
+        reverse(indices.begin(),indices.end());
+        for(int ii = 1;ii < (int)indices.size() - 1; ii++){
+            ans.sequence.push_back(DAG[ii][indices[ii]]);
+            ans.arrive_time_tbl.push_back(ArriveTime[ii][indices[ii]]);
+        }
+    }
+
+    return ans;
+}
