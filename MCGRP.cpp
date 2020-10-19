@@ -351,6 +351,7 @@ void MCGRP::load_file_info(std::string input_file, const instance_num_informatio
     inst_tasks[DUMMY].serv_cost = 0;
     inst_tasks[DUMMY].demand = 0;
     inst_tasks[DUMMY].inverse = DUMMY;
+    inst_tasks[DUMMY].time_window = {0, INT32_MAX};
 
     /* sentinel task info */
     sentinel = inst_tasks.size() - 1;
@@ -360,6 +361,7 @@ void MCGRP::load_file_info(std::string input_file, const instance_num_informatio
     inst_tasks[sentinel].serv_cost = 0;
     inst_tasks[sentinel].demand = 0;
     inst_tasks[sentinel].inverse = DUMMY;
+    inst_tasks[sentinel].time_window = {0, INT32_MAX};
 
 
     inst_arcs[DUMMY].head_node = DEPOT;

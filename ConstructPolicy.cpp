@@ -954,9 +954,9 @@ BestServeSeq viterbi_decoding(const MCGRP &mcgrp, const vector<int>& task_list)
     DAG.push_back(vector<int>(1,DUMMY));
 
 
-    vector<vector<int>> W(task_list.size(),vector<int>());
-    vector<vector<int>> P(task_list.size(),vector<int>());
-    vector<vector<int>> ArriveTime(task_list.size(), vector<int>());
+    vector<vector<int>> W(DAG.size(),vector<int>());
+    vector<vector<int>> P(DAG.size(),vector<int>());
+    vector<vector<int>> ArriveTime(DAG.size(), vector<int>());
 
     W[0].push_back(0);
     P[0].push_back(0);
@@ -984,18 +984,18 @@ BestServeSeq viterbi_decoding(const MCGRP &mcgrp, const vector<int>& task_list)
                 if(W[i - 1][k] == INT32_MAX ||
                     ArriveTime[i - 1][k] == INT32_MAX ||
                     ArriveTime[i - 1][k] + mcgrp.inst_tasks[DAG[i - 1][k]].serve_time +
-                    mcgrp.min_time[mcgrp.inst_tasks[DAG[i - 1][k]].tail_node][mcgrp.inst_tasks[DAG[i][j]].head_node]
-                    > mcgrp.inst_tasks[DAG[i][j]].time_window.second){
+                        mcgrp.min_time[mcgrp.inst_tasks[DAG[i - 1][k]].tail_node][mcgrp.inst_tasks[DAG[i][j]].head_node]
+                        > mcgrp.inst_tasks[DAG[i][j]].time_window.second){
                     distance_.push_back(INT32_MAX);
                     ArriveTime_.push_back(INT32_MAX);
                 }
                 else{
                     distance_.push_back(W[i - 1][k] +
-                    mcgrp.inst_tasks[DAG[i - 1][k]].serv_cost +
-                    mcgrp.min_cost[mcgrp.inst_tasks[DAG[i - 1][k]].tail_node][mcgrp.inst_tasks[DAG[i][j]].head_node]);
+                        mcgrp.inst_tasks[DAG[i - 1][k]].serv_cost +
+                        mcgrp.min_cost[mcgrp.inst_tasks[DAG[i - 1][k]].tail_node][mcgrp.inst_tasks[DAG[i][j]].head_node]);
                     ArriveTime_.push_back(max(mcgrp.inst_tasks[DAG[i][j]].time_window.first,
                                               ArriveTime[i - 1][k] + mcgrp.inst_tasks[DAG[i - 1][k]].serve_time +
-                                              mcgrp.min_time[mcgrp.inst_tasks[DAG[i-1][k]].tail_node][mcgrp.inst_tasks[DAG[i][j]].head_node]));
+                                                  mcgrp.min_time[mcgrp.inst_tasks[DAG[i-1][k]].tail_node][mcgrp.inst_tasks[DAG[i][j]].head_node]));
                 }
             }
 
@@ -1014,13 +1014,13 @@ BestServeSeq viterbi_decoding(const MCGRP &mcgrp, const vector<int>& task_list)
         }
     }
 
-    if (W.size() == 1 || W.back() == vector<int>{0}){
+    if (P.back() == vector<int>{-1}){
         ans.cost = INT_MAX;
     }else{
         My_Assert(W.back().size() == 1, "Wrong status!");
         ans.cost = W.back().back();
         vector<int> indices{P.back().back()};
-        for(int ii = (int)P.size() - 2; ii >= 0 ; ii--){
+        for(int ii = (int)P.size() - 1; ii >= 1 ; ii--){
             indices.push_back(P[ii][indices.back()]);
         }
         My_Assert(indices.size() == P.size() , "Wrong decode sequence!");
