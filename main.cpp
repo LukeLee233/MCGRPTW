@@ -191,7 +191,7 @@ int main(int argc, char *argv[])
     log_out.close();
 /*----------------------------------------------------------------*/
 
-    vector<string> file_set = {"TWB10A_t.dat"};
+    vector<string> file_set = read_directory(instance_directory);
     for (auto file_name : file_set) {
         cout << string(2, '\n') << string(24, '-')
              << "Start instance: "
@@ -213,9 +213,13 @@ int main(int argc, char *argv[])
         struct timeb search_start_time;
         ftime(&search_start_time);
         cout << "Begin Brute Force search..." << endl;
-        // 1, 2 are edge tasks, which have its inverse task 3, 4
-        vector<int> nums{1,2,5,6,7,8,9,10,11,12,13};
-        int total_combination = factorial(nums.size());
+        vector<int> task_list;
+        for(int ii = 0; ii < Mixed_Instance.inst_tasks.size(); ii++){
+            if(Mixed_Instance.inst_tasks[ii].inverse == 0) continue;
+            if(Mixed_Instance.inst_tasks[ii].inverse > 0 && Mixed_Instance.inst_tasks[ii].inverse < ii) continue;
+            task_list.push_back(ii);
+        }
+        int total_combination = factorial(task_list.size());
         vector<int> best_solution;
         int best_cost = INT32_MAX;
         int count = 0;
@@ -223,90 +227,36 @@ int main(int argc, char *argv[])
             if(count % 100000 == 0){
                 cout<< "total progress: "<< ((double) count / total_combination) * 100 << "%"<<endl;
             }
+
             count++;
-            vector<int> buffer = nums;
-            int pos1 = -1;
-            int pos2 = -1;
-            for(int i = 0;i<buffer.size();i++){
-                if(buffer[i] == 1) pos1 = i;
-                if(buffer[i] == 2) pos2 = i;
-            }
+            vector<int> buffer = task_list;
 
             auto routes = tour_splitting(Mixed_Instance,buffer);
             reverse(routes.begin(),routes.end());
-            vector<int> ans;
+            int cost = 0;
+            vector<int> solution;
             for(const auto& route : routes){
-                for(int i = 0;i<route.size();i++){
-                    if(i == 0) ans.push_back(-route[i]);
-                    else ans.push_back(route[i]);
+                auto ans = viterbi_decoding(Mixed_Instance,route,false);
+                if(ans.cost != INT32_MAX){
+                    cost += ans.cost;
+                    ans.sequence[0] *= -1;
+                    solution.insert(solution.end(),ans.sequence.begin(),ans.sequence.end());
+                }else{
+                    cost = INT32_MAX;
+                    break;
                 }
             }
 
-            int tmp = Mixed_Instance.valid_sol(ans);
-            if(tmp < best_cost){
-                cout<<"better solution: "<< tmp<<endl;
-                best_solution = ans;
-                best_cost = tmp;
-            }
-
-            buffer[pos1] = 3;
-            buffer[pos2] = 2;
-            routes = tour_splitting(Mixed_Instance,buffer);
-            reverse(routes.begin(),routes.end());
-            ans.clear();
-            for(const auto& route : routes){
-                for(int i = 0;i<route.size();i++){
-                    if(i == 0) ans.push_back(-route[i]);
-                    else ans.push_back(route[i]);
+            if(cost != INT32_MAX){
+                int tmp = Mixed_Instance.valid_sol(solution);
+                if(tmp < best_cost){
+                    cout<<"better solution: "<< tmp<<endl;
+                    best_solution = solution;
+                    best_cost = tmp;
                 }
             }
 
-            tmp = Mixed_Instance.valid_sol(ans);
-            if(tmp < best_cost){
-                cout<<"better solution: "<< tmp<<endl;
-                best_solution = ans;
-                best_cost = tmp;
-            }
-
-            buffer[pos1] = 1;
-            buffer[pos2] = 4;
-            routes = tour_splitting(Mixed_Instance,buffer);
-            reverse(routes.begin(),routes.end());
-            ans.clear();
-            for(const auto& route : routes){
-                for(int i = 0;i<route.size();i++){
-                    if(i == 0) ans.push_back(-route[i]);
-                    else ans.push_back(route[i]);
-                }
-            }
-
-            tmp = Mixed_Instance.valid_sol(ans);
-            if(tmp < best_cost){
-                cout<<"better solution: "<< tmp<<endl;
-                best_solution = ans;
-                best_cost = tmp;
-            }
-
-            buffer[pos1] = 3;
-            buffer[pos2] = 4;
-            routes = tour_splitting(Mixed_Instance,buffer);
-            reverse(routes.begin(),routes.end());
-            ans.clear();
-            for(const auto& route : routes){
-                for(int i = 0;i<route.size();i++){
-                    if(i == 0) ans.push_back(-route[i]);
-                    else ans.push_back(route[i]);
-                }
-            }
-
-            tmp = Mixed_Instance.valid_sol(ans);
-            if(tmp < best_cost){
-                cout<<"better solution: "<< tmp<<endl;
-                best_solution = ans;
-                best_cost = tmp;
-            }
-
-        }while (next_permutation(nums.begin(),nums.end()));
+        }while (next_permutation(task_list.begin(),task_list.end()));
         ftime(&cur_time);
 
 
