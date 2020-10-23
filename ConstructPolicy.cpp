@@ -891,7 +891,6 @@ vector<vector<int>> tour_splitting(const MCGRP &mcgrp,vector<int>& task_list)
         int j = i;
         int load = 0;
         int length = 0;
-        int DepartureTime = 0;
         int u = 0;
         while (true){
             int v = j;
@@ -901,22 +900,15 @@ vector<vector<int>> tour_splitting(const MCGRP &mcgrp,vector<int>& task_list)
                 + mcgrp.inst_tasks[task_list[v]].serv_cost
                 + mcgrp.min_cost[mcgrp.inst_tasks[task_list[v]].tail_node][mcgrp.inst_tasks[DUMMY].head_node];
 
-            int ArrivalTime = DepartureTime
-                + mcgrp.min_time[mcgrp.inst_tasks[task_list[u]].tail_node][mcgrp.inst_tasks[task_list[v]].head_node];
-
-            DepartureTime = ArrivalTime + max(0, mcgrp.inst_tasks[task_list[v]].time_window.first - ArrivalTime)
-                + mcgrp.inst_tasks[task_list[v]].serve_time;
-
             if (load <= mcgrp.capacity
-                && W[i - 1] + length < W[j]
-                && ArrivalTime <= mcgrp.inst_tasks[task_list[v]].time_window.second){
+                && W[i - 1] + length < W[j]){
                 W[j] = W[i - 1] + length;
                 P[j] = i - 1;
             }
 
             j += 1;
             u = v;
-            if(j >= nsize || load > mcgrp.capacity || ArrivalTime > mcgrp.inst_tasks[task_list[u]].time_window.second){
+            if(j >= nsize || load > mcgrp.capacity){
                 break;
             }
         }
