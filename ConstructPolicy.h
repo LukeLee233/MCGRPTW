@@ -32,7 +32,6 @@ Individual RTF(const MCGRP &mcgrp, const vector<int>& task_list, bool giant);
  * @param ns
  * @param mcgrp
  */
-void merge_split(class NeighBorSearch &ns, const MCGRP &mcgrp, const int merge_size, const int pseudo_capacity);
 void merge_split(class HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, const int merge_size, const int pseudo_capacity);
 
 /*!
