@@ -126,3 +126,31 @@ double sel_ratio(const vector<double> &_prob, const vector<double> &ratio, RNG &
 
     My_Assert(false, "ERROR! Cannot select a ratio!");
 }
+
+void sort_solution(vector<int> &negative_sol)
+{
+    map<int, vector<int>> routes;
+    vector<int> route;
+    for(const int task : negative_sol){
+        if(task < 0){
+            if(task != negative_sol.front()){
+                routes[route[0]] = route;
+                route.clear();
+            }
+
+            route.push_back(-task);
+        }else{
+            route.push_back(task);
+        }
+    }
+
+    if(!route.empty())
+        routes[route[0]] = route;
+
+    negative_sol.clear();
+    for(auto& item : routes){
+        item.second[0] *= -1;
+        negative_sol.insert(negative_sol.cend(), item.second.cbegin(), item.second.cend());
+    }
+
+}

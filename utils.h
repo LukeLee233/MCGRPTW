@@ -327,3 +327,5 @@ public:
 inline double get_time_difference(const timeb& start,const timeb& end){
     return (end.time - start.time) + ((end.millitm - start.millitm) * 1.0 / 1000);
 }
+
+void sort_solution(vector<int>& negative_sol);
