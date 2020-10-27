@@ -14,7 +14,7 @@ enum SIMILARITY
 {
     COST_DISTANCE,
     HAMMING_DISTANCE,
-    RECOVER_DISTANCE
+    SOLUTION_DISTANCE
 };
 
 class HighSpeedMemetic
@@ -147,7 +147,7 @@ public:
      * @param sim
      * @return
      */
-    bool repeated(const MCGRP &mcgrp, const double tested_value, const vector<int> &immigrant, SIMILARITY sim);
+    bool repeated(const MCGRP &mcgrp, const double tested_value, const vector<int> &neg_solution, SIMILARITY sim);
 
     static void best_insert_repair(const MCGRP &mcgrp,SOLUTION& solution, vector<int> Omitted_task);
     static void merge_split_repair(const MCGRP &mcgrp,SOLUTION& solution, vector<int> Omitted_task);
