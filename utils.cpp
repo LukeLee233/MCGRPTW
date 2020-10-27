@@ -150,7 +150,7 @@ vector<int> sort_solution(const vector<int>& negative_sol)
     vector<int> sorted;
     for(auto& item : routes){
         item.second[0] *= -1;
-        sorted.insert(negative_sol.cend(), item.second.cbegin(), item.second.cend());
+        sorted.insert(sorted.cend(), item.second.cbegin(), item.second.cend());
     }
 
     return sorted;
