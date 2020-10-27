@@ -109,3 +109,29 @@ double hamming_dist(const MCGRP &mcgrp, const vector<int> &a, const vector<int> 
 
     return dist;
 }
+
+double edit_distance(const vector<int>& neg_sol_a, const vector<int>& neg_sol_b) {
+    vector<vector<int>> shortestDist(neg_sol_a.size() + 1, vector<int>(neg_sol_b.size() + 1, 0));
+
+    shortestDist[0][0] = 0;
+
+    for(int i = 1;i<=neg_sol_a.size();i++){
+        shortestDist[i][0] = i;
+    }
+
+    for(int j = 1; j<= neg_sol_b.size();j++){
+        shortestDist[0][j] = j;
+    }
+
+    for(int i = 1;i<= neg_sol_a.size();i++){
+        for(int j = 1; j <= neg_sol_b.size();j++){
+            if(neg_sol_a[i - 1] == neg_sol_b[j - 1]){
+                shortestDist[i][j] = shortestDist[i-1][j-1];
+            }else{
+                shortestDist[i][j] = 1 + min({shortestDist[i][j-1], shortestDist[i-1][j], shortestDist[i-1][j-1]});
+            }
+        }
+    }
+
+    return double(shortestDist.back().back()) / double(max(neg_sol_a.size(),neg_sol_b.size()));
+}

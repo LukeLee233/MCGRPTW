@@ -17,5 +17,6 @@
      */
 double hamming_dist(const MCGRP &mcgrp, const vector<int> &a, const vector<int> &b);
 
+double edit_distance(const vector<int>& neg_sol_a, const vector<int>& neg_sol_b);
 
 #endif //SIMILARITY_H

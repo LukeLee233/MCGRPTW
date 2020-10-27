@@ -1002,28 +1002,33 @@ void HighSpeedMemetic::init_population(const MCGRP &mcgrp)
 bool
 HighSpeedMemetic::repeated(const MCGRP &mcgrp, const double tested_value, const vector<int> &neg_solution, SIMILARITY sim)
 {
-    if (sim == SIMILARITY::COST_DISTANCE) {
-        for (auto citizen : population) {
-            if (almost_equal(tested_value, citizen.obj)) return true;
-        }
-        return false;
-    }
-    else if (sim == SIMILARITY::HAMMING_DISTANCE) {
-        for (auto citizen : population) {
-            if (hamming_dist(mcgrp, neg_solution, citizen.solution) < 10) return true;
-        }
+    switch (sim){
+        case COST_DISTANCE:
+            for (auto citizen : population) {
+                if (almost_equal(tested_value, citizen.obj)) return true;
+            }
 
-        return false;
-    }
-    else if (sim == SIMILARITY::SOLUTION_DISTANCE){
-        for(auto citizen : population){
-            if(sort_solution(neg_solution) == sort_solution(citizen.solution)) return true;
-        }
+            return false;
+        case HAMMING_DISTANCE:
+            for (auto citizen : population) {
+                if (hamming_dist(mcgrp, neg_solution, citizen.solution) < 10) return true;
+            }
 
-        return false;
-    }
-    else {
-        My_Assert(false, "Unknown similarity metric!");
+            return false;
+        case SOLUTION_DISTANCE:
+            for(auto citizen : population){
+                if(sort_solution(neg_solution) == sort_solution(citizen.solution)) return true;
+            }
+
+            return false;
+        case EDIT_DISTANCE:
+            for(auto citizen : population){
+                if(edit_distance(sort_solution(neg_solution),sort_solution(citizen.solution)) == 0) return true;
+            }
+
+            return false;
+        default:
+            My_Assert(false, "Unknown similarity metric!");
     }
 }
 
