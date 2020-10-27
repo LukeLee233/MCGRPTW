@@ -960,7 +960,7 @@ void HighSpeedMemetic::init_population(const MCGRP &mcgrp)
             UNIT immigrant = citizen_buffer.front();
             citizen_buffer.pop();
 
-            if (!repeated(mcgrp, immigrant.obj, immigrant.solution, SIMILARITY::COST_DISTANCE)) {
+            if (!repeated(mcgrp, immigrant.obj, immigrant.solution, SIMILARITY::SOLUTION_DISTANCE)) {
                 population.push_back(immigrant);
                 cout << population.size() << "th individual has been created!\n";
             }
