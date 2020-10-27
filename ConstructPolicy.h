@@ -91,6 +91,6 @@ struct BestServeSeq{
     int cost = INT32_MAX;
 };
 
-BestServeSeq viterbi_decoding(const MCGRP &mcgrp, const vector<int>& task_list);
+BestServeSeq viterbi_decoding(const MCGRP &mcgrp, const vector<int>& task_list, bool allow_infeasible);
 
 #endif //MCGRP_SEARCHPOLICY_H

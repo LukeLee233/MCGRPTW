@@ -80,7 +80,7 @@ struct instance_num_information
 enum NeighborOperator
 {
     SINGLE_INSERT, DOUBLE_INSERT, SWAP, TWO_OPT, INVERT,
-    PRESERT, POSTSERT, MOVE_STRING, PRE_MOVE_STRING,
+    PRESERT, POSTSERT, PRE_MOVE_STRING,
     POST_MOVE_STRING, SLICE, PRE_SLICE, POST_SLICE,
     EXTRACTION, FLIP, SWAP_ENDS
 };
@@ -263,6 +263,8 @@ public:
 
     NeighborOperator move_type;
 
+    vector<vector<int>> old_route_seq;
+    vector<vector<int>> new_route_seq;
 
     MCGRPMOVE()
         : task1(-1), task2(-1), num_affected_routes(-1)
@@ -320,6 +322,10 @@ public:
         route_time_tbl.clear();
 
         route_lens.clear();
+
+        old_route_seq.clear();
+        new_route_seq.clear();
+
         considerable = false;
     }
 };

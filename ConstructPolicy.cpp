@@ -855,9 +855,16 @@ vector<vector<int>> tour_splitting(const MCGRP &mcgrp,vector<int>& task_list)
     return routes;
 }
 
-BestServeSeq viterbi_decoding(const MCGRP &mcgrp, const vector<int>& task_list)
+BestServeSeq viterbi_decoding(const MCGRP &mcgrp, const vector<int>& task_list, bool allow_infeasible)
 {
     BestServeSeq ans;
+
+    if(task_list.empty()){
+        ans.cost = 0;
+        ans.sequence.clear();
+        ans.arrive_time_tbl.clear();
+        return ans;
+    }
 
     vector<vector<int>> DAG;
     DAG.push_back(vector<int>(1,DUMMY));
@@ -897,12 +904,14 @@ BestServeSeq viterbi_decoding(const MCGRP &mcgrp, const vector<int>& task_list)
         for(int j = 0;j < DAG[i].size() ;j++){
             vector<int> distance_;
             vector<int> ArriveTime_;
+            int LatestDepartureTime = allow_infeasible ? INT32_MAX : mcgrp.inst_tasks[DAG[i][j]].time_window.second;
+
             for(int k = 0; k < W[i-1].size();k++){
                 if(W[i - 1][k] == INT32_MAX ||
                     ArriveTime[i - 1][k] == INT32_MAX ||
                     ArriveTime[i - 1][k] + mcgrp.inst_tasks[DAG[i - 1][k]].serve_time +
                         mcgrp.min_time[mcgrp.inst_tasks[DAG[i - 1][k]].tail_node][mcgrp.inst_tasks[DAG[i][j]].head_node]
-                        > mcgrp.inst_tasks[DAG[i][j]].time_window.second){
+                        > LatestDepartureTime){
                     distance_.push_back(INT32_MAX);
                     ArriveTime_.push_back(INT32_MAX);
                 }
@@ -937,15 +946,15 @@ BestServeSeq viterbi_decoding(const MCGRP &mcgrp, const vector<int>& task_list)
         My_Assert(W.back().size() == 1, "Wrong status!");
         ans.cost = W.back().back();
         vector<int> indices{P.back().back()};
-        for(int ii = (int)P.size() - 1; ii >= 1 ; ii--){
+        for(int ii = (int)P.size() - 2; ii >= 2 ; ii--){
             indices.push_back(P[ii][indices.back()]);
         }
-        My_Assert(indices.size() == P.size() , "Wrong decode sequence!");
+        My_Assert(indices.size() == P.size() - 2, "Wrong decode sequence!");
 
         reverse(indices.begin(),indices.end());
-        for(int ii = 1;ii < (int)indices.size() - 1; ii++){
-            ans.sequence.push_back(DAG[ii][indices[ii]]);
-            ans.arrive_time_tbl.push_back(ArriveTime[ii][indices[ii]]);
+        for(int ii = 0;ii < (int)indices.size(); ii++){
+            ans.sequence.push_back(DAG[ii+1][indices[ii]]);
+            ans.arrive_time_tbl.push_back(ArriveTime[ii+1][indices[ii]]);
         }
     }
 
