@@ -91,6 +91,9 @@ struct MCGRPRoute
     struct Timetable{
         int task;
         int arrive_time;
+
+        static vector<Timetable> zip(const vector<int>& task_list, const vector<int>& ArriveTime);
+        static vector<vector<int>> unzip(const vector<Timetable>& time_tbl);
     };
     int ID = -1;
     int start = -1;
@@ -108,8 +111,8 @@ struct MCGRPRoute
         num_customers = 0;
         time_table.clear();
     }
-    static double accumulate_load_op(double accumulator, const MCGRPRoute &a)
-    {
+
+    static double accumulate_load_op(double accumulator, const MCGRPRoute &a){
         return accumulator + a.length;
     };
 };

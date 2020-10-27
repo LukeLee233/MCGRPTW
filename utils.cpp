@@ -155,3 +155,31 @@ vector<int> sort_solution(const vector<int>& negative_sol)
 
     return sorted;
 }
+
+vector<MCGRPRoute::Timetable>
+MCGRPRoute::Timetable::zip(const vector<int> &task_list, const vector<int> &ArriveTime)
+{
+    My_Assert(task_list.size() == ArriveTime.size(), "sequence length does not same");
+    vector<MCGRPRoute::Timetable> ans;
+    for(int i = 0; i< task_list.size();i++){
+        ans.push_back({task_list[i],ArriveTime[i]});
+    }
+
+    return ans;
+}
+
+vector<vector<int>>
+MCGRPRoute::Timetable::unzip(const vector<Timetable> &time_tbl)
+{
+    if(time_tbl.empty()) {
+        return {};
+    }
+
+    vector<vector<int>> ans(2,vector<int>());
+    for(const auto& tb : time_tbl){
+        ans[0].push_back(tb.task);
+        ans[1].push_back(tb.arrive_time);
+    }
+
+    return ans;
+}

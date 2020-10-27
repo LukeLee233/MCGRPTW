@@ -1345,6 +1345,8 @@ void HighSpeedNeighBorSearch::delete_route(int route_id, const vector<int> &rout
 
 int HighSpeedNeighBorSearch::new_route(const MCGRP &mcgrp, const vector<int> &route_seq)
 {
+    if(route_seq.empty()) return -1;
+
     const auto new_route = routes.allocate_route();
 
     const auto
@@ -1370,15 +1372,9 @@ int HighSpeedNeighBorSearch::new_route(const MCGRP &mcgrp, const vector<int> &ro
         routes[new_route]->length +=
             mcgrp.min_cost[mcgrp.inst_tasks[route_seq[i - 1]].tail_node][mcgrp.inst_tasks[route_seq[i]].head_node];
 
-    cur_solution_cost += routes[new_route]->length;
-
-
     // update time table
-    auto time_tbl = mcgrp.cal_arrive_time(route_seq);
-    routes[new_route]->time_table.clear();
-    for (int i = 0; i < route_seq.size(); i++) {
-        routes[new_route]->time_table.push_back({route_seq[i], time_tbl[i]});
-    }
+    routes[new_route]->time_table =
+        MCGRPRoute::Timetable::zip(route_seq,mcgrp.cal_arrive_time(route_seq));
 
     //handle solution
     auto new_dummy = solution.dummypool.get_new_dummy();
@@ -1428,6 +1424,7 @@ void HighSpeedNeighBorSearch::_tour_splitting_repair(const MCGRP &mcgrp)
         vector<int> route_seq;
         cur_solution_cost -= routes[current_route.route_id]->length;
         total_vio_time -= mcgrp.get_vio_time(current_route.time_tbl);
+        total_vio_load -= max(routes[current_route.route_id]->load - mcgrp.capacity,0);
 
         for (const auto &node : current_route.time_tbl)
             route_seq.push_back(node.task);
@@ -1437,11 +1434,14 @@ void HighSpeedNeighBorSearch::_tour_splitting_repair(const MCGRP &mcgrp)
         My_Assert(valid_sol(mcgrp), "Wrong validation");
     }
 
-    Individual giant_tour = RTF(mcgrp,task_list,true);
-    auto new_routes = tour_splitting(mcgrp,giant_tour.sequence);
+//    Individual giant_tour = RTF(mcgrp,task_list,true);
+//    auto new_routes = tour_splitting(mcgrp,giant_tour.sequence);
+    auto new_routes = tour_splitting(mcgrp,task_list);
 
     for (const auto& route : new_routes){
-        new_route(mcgrp, route);
+        auto new_route_id = new_route(mcgrp, route);
+        My_Assert(new_route_id != -1, "Wrong new route");
+        cur_solution_cost += routes[new_route_id]->length;
     }
 
     My_Assert(missed(mcgrp), "Some task missed!");
