@@ -21,12 +21,9 @@ class HighSpeedNeighBorSearch
     friend class SingleInsert;
     friend class DoubleInsert;
     friend class NewSwap;
-    friend class Swap;
-    friend class TwoOpt;
     friend class NewTwoOpt;
     friend class Presert;
     friend class Postsert;
-    friend class MoveString;
     friend class PreMoveString;
     friend class PostMoveString;
     friend class Slice;
@@ -35,7 +32,6 @@ class HighSpeedNeighBorSearch
     friend class Extraction;
     friend class Invert;
     friend class NewFlip;
-    friend class Flip;
     friend class NewSwapEnds;
     friend class Policy;
 
