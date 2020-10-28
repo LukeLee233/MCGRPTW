@@ -217,6 +217,8 @@ public:
     void time_window_sort(vector<int>& sequence) const;
 
     vector<vector<MCGRPRoute::Timetable>> get_time_tbl(const vector<int>& sequence, string mode) const;
+
+    int count_edges(const vector<int>& seq) const;
 };
 
 inline int MCGRP::get_travel_time(int source_task, int sink_task) const {

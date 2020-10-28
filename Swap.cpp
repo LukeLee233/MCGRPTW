@@ -919,6 +919,18 @@ void NewSwap::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
     My_Assert(original_i >= 1 && original_i <= mcgrp.actual_task_num,"Wrong arguments");
     My_Assert(actual_i >= 1 && actual_i <= mcgrp.actual_task_num,"Wrong arguments");
 
+    if(move_result.num_affected_routes == 2){
+        const int u_route = move_result.route_id[0];
+        const int i_route = move_result.route_id[1];
+        if(mcgrp.is_edge(original_u) && !mcgrp.is_edge(original_i)){
+            ns.routes[u_route]->num_edges -= 1;
+            ns.routes[i_route]->num_edges += 1;
+        }else if(!mcgrp.is_edge(original_u) && mcgrp.is_edge(original_i)){
+            ns.routes[u_route]->num_edges += 1;
+            ns.routes[i_route]->num_edges -= 1;
+        }
+    }
+
     if(original_u != actual_u && original_i != actual_i) {
         //Edge task has been moved
         //both task switch

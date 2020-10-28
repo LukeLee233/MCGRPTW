@@ -320,6 +320,14 @@ void Postsert::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
     My_Assert(actual_u >= 1 && actual_u <= mcgrp.actual_task_num,"Wrong arguments");
     My_Assert(i >= 1 && i <= mcgrp.actual_task_num,"Wrong arguments");
 
+    if(mcgrp.is_edge(original_u) && move_result.num_affected_routes == 2){
+        const int u_route = move_result.route_id[0];
+        const int i_route = move_result.route_id[1];
+
+        ns.routes[u_route]->num_edges -= 1;
+        ns.routes[i_route]->num_edges += 1;
+    }
+
     if(original_u != actual_u) {
         //Edge task has been moved
         My_Assert(mcgrp.inst_tasks[original_u].inverse == actual_u, "This is not the inverse");

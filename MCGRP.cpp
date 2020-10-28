@@ -1130,3 +1130,11 @@ vector<vector<MCGRPRoute::Timetable>> MCGRP::get_time_tbl(const vector<int> &seq
 
     return res;
 }
+
+int MCGRP::count_edges(const vector<int> &seq) const
+{
+    int ans = 0;
+    for(const auto & task : seq)
+        if(is_edge(task)) ans++;
+    return ans;
+}

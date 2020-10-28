@@ -339,6 +339,12 @@ void Preslice::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
     ns.routes[sliced_route]->time_table = move_result.route_time_tbl[0];
     ns.routes[new_route]->time_table = move_result.route_time_tbl[1];
 
+    ns.routes[new_route]->num_edges = 0;
+    for(const auto& item : ns.routes[new_route]->time_table){
+       if(mcgrp.is_edge(item.task)) ns.routes[new_route]->num_edges++;
+    }
+    ns.routes[sliced_route]->num_edges -= ns.routes[new_route]->num_edges;
+
     int new_route_start;
     int new_route_end;
     if (move_result.route_custs_num[1] == 1) {
@@ -512,6 +518,12 @@ void Postslice::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
 
     ns.routes[sliced_route]->time_table = move_result.route_time_tbl[0];
     ns.routes[new_route]->time_table = move_result.route_time_tbl[1];
+
+    ns.routes[new_route]->num_edges = 0;
+    for(const auto& item : ns.routes[new_route]->time_table){
+        if(mcgrp.is_edge(item.task)) ns.routes[new_route]->num_edges++;
+    }
+    ns.routes[sliced_route]->num_edges -= ns.routes[new_route]->num_edges;
 
     int new_route_start;
     int new_route_end;

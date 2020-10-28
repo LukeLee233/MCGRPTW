@@ -101,6 +101,7 @@ struct MCGRPRoute
     int load = 0;
     double length = 0;
     int num_customers = 0;
+    int num_edges = 0;
     vector<Timetable> time_table;
 
     void clear(){
@@ -109,6 +110,7 @@ struct MCGRPRoute
         load = 0;
         length = 0;
         num_customers = 0;
+        num_edges = 0;
         time_table.clear();
     }
 

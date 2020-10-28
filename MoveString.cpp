@@ -201,6 +201,15 @@ void PostMoveString::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
     My_Assert(u >= 1 && u <= mcgrp.actual_task_num,"Wrong arguments");
     My_Assert(all_of(disturbance_sequence.begin(),disturbance_sequence.end(),[&](int i){return i>=1 && i<=mcgrp.actual_task_num;}),"Wrong arguments");
 
+    int edge_num = mcgrp.count_edges(disturbance_sequence);
+    if(edge_num > 0 && move_result.num_affected_routes == 2){
+        const int i_route = move_result.route_id[0];
+        const int u_route = move_result.route_id[1];
+
+        ns.routes[i_route]->num_edges -= edge_num;
+        ns.routes[u_route]->num_edges += edge_num;
+    }
+
     if (move_result.total_number_of_routes != ns.routes.activated_route_id.size()) {
         //need to eliminate an empty route
         My_Assert(move_result.total_number_of_routes == ns.routes.activated_route_id.size() - 1,"Incorrect routes number");
@@ -588,6 +597,15 @@ void PreMoveString::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
 
     My_Assert(u >= 1 && u <= mcgrp.actual_task_num,"Wrong arguments");
     My_Assert(all_of(disturbance_sequence.begin(),disturbance_sequence.end(),[&](int i){return i>=1 && i<=mcgrp.actual_task_num;}),"Wrong arguments");
+
+    int edge_num = mcgrp.count_edges(disturbance_sequence);
+    if(edge_num > 0 && move_result.num_affected_routes == 2){
+        const int i_route = move_result.route_id[0];
+        const int u_route = move_result.route_id[1];
+
+        ns.routes[i_route]->num_edges -= edge_num;
+        ns.routes[u_route]->num_edges += edge_num;
+    }
 
     if (move_result.total_number_of_routes != ns.routes.activated_route_id.size()) {
         //need to eliminate an empty route

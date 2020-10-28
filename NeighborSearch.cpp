@@ -206,13 +206,14 @@ void HighSpeedNeighBorSearch::unpack_seq(const std::vector<int> &dummy_seq, cons
         new_route->length = 0;
         new_route->load = 0;
         new_route->num_customers = seg[i].size();
+        new_route->num_edges = 0;
         vector<int> arrive_time = move(mcgrp.cal_arrive_time(seg[i]));
-        for (int j = 0; j < seg[i].size(); j++)
+        for (int j = 0; j < seg[i].size(); j++){
             new_route->time_table.push_back({seg[i][j], arrive_time[j]});
-
-        for (int j = 0; j < new_route->time_table.size(); j++) {
             total_vio_time +=
-                max(0, new_route->time_table[j].arrive_time - mcgrp.inst_tasks[seg[i][j]].time_window.second);
+                max(0,
+                    new_route->time_table.back().arrive_time - mcgrp.inst_tasks[seg[i][j]].time_window.second);
+            if(mcgrp.is_edge(seg[i][j])) new_route->num_edges++;
         }
 
         //0-a...
@@ -400,7 +401,9 @@ bool HighSpeedNeighBorSearch::valid_sol(const MCGRP &mcgrp)
     double routes_cost_sum = 0;
     int vio_time = 0;
     for (auto id : routes.activated_route_id) {
-        if(routes[id]->num_customers != routes[id]->time_table.size())
+        if(routes[id]->num_customers != routes[id]->time_table.size()
+            || routes[id]->num_edges < 0
+            || routes[id]->num_edges > routes[id]->num_customers)
             return false;
         if (routes[id]->load > mcgrp.capacity) {
             vio_load += routes[id]->load - mcgrp.capacity;
@@ -1362,10 +1365,12 @@ int HighSpeedNeighBorSearch::new_route(const MCGRP &mcgrp, const vector<int> &ro
     // update length and load info
     routes[new_route]->length = dummy_task + task_dummy;
     routes[new_route]->load = 0;
+    routes[new_route]->num_edges = 0;
     for (const int task : route_seq) {
         routes[new_route]->load += mcgrp.inst_tasks[task].demand;
         routes[new_route]->length += mcgrp.inst_tasks[task].serv_cost;
         solution[task]->route_id = new_route;
+        if(mcgrp.is_edge(task)) routes[new_route]->num_edges++;
     }
 
     for (int i = 1; i < route_seq.size(); i++)

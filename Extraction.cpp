@@ -195,6 +195,19 @@ void Extraction::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
     ns.routes[b_route]->time_table = move_result.route_time_tbl[1];
     ns.routes[c_route]->time_table = move_result.route_time_tbl[2];
 
+    ns.routes[b_route]->num_edges = 0;
+    if(mcgrp.is_edge(ns.routes[b_route]->time_table[0].task)){
+        ns.routes[b_route]->num_edges = 1;
+    }
+
+    ns.routes[c_route]->num_edges = 0;
+    for(const auto& item : ns.routes[c_route]->time_table){
+        if(mcgrp.is_edge(item.task)) ns.routes[c_route]->num_edges++;
+    }
+
+    ns.routes[a_route]->num_edges -= (ns.routes[b_route]->num_edges + ns.routes[c_route]->num_edges);
+
+
     ns.routes[a_route]->end = a_route_end;
 
     ns.routes[b_route]->start = b;

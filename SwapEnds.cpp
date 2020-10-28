@@ -797,6 +797,11 @@ void NewSwapEnds::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
     My_Assert(ns.routes.activated_route_id.find(a_route) != ns.routes.activated_route_id.end(), "Invalid route");
     My_Assert(ns.routes.activated_route_id.find(v_route) != ns.routes.activated_route_id.end(), "Invalid route");
 
+    int a_seq_edge_num = mcgrp.count_edges(a_seq);
+    int v_seq_edge_num = mcgrp.count_edges(v_seq);
+    ns.routes[a_route]->num_edges += (v_seq_edge_num - a_seq_edge_num);
+    ns.routes[v_route]->num_edges += (a_seq_edge_num - v_seq_edge_num);
+
     if (move_result.seq1_cus_num != 0 && move_result.seq2_cus_num != 0) {
         //Modify routes info
         My_Assert(!a_seq.empty() && !v_seq.empty(), "Wrong arguments");
