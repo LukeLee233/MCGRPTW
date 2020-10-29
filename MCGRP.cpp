@@ -681,9 +681,6 @@ void MCGRP::create_neighbor_lists(const int neighbor_size)
         NList[0].task_id = DUMMY;
         cnt++;
 
-//        std::unordered_set<int> duplicate;
-//        duplicate.clear();
-
         for (int j = 1; j <= actual_task_num; j++) {
             if (j == i)
                 continue;
@@ -691,8 +688,6 @@ void MCGRP::create_neighbor_lists(const int neighbor_size)
                 if (j == inst_tasks[i].inverse)
                     continue;
 
-//                duplicate.insert(j);
-//                duplicate.insert(inst_tasks[j].inverse);
                 min_edge = min(task_dist[i][j], task_dist[i][inst_tasks[j].inverse]);
                 min_edge_pos = (task_dist[i][j] < task_dist[i][inst_tasks[j].inverse]) ? j : inst_tasks[j].inverse;
                 if (cnt < neigh_size) {
