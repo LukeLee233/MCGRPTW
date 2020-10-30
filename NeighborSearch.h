@@ -336,7 +336,7 @@ public:
      * @param mcgrp
      * @param task
      */
-    void create_search_neighborhood(const MCGRP &mcgrp, const int task);
+    void create_search_neighborhood(const MCGRP &mcgrp, const int task,string mode, int offset);
 
     /*!
      * @details pack current sol info to delimiter coding format

@@ -361,20 +361,41 @@ void HighSpeedNeighBorSearch::descent_search(const MCGRP &mcgrp)
     descent_exploration_version_0(mcgrp);
 }
 
-void HighSpeedNeighBorSearch::create_search_neighborhood(const MCGRP &mcgrp, const int task)
+void HighSpeedNeighBorSearch::create_search_neighborhood(const MCGRP &mcgrp, const int task, string mode, int offset)
 {
     search_space.clear();
 
-    for (auto chosen_task:mcgrp.task_neigh_list[task]) {
-        //chose the task which in the current solution
-        auto task_id = chosen_task.task_id;
-        if (solution.tasks[task_id].next != nullptr) {
-            search_space.push_back(task_id);
+    int count = 0;
+    if(mode == "bi-direction"){
+        int upper_bound = min((int)mcgrp.task_neigh_list.size(),neigh_size);
+        for(int i = offset; count < upper_bound; i++, count++){
+            i %= mcgrp.task_neigh_list.size();
+            auto task_id = mcgrp.task_neigh_list[task][i].task_id;
+            if (solution.tasks[task_id].next != nullptr) {
+                search_space.push_back(task_id);
+            }
         }
-    }
 
-    if (search_space.size() > neigh_size) {
-        search_space.resize(neigh_size);
+    }else if(mode == "predecessor"){
+        int upper_bound = min((int)mcgrp.predecessor_task_neigh_list.size(),neigh_size);
+        for(int i = offset; count < upper_bound; i++, count++){
+            i %= mcgrp.predecessor_task_neigh_list.size();
+            auto task_id = mcgrp.predecessor_task_neigh_list[task][i].task_id;
+            if (solution.tasks[task_id].next != nullptr) {
+                search_space.push_back(task_id);
+            }
+        }
+    }else if(mode == "successor"){
+        int upper_bound = min((int)mcgrp.successor_task_neigh_list.size(),neigh_size);
+        for(int i = offset; count < upper_bound; i++, count++){
+            i %= mcgrp.successor_task_neigh_list.size();
+            auto task_id = mcgrp.successor_task_neigh_list[task][i].task_id;
+            if (solution.tasks[task_id].next != nullptr) {
+                search_space.push_back(task_id);
+            }
+        }
+    }else{
+        My_Assert(false ,"Unknown arguments");
     }
 
     mcgrp._rng.RandPerm(search_space);
