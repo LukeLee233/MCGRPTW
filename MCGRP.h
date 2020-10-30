@@ -62,6 +62,8 @@ public:
 
     std::vector<std::vector<double> > task_dist;
     std::vector<std::vector<MCGRPNeighborInfo> > task_neigh_list;
+    std::vector<std::vector<MCGRPNeighborInfo> > predecessor_task_neigh_list;
+    std::vector<std::vector<MCGRPNeighborInfo> > successor_task_neigh_list;
 
     double total_service_cost;
     RNG &_rng;
@@ -131,7 +133,7 @@ public:
      * 初始化各任务的邻域表（近该任务最近的几个任务）
      * @param neighbor_size
      */
-    void create_neighbor_lists(const int neighbor_size);
+    void create_neighbor_lists();
 
     /*!
      * 获得任务序列的总成本

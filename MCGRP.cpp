@@ -611,127 +611,51 @@ void MCGRP::dijkstra()
 //    }
 }
 
-void MCGRP::create_neighbor_lists(const int neighbor_size)
+void MCGRP::create_neighbor_lists()
 {
     My_Assert(task_neigh_list.size() == 0, "Task neighbor list should be empty before construction!");
 
-    int nsize =
-        min(req_edge_num + req_arc_num + req_node_num, neighbor_size);    //rescale the size of neighborhood list
-    neigh_size = nsize;
+    neigh_size = req_edge_num + req_arc_num + req_node_num;
 
-    //Here I ask enough memory at the very beginning to avoid segment fault
     std::vector<MCGRPNeighborInfo> NList;   //tmp neighborhood list
-    NList.reserve(actual_task_num);
-    NList.resize(neigh_size);
+    std::vector<MCGRPNeighborInfo> predecessor_NList;   //tmp neighborhood list
+    std::vector<MCGRPNeighborInfo> successor_NList;   //tmp neighborhood list
 
-    // First, fill the neighbor_list of the DUMMY
-    // exclude dummy task itself
-    for (int i = 1; i <= neigh_size; i++) { //fill the list with the firstly meet tasks
-        //for edge task,choose the nearer direction as the candidate task
-        if (is_edge(i)) {
-            NList[i - 1].distance = min(task_dist[DUMMY][i], task_dist[DUMMY][inst_tasks[i].inverse]);
-            NList[i - 1].task_id =
-                (task_dist[DUMMY][i] < task_dist[DUMMY][inst_tasks[i].inverse]) ? i : inst_tasks[i].inverse;
-        }
-        else {
-            NList[i - 1].distance = task_dist[DUMMY][i];
-            NList[i - 1].task_id = i;
-        }
-    }
-    auto max_it = std::max_element(NList.begin(), NList.end(), MCGRPNeighborInfo::cmp);
 
-    double min_edge;
-    int min_edge_pos;
-    //check rest tasks,and replace the farther task with the nearer task
-    for (int i = neigh_size + 1; i <= actual_task_num; i++) {
-        if (is_edge(i)) {
-            //make sure the corresponding edge task just appear once in the neighborhood list
-            if (inst_tasks[i].inverse <= neigh_size)
-                continue;
-            min_edge = min(task_dist[DUMMY][i], task_dist[DUMMY][inst_tasks[i].inverse]);
-            min_edge_pos = (task_dist[DUMMY][i] < task_dist[DUMMY][inst_tasks[i].inverse]) ? i : inst_tasks[i].inverse;
-            if (min_edge < max_it->distance) {
-                // Replace element in position maxpos
-                max_it->distance = min_edge;
-                max_it->task_id = min_edge_pos;
-            }
-        }
-        else if (task_dist[DUMMY][i] < max_it->distance) {
-            // Replace element in position maxpos
-            max_it->distance = task_dist[DUMMY][i];
-            max_it->task_id = i;
-        }
-
-        max_it = std::max_element(NList.begin(), NList.end(), MCGRPNeighborInfo::cmp);
-    }
-
-//	ascent order
-    std::sort(NList.begin(), NList.end(), MCGRPNeighborInfo::cmp);
-
-//store the dummy task neighborhood list
-    task_neigh_list.push_back(NList);
-
-    //fill the non-dummy task's neighborhood list
-    for (int i = 1; i <= actual_task_num; i++) {
-        int cnt = 0;
+    for(int task = 0;task <= actual_task_num;task++){
         NList.clear();
-        NList.resize(neigh_size);
+        predecessor_NList.clear();
+        successor_NList.clear();
 
-        NList[0].distance = task_dist[i][DUMMY];
-        NList[0].task_id = DUMMY;
-        cnt++;
+        for (int neighbor = 0; neighbor <= actual_task_num;neighbor++) {
+            if(task == neighbor) continue;
 
-        for (int j = 1; j <= actual_task_num; j++) {
-            if (j == i)
-                continue;
-            else if (is_edge(j)) {
-                if (j == inst_tasks[i].inverse)
-                    continue;
+            MCGRPNeighborInfo tmp;
+            tmp.distance = task_dist[task][neighbor];
+            tmp.task_id = neighbor;
+            NList.push_back(tmp);
 
-                min_edge = min(task_dist[i][j], task_dist[i][inst_tasks[j].inverse]);
-                min_edge_pos = (task_dist[i][j] < task_dist[i][inst_tasks[j].inverse]) ? j : inst_tasks[j].inverse;
-                if (cnt < neigh_size) {
-                    // Construct the original nsize long neighbor list
-                    NList[cnt].distance = min_edge;
-                    NList[cnt].task_id = min_edge_pos;
-                }
-                else {
-                    max_it = std::max_element(NList.begin(), NList.end(), MCGRPNeighborInfo::cmp);
-
-                    if (min_edge < max_it->distance) {
-                        max_it->distance = min_edge;
-                        max_it->task_id = min_edge_pos;
-                    }
-                }
-
-                cnt++;
+            if(inst_tasks[task].time_window.first + inst_tasks[task].serve_time + get_travel_time(task, neighbor)
+                <= inst_tasks[neighbor].time_window.second){
+                successor_NList.push_back(tmp);
             }
-            else {
-                if (cnt < neigh_size) {
-                    // Construct the original nsize long neighbor list
-                    NList[cnt].distance = task_dist[i][j];
-                    NList[cnt].task_id = j;
-                }
-                else {
-                    // j >= nsize
-                    max_it = std::max_element(NList.begin(), NList.end(), MCGRPNeighborInfo::cmp);
 
-                    if (task_dist[i][j] < max_it->distance) {
-                        max_it->distance = task_dist[i][j];
-                        max_it->task_id = j;
-                    }
-                }
-                cnt++;
+            if(inst_tasks[neighbor].time_window.first + inst_tasks[neighbor].serve_time + get_travel_time(neighbor, task)
+                <= inst_tasks[task].time_window.second){
+                predecessor_NList.push_back(tmp);
             }
+
         }
 
-        // Now sort the NList and stick the resulting list into
-        // the neighbor list for node i
-        sort(NList.begin(), NList.end(), MCGRPNeighborInfo::cmp);
+        std::sort(NList.begin(), NList.end(), MCGRPNeighborInfo::cmp);
+        std::sort(predecessor_NList.begin(), predecessor_NList.end(), MCGRPNeighborInfo::cmp);
+        std::sort(successor_NList.begin(), successor_NList.end(), MCGRPNeighborInfo::cmp);
 
-        task_neigh_list.push_back(vector<MCGRPNeighborInfo>(NList));
+
+        task_neigh_list.push_back(NList);
+        predecessor_task_neigh_list.push_back(predecessor_NList);
+        successor_task_neigh_list.push_back(successor_NList);
     }
-
 }
 
 int MCGRP::get_task_seq_total_cost(const std::vector<int> &delimiter_seq) const
