@@ -611,7 +611,7 @@ void MCGRP::dijkstra()
 //    }
 }
 
-void MCGRP::create_neighbor_lists()
+void MCGRP::create_neighbor_lists(int neighbor_size)
 {
     My_Assert(task_neigh_list.size() == 0, "Task neighbor list should be empty before construction!");
 
@@ -656,6 +656,8 @@ void MCGRP::create_neighbor_lists()
         predecessor_task_neigh_list.push_back(predecessor_NList);
         successor_task_neigh_list.push_back(successor_NList);
     }
+
+    neigh_size = min(task_neigh_list.front().size(), neigh_size);
 }
 
 int MCGRP::get_task_seq_total_cost(const std::vector<int> &delimiter_seq) const

@@ -133,7 +133,7 @@ public:
      * 初始化各任务的邻域表（近该任务最近的几个任务）
      * @param neighbor_size
      */
-    void create_neighbor_lists();
+    void create_neighbor_lists(int neighbor_size);
 
     /*!
      * 获得任务序列的总成本
