@@ -43,7 +43,7 @@ private:
 
     struct TASK_NODE{
         int ID;
-        int route_id;   //tell the task which route it belong to
+        int route_id;   //tell the Task which route it belong to
         TASK_NODE *pre;
         TASK_NODE *next;
 
@@ -63,7 +63,7 @@ private:
     };
 
     struct DUMMYPOOL{
-        //This class is used to manage dummy task
+        //This class is used to manage dummy Task
         struct DUMMY_TASK{
             bool used;
             TASK_NODE task_info;
@@ -86,20 +86,20 @@ private:
         TASK_NODE* get_new_dummy(){
             if(unused.empty()){
 //                extend();
-                cerr<<"Bad new dummy task!";
+                cerr<<"Bad new dummy Task!";
                 abort();
             }
 
             int new_dummy_id = unused.top();
             unused.pop();
-            My_Assert(new_dummy_id < 0 && !pool[-new_dummy_id].used,"Bad allocate for new dummy task");
+            My_Assert(new_dummy_id < 0 && !pool[-new_dummy_id].used,"Bad allocate for new dummy Task");
             pool[-new_dummy_id].used = true;
 
             return &pool[-new_dummy_id].task_info;
         }
 
         void free_dummy(int id){
-            My_Assert(id < 0,"Bad free dummy task");
+            My_Assert(id < 0,"Bad free dummy Task");
 
             id = -id;
 
@@ -158,7 +158,7 @@ private:
                 id = -id;
                 if(dummypool.pool[id].used == false)
                 {
-                    cerr << "This dummy task info is unavailable!" <<endl;
+                    cerr << "This dummy Task info is unavailable!" <<endl;
                     abort();
                 }
                 return &dummypool.pool[id].task_info;
@@ -196,7 +196,7 @@ private:
     class ROUTESPOOL{
         struct ROUTE_NODE{
             bool used;
-            MCGRPRoute route_info;
+            RouteInfo route_info;
 
             ROUTE_NODE() : used(false){};
         };
@@ -213,7 +213,7 @@ private:
             }
         }
 
-        MCGRPRoute* operator[](int id)
+        RouteInfo* operator[](int id)
         {
             if(pool[id].used == false)
             {
@@ -336,7 +336,7 @@ public:
      * @param mcgrp
      * @param task
      */
-    void create_search_neighborhood(const MCGRP &mcgrp, const int task,string mode, int offset);
+    void create_search_neighborhood(const MCGRP &mcgrp, const int task,string mode = "", int offset = 0);
 
     /*!
      * @details pack current sol info to delimiter coding format

@@ -7,15 +7,15 @@
 class NewSwapEnds
 {
 public:
-    MCGRPMOVE move_result;
+    MOVE move_result;
 public:
-    NewSwapEnds():move_result(MCGRPMOVE(NeighborOperator::SWAP_ENDS)){}
+    NewSwapEnds():move_result(MOVE(NeighborOperator::SWAP_ENDS)){}
     
     bool considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, const int chosen_task, const int neighbor_task,const int chosen_route,const int neighbor_route);
 
     void move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp);
 
-    vector<vector<MCGRPRoute::Timetable>>
+    vector<vector<RouteInfo::TimeTable>>
     expected_time_table(HighSpeedNeighBorSearch &ns,
                         const MCGRP &mcgrp,
                         int a,

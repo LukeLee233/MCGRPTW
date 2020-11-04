@@ -13,10 +13,10 @@ PostMoveString::considerable_move(HighSpeedNeighBorSearch &ns,
                                   vector<int> disturbance_seq,
                                   const int u)
 {
-    // task u cannot be dummy task
-    My_Assert(u>=1 && u<=mcgrp.actual_task_num,"Wrong task");
+    // Task u cannot be dummy Task
+    My_Assert(u>=1 && u<=mcgrp.actual_task_num,"Wrong Task");
     My_Assert(all_of(disturbance_seq.begin(),disturbance_seq.end(),
-                     [&](int i){return i>=1 && i<=mcgrp.actual_task_num;}),"Wrong task");
+                     [&](int i){return i>=1 && i<=mcgrp.actual_task_num;}),"Wrong Task");
 
     if(u == ns.solution[disturbance_seq.back()]->next->ID){
         // Nothing to do
@@ -45,7 +45,7 @@ PostMoveString::considerable_move(HighSpeedNeighBorSearch &ns,
         else if (ns.policy.has_rule(FITNESS_ONLY)) {
             //u_route vio-load calculate
             if (ns.routes[u_route]->load + load_delta > mcgrp.capacity) {
-                //if insert task to route u and over load
+                //if insert Task to route u and over load
                 if (ns.routes[u_route]->load >= mcgrp.capacity) {
                     //if the route u already over loaded
                     vio_load_delta += load_delta;
@@ -57,7 +57,7 @@ PostMoveString::considerable_move(HighSpeedNeighBorSearch &ns,
 
             //i_route vio-load calculate
             if (ns.routes[i_route]->load > mcgrp.capacity) {
-                //if remove task from route i and over load
+                //if remove Task from route i and over load
                 if (ns.routes[i_route]->load - load_delta >= mcgrp.capacity) {
                     //if still over loaded
                     vio_load_delta -= load_delta;
@@ -70,11 +70,11 @@ PostMoveString::considerable_move(HighSpeedNeighBorSearch &ns,
     }
 
     bool allow_infeasible = ns.policy.has_rule(FITNESS_ONLY) ? true : false;
-    vector<vector<MCGRPRoute::Timetable>> new_time_tbl{{{-1,-1}}};
+    vector<vector<RouteInfo::TimeTable>> new_time_tbl{{{-1, -1}}};
 
     new_time_tbl = expected_time_table(ns,mcgrp,disturbance_seq,u,allow_infeasible);
 
-    if(!mcgrp.isTimetableFeasible(new_time_tbl[0])){
+    if(!mcgrp.isTimeTableFeasible(new_time_tbl[0])){
         move_result.reset();
         return false;
     }
@@ -240,7 +240,7 @@ void PostMoveString::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
         ns.routes.free_route(i_route);
 
         //handle solution
-        //record next dummy task of actual u
+        //record next dummy Task of actual u
         int dummy_marker = 0;
         My_Assert(ns.solution[disturbance_sequence.front()]->pre->ID < 0 && ns.solution[disturbance_sequence.back()]->next->ID < 0,"Route is not empty!");
         if(ns.solution[disturbance_sequence.back()]->next == ns.solution.very_end){
@@ -355,15 +355,15 @@ void PostMoveString::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
     ns.search_step++;
 }
 
-vector<vector<MCGRPRoute::Timetable>>
+vector<vector<RouteInfo::TimeTable>>
 PostMoveString::expected_time_table(HighSpeedNeighBorSearch &ns,
                                     const MCGRP &mcgrp,
                                     vector<int> &disturbance_seq,
                                     const int i,
                                     bool allow_infeasible)
 {
-    vector<vector<MCGRPRoute::Timetable>>
-        res(2,vector<MCGRPRoute::Timetable>({{-1,-1}}));
+    vector<vector<RouteInfo::TimeTable>>
+        res(2,vector<RouteInfo::TimeTable>({{-1, -1}}));
 
     const int i_route = ns.solution[i]->route_id;
     const int u_route = ns.solution[disturbance_seq.front()]->route_id;
@@ -371,11 +371,11 @@ PostMoveString::expected_time_table(HighSpeedNeighBorSearch &ns,
     auto intermediate = mcgrp.forecast_time_table(ns.routes[u_route]->time_table,
                                                   disturbance_seq,"remove",-1 ,allow_infeasible);
 
-    if(!mcgrp.isTimetableFeasible(intermediate)){
+    if(!mcgrp.isTimeTableFeasible(intermediate)){
         return res;
     }
 
-    vector<MCGRPRoute::Timetable> final;
+    vector<RouteInfo::TimeTable> final;
     if(u_route == i_route){
         final = mcgrp.forecast_time_table(intermediate,
                                           disturbance_seq,"insert_after",i,allow_infeasible);
@@ -385,7 +385,7 @@ PostMoveString::expected_time_table(HighSpeedNeighBorSearch &ns,
                                           disturbance_seq,"insert_after",i,allow_infeasible);
     }
 
-    if(!mcgrp.isTimetableFeasible(final)){
+    if(!mcgrp.isTimeTableFeasible(final)){
         return res;
     }
 
@@ -407,10 +407,10 @@ PreMoveString::considerable_move(HighSpeedNeighBorSearch &ns,
                                  const int u)
 {
 
-    // task u cannot be dummy task
-    My_Assert(u >= 1 && u <= mcgrp.actual_task_num,"Wrong task");
+    // Task u cannot be dummy Task
+    My_Assert(u >= 1 && u <= mcgrp.actual_task_num,"Wrong Task");
     My_Assert(all_of(disturbance_seq.begin(), disturbance_seq.end(),
-                     [&](int i){return i>=1 && i<=mcgrp.actual_task_num;}), "Wrong task");
+                     [&](int i){return i>=1 && i<=mcgrp.actual_task_num;}), "Wrong Task");
 
     if(u == ns.solution[disturbance_seq.front()]->pre->ID){
         // Nothing to do
@@ -439,7 +439,7 @@ PreMoveString::considerable_move(HighSpeedNeighBorSearch &ns,
         else if (ns.policy.has_rule(FITNESS_ONLY)) {
             //u_route vio-load calculate
             if (ns.routes[u_route]->load + load_delta > mcgrp.capacity) {
-                //if insert task to route u and over load
+                //if insert Task to route u and over load
                 if (ns.routes[u_route]->load >= mcgrp.capacity) {
                     //if the route u already over loaded
                     vio_load_delta += load_delta;
@@ -451,7 +451,7 @@ PreMoveString::considerable_move(HighSpeedNeighBorSearch &ns,
 
             //i_route vio-load calculate
             if (ns.routes[i_route]->load > mcgrp.capacity) {
-                //if remove task from route i and over load
+                //if remove Task from route i and over load
                 if (ns.routes[i_route]->load - load_delta >= mcgrp.capacity) {
                     //if still over loaded
                     vio_load_delta -= load_delta;
@@ -464,11 +464,11 @@ PreMoveString::considerable_move(HighSpeedNeighBorSearch &ns,
     }
 
     bool allow_infeasible = ns.policy.has_rule(FITNESS_ONLY) ? true : false;
-    vector<vector<MCGRPRoute::Timetable>> new_time_tbl{{{-1,-1}}};
+    vector<vector<RouteInfo::TimeTable>> new_time_tbl{{{-1, -1}}};
 
     new_time_tbl = expected_time_table(ns,mcgrp,disturbance_seq,u,allow_infeasible);
 
-    if(!mcgrp.isTimetableFeasible(new_time_tbl[0])){
+    if(!mcgrp.isTimeTableFeasible(new_time_tbl[0])){
         move_result.reset();
         return false;
     }
@@ -637,7 +637,7 @@ void PreMoveString::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
         ns.routes.free_route(i_route);
 
         //handle solution
-        //record next dummy task of actual u
+        //record next dummy Task of actual u
         int dummy_marker = 0;
         My_Assert(ns.solution[disturbance_sequence.front()]->pre->ID < 0 && ns.solution[disturbance_sequence.back()]->next->ID < 0,"Route is not empty!");
         if(ns.solution[disturbance_sequence.back()]->next == ns.solution.very_end){
@@ -752,14 +752,14 @@ void PreMoveString::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
     ns.search_step++;
 }
 
-vector<vector<MCGRPRoute::Timetable>> PreMoveString::expected_time_table(HighSpeedNeighBorSearch &ns,
-                                                                         const MCGRP &mcgrp,
-                                                                         vector<int> &disturbance_seq,
-                                                                         const int i,
-                                                                         bool allow_infeasible)
+vector<vector<RouteInfo::TimeTable>> PreMoveString::expected_time_table(HighSpeedNeighBorSearch &ns,
+                                                                        const MCGRP &mcgrp,
+                                                                        vector<int> &disturbance_seq,
+                                                                        const int i,
+                                                                        bool allow_infeasible)
 {
-    vector<vector<MCGRPRoute::Timetable>>
-        res(2,vector<MCGRPRoute::Timetable>({{-1,-1}}));
+    vector<vector<RouteInfo::TimeTable>>
+        res(2,vector<RouteInfo::TimeTable>({{-1, -1}}));
 
     const int i_route = ns.solution[i]->route_id;
     const int u_route = ns.solution[disturbance_seq.front()]->route_id;
@@ -767,11 +767,11 @@ vector<vector<MCGRPRoute::Timetable>> PreMoveString::expected_time_table(HighSpe
     auto intermediate = mcgrp.forecast_time_table(ns.routes[u_route]->time_table,
                                                   disturbance_seq,"remove",-1 ,allow_infeasible);
 
-    if(!mcgrp.isTimetableFeasible(intermediate)){
+    if(!mcgrp.isTimeTableFeasible(intermediate)){
         return res;
     }
 
-    vector<MCGRPRoute::Timetable> final;
+    vector<RouteInfo::TimeTable> final;
     if(u_route == i_route){
         final = mcgrp.forecast_time_table(intermediate,
                                           disturbance_seq,"insert_before",i,allow_infeasible);
@@ -781,7 +781,7 @@ vector<vector<MCGRPRoute::Timetable>> PreMoveString::expected_time_table(HighSpe
                                           disturbance_seq,"insert_before",i,allow_infeasible);
     }
 
-    if(!mcgrp.isTimetableFeasible(final)){
+    if(!mcgrp.isTimeTableFeasible(final)){
         return res;
     }
 

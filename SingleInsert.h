@@ -9,14 +9,14 @@
 //high level operator
 class SingleInsert
 {
-    MCGRPMOVE move_result;
+    MOVE move_result;
     int presert_times;
     int postsert_times;
     Presert presert;
     Postsert postsert;
 public:
     SingleInsert() : presert(Presert()), postsert(Postsert()),
-    move_result(MCGRPMOVE(NeighborOperator::SINGLE_INSERT)),
+    move_result(MOVE(NeighborOperator::SINGLE_INSERT)),
     presert_times(0),postsert_times(0){};
 
 
@@ -24,7 +24,7 @@ public:
     bool search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_task);
 
     /*!
-     * @details insert task b to task j
+     * @details insert Task b to Task j
      * @param ns
      * @param mcgrp
      * @param j

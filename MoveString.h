@@ -7,11 +7,11 @@
 class PreMoveString
 {
 public:
-    MCGRPMOVE move_result;
+    MOVE move_result;
 public:
 
     PreMoveString()
-        : move_result(MCGRPMOVE(NeighborOperator::PRE_MOVE_STRING))
+        : move_result(MOVE(NeighborOperator::PRE_MOVE_STRING))
     {};
 
     /*!
@@ -40,7 +40,7 @@ public:
  * @param allow_infeasible
  * @return
  */
-    vector<vector<MCGRPRoute::Timetable>>
+    vector<vector<RouteInfo::TimeTable>>
     expected_time_table(HighSpeedNeighBorSearch &ns,
                         const MCGRP &mcgrp,
                         vector<int> &disturbance_seq,
@@ -53,10 +53,10 @@ public:
 class PostMoveString
 {
 public:
-    MCGRPMOVE move_result;
+    MOVE move_result;
 public:
     PostMoveString()
-        : move_result(MCGRPMOVE(NeighborOperator::POST_MOVE_STRING))
+        : move_result(MOVE(NeighborOperator::POST_MOVE_STRING))
     {};
 
     /*!
@@ -85,7 +85,7 @@ public:
  * @param allow_infeasible
  * @return
  */
-    vector<vector<MCGRPRoute::Timetable>>
+    vector<vector<RouteInfo::TimeTable>>
     expected_time_table(HighSpeedNeighBorSearch &ns,
                         const MCGRP &mcgrp,
                         vector<int> &disturbance_seq,

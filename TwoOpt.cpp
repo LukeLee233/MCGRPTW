@@ -69,12 +69,12 @@ bool NewTwoOpt::before(const int a,const int b, HighSpeedNeighBorSearch &ns){
 
 
 bool NewTwoOpt::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_task){
-    My_Assert(chosen_task >= 1 && chosen_task <= mcgrp.actual_task_num,"Wrong task");
+    My_Assert(chosen_task >= 1 && chosen_task <= mcgrp.actual_task_num,"Wrong Task");
 
     flip_times = 0;
     swapends_times = 0;
 
-    MCGRPMOVE BestM;
+    MOVE BestM;
 
     ns.create_search_neighborhood(mcgrp, chosen_task);
 
@@ -83,12 +83,12 @@ bool NewTwoOpt::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chos
     int c = ns.solution[b]->next->ID;
 
     for(auto neighbor_task : ns.search_space){
-        My_Assert(neighbor_task != b,"Neighbor task can't be itself at all!");
+        My_Assert(neighbor_task != b,"Neighbor Task can't be itself at all!");
 
         if(neighbor_task != DUMMY){
             //j can't be dummy and b can't be dummy neither here
             int j = neighbor_task;
-            My_Assert(j >= 1 && j <= mcgrp.actual_task_num,"Wrong task");
+            My_Assert(j >= 1 && j <= mcgrp.actual_task_num,"Wrong Task");
 
             int i = ns.solution[j]->pre->ID;
             int k = ns.solution[j]->next->ID;
@@ -155,7 +155,7 @@ bool NewTwoOpt::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chos
             }
         }
         else{
-            DEBUG_PRINT("Neighbor task is dummy task");
+            DEBUG_PRINT("Neighbor Task is dummy Task");
             //j is dummy here and b can't be dummy neither
             //each start and end location of each route will be considered
             //total 4 x route_nums cases
@@ -164,7 +164,7 @@ bool NewTwoOpt::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chos
             while (current_start != DUMMY){
                 // Consider the start location
                 int j = current_start;
-                My_Assert(ns.solution[j]->pre->ID < 0,"Wrong task");
+                My_Assert(ns.solution[j]->pre->ID < 0,"Wrong Task");
 
                 //case: (a,b)<->(dummy,j)
                 if (considerable_move(ns, mcgrp, a, b, ns.solution[j]->pre->ID, j)){
@@ -201,7 +201,7 @@ bool NewTwoOpt::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chos
                 int current_end = ns.routes[current_route]->end;
                 j = current_end;
 
-                My_Assert(ns.solution[j]->next->ID < 0,"Wrong task");
+                My_Assert(ns.solution[j]->next->ID < 0,"Wrong Task");
 
                 //case: (a,b)<->(j,dummy)
                 if (considerable_move(ns, mcgrp, a, b, j, ns.solution[j]->next->ID)){
@@ -284,7 +284,7 @@ NewTwoOpt::considerable_move(
         a_route = ns.solution[a]->route_id;
     else
     {
-        My_Assert(b > 0,"task A is dummy and task B is dummy too? Come on! ");
+        My_Assert(b > 0,"Task A is dummy and Task B is dummy too? Come on! ");
         a_route = ns.solution[b]->route_id;
     }
 
@@ -293,7 +293,7 @@ NewTwoOpt::considerable_move(
         c_route = ns.solution[c]->route_id;
     else
     {
-        My_Assert(d > 0,"task C is dummy and task D is dummy too? Come on! ");
+        My_Assert(d > 0,"Task C is dummy and Task D is dummy too? Come on! ");
         c_route = ns.solution[d]->route_id;
     }
 
@@ -392,7 +392,7 @@ void NewTwoOpt::unit_test(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
     ns.policy.set(FIRST_ACCEPT | DOWNHILL | DELTA_ONLY);
     ns.policy.beta = 0.5;
     ns.policy.tolerance = 0.003;
-    ns.neigh_size = mcgrp.neigh_size;
+//    ns.neigh_size = mcgrp.neigh_size;
 
     int chosen_task = -1;
     for (int i = 0; i < mcgrp.actual_task_num; i++) {
@@ -401,10 +401,10 @@ void NewTwoOpt::unit_test(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
         if (ns.solution[chosen_task]->next == nullptr){
             if (mcgrp.is_edge(chosen_task)) {
                 chosen_task = mcgrp.inst_tasks[chosen_task].inverse;
-                My_Assert(ns.solution[chosen_task]->next != nullptr,"An edge task has been missed");
+                My_Assert(ns.solution[chosen_task]->next != nullptr,"An edge Task has been missed");
             }
             else {
-                My_Assert(false,"A non edge task has been missed!");
+                My_Assert(false,"A non edge Task has been missed!");
             }
         }
 

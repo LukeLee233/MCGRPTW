@@ -8,7 +8,7 @@ class NewFlip
 {
     //This will flip the whole tasks within two ends
 public:
-    MCGRPMOVE move_result;
+    MOVE move_result;
 
     /*!
      * @details get the entire sequence needed to be fliped
@@ -19,11 +19,11 @@ public:
      */
     vector<int> get_sequence(HighSpeedNeighBorSearch &ns, const int start, const int end);
 public:
-    NewFlip():move_result(MCGRPMOVE(NeighborOperator::FLIP)){};
+    NewFlip():move_result(MOVE(NeighborOperator::FLIP)){};
 
     bool considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int start_task, int end_task);
 
-    vector<MCGRPRoute::Timetable>
+    vector<RouteInfo::TimeTable>
     expected_time_table(HighSpeedNeighBorSearch &ns,
                         const MCGRP &mcgrp,
                         vector<int> &invert_seq,

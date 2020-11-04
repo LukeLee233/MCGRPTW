@@ -64,8 +64,8 @@ private:
             time_tbl = mcgrp.cal_arrive_time(seq_without_dummy);
         };
 
-        vector<MCGRPRoute::Timetable> ToTimeTbl(){
-            vector<MCGRPRoute::Timetable> buffer;
+        vector<RouteInfo::TimeTable> ToTimeTbl(){
+            vector<RouteInfo::TimeTable> buffer;
             My_Assert(time_tbl.size() + 2 == seq.size(), "Wrong state of route");
             for(int i = 1; i<seq.size() - 1 ;i++)
                 buffer.push_back({seq[i],time_tbl[i - 1]});
@@ -154,7 +154,7 @@ public:
     static void merge_split_repair(const MCGRP &mcgrp,SOLUTION& solution, vector<int> Omitted_task);
 
     /*!
-     * @details remove duplicate task and statistic omitted task
+     * @details remove duplicate Task and statistic omitted Task
      * @param mcgrp
      * @param XRoutes
      * @param Omitted_task

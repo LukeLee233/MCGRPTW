@@ -22,13 +22,13 @@
 class Preslice
 {
 public:
-    MCGRPMOVE move_result;
+    MOVE move_result;
 public:
 
-    Preslice(): move_result(MCGRPMOVE(NeighborOperator::PRE_SLICE)){};
+    Preslice(): move_result(MOVE(NeighborOperator::PRE_SLICE)){};
 
     /*!
- * @details presert from task u to task i
+ * @details presert from Task u to Task i
  * @param ns
  * @param mcgrp
  * @param u
@@ -40,21 +40,21 @@ public:
 
     void move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp);
 
-    vector<vector<MCGRPRoute::Timetable>> expected_time_table(HighSpeedNeighBorSearch &ns,const MCGRP &mcgrp,
-                                                              const int b);
+    vector<vector<RouteInfo::TimeTable>> expected_time_table(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
+                                                             const int b);
 };
 
 //low level operator
 class Postslice
 {
 public:
-    MCGRPMOVE move_result;
+    MOVE move_result;
 public:
 
-    Postslice(): move_result(MCGRPMOVE(NeighborOperator::POST_SLICE)){};
+    Postslice(): move_result(MOVE(NeighborOperator::POST_SLICE)){};
 
     /*!
- * prosert from task u to task i
+ * prosert from Task u to Task i
  * @param ns
  * @param mcgrp
  * @param u
@@ -66,8 +66,8 @@ public:
 
     void move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp);
 
-    vector<vector<MCGRPRoute::Timetable>> expected_time_table(HighSpeedNeighBorSearch &ns,const MCGRP &mcgrp,
-                                                              const int b);
+    vector<vector<RouteInfo::TimeTable>> expected_time_table(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
+                                                             const int b);
 
 };
 
@@ -75,14 +75,14 @@ public:
 //high level operator
 class Slice
 {
-    MCGRPMOVE move_result;
+    MOVE move_result;
     int pre_slice_times;
     int post_slice_times;
     Preslice preslice;
     Postslice postslice;
 public:
     Slice(): preslice(Preslice()), postslice(Postslice())
-    ,move_result(MCGRPMOVE(NeighborOperator::SLICE))
+    ,move_result(MOVE(NeighborOperator::SLICE))
     ,pre_slice_times(0)
     ,post_slice_times(0){};
 
@@ -90,7 +90,7 @@ public:
     bool search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_task);
 
     /*!
-     * @details insert task b to task j
+     * @details insert Task b to Task j
      * @param ns
      * @param mcgrp
      * @param j

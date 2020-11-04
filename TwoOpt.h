@@ -9,7 +9,7 @@
 
 class NewTwoOpt{
 //    static const int length = 2;
-    MCGRPMOVE move_result;
+    MOVE move_result;
     int flip_times;
     int swapends_times;
 
@@ -21,7 +21,7 @@ public:
 
     NewTwoOpt():flip(NewFlip())
     ,swap_ends(NewSwapEnds())
-    ,move_result(MCGRPMOVE(NeighborOperator::TWO_OPT))
+    ,move_result(MOVE(NeighborOperator::TWO_OPT))
     ,flip_times(0)
     ,swapends_times(0){};
 

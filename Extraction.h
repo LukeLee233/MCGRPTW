@@ -20,17 +20,17 @@
 
 class Extraction
 {
-    MCGRPMOVE move_result;
+    MOVE move_result;
 public:
     Extraction()
-        : move_result(MCGRPMOVE(NeighborOperator::EXTRACTION))
+        : move_result(MOVE(NeighborOperator::EXTRACTION))
     {};
 
     /*----------------High speed neighbor search---------------------*/
     bool search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_task);
 
     /*!
-     * @details insert task b to task j
+     * @details insert Task b to Task j
      * @param ns
      * @param mcgrp
      * @param j
@@ -45,7 +45,7 @@ public:
 
     void unit_test(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp);
 
-    vector<vector<MCGRPRoute::Timetable>>
+    vector<vector<RouteInfo::TimeTable>>
     expected_time_table(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
                         const int b);
 };

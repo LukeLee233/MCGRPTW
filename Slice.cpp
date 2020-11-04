@@ -13,7 +13,7 @@ bool Slice::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_t
     pre_slice_times = 0;
     post_slice_times = 0;
 
-    My_Assert(chosen_task != DUMMY, "Chosen task can't be dummy");
+    My_Assert(chosen_task != DUMMY, "Chosen Task can't be dummy");
 
     if (considerable_move(ns, mcgrp, chosen_task)) {
         move(ns, mcgrp);
@@ -27,7 +27,7 @@ bool Slice::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_t
 
 bool Slice::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, const int b)
 {
-    My_Assert(b >= 1 && b <= mcgrp.actual_task_num, "Wrong task");
+    My_Assert(b >= 1 && b <= mcgrp.actual_task_num, "Wrong Task");
 
     const int a = ns.solution[b]->pre->ID;
     const int c = ns.solution[b]->next->ID;
@@ -171,7 +171,7 @@ void Slice::unit_test(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
     ns.policy.set(FIRST_ACCEPT | TOLERANCE | DELTA_ONLY);
     ns.policy.beta = 0.5;
     ns.policy.tolerance = 0.003;
-    ns.neigh_size = mcgrp.neigh_size;
+//    ns.neigh_size = mcgrp.neigh_size;
 
     int chosen_task = -1;
     for (int i = 0; i < mcgrp.actual_task_num; i++) {
@@ -180,10 +180,10 @@ void Slice::unit_test(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
         if (ns.solution[chosen_task]->next == nullptr) {
             if (mcgrp.is_edge(chosen_task)) {
                 chosen_task = mcgrp.inst_tasks[chosen_task].inverse;
-                My_Assert(ns.solution[chosen_task]->next != nullptr, "An edge task has been missed");
+                My_Assert(ns.solution[chosen_task]->next != nullptr, "An edge Task has been missed");
             }
             else {
-                My_Assert(false, "A non edge task has been missed!");
+                My_Assert(false, "A non edge Task has been missed!");
             }
         }
 
@@ -215,8 +215,8 @@ RouteSegment get_segment_info(const MCGRP &mcgrp, HighSpeedNeighBorSearch &ns, c
 
 bool Preslice::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, const int b)
 {
-    My_Assert(b >= 1 && b <= mcgrp.actual_task_num, "Wrong task");
-    My_Assert(ns.solution[b]->pre->ID > 0, "Wrong task");
+    My_Assert(b >= 1 && b <= mcgrp.actual_task_num, "Wrong Task");
+    My_Assert(ns.solution[b]->pre->ID > 0, "Wrong Task");
 
     move_result.reset();
 
@@ -357,8 +357,8 @@ void Preslice::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
     }
 
 
-    My_Assert(new_route_start >= 1 && new_route_start <= mcgrp.actual_task_num, "Wrong task");
-    My_Assert(new_route_end >= 1 && new_route_end <= mcgrp.actual_task_num, "Wrong task");
+    My_Assert(new_route_start >= 1 && new_route_start <= mcgrp.actual_task_num, "Wrong Task");
+    My_Assert(new_route_end >= 1 && new_route_end <= mcgrp.actual_task_num, "Wrong Task");
 
     ns.routes[sliced_route]->end = ns.solution[new_route_start]->pre->ID;
 
@@ -391,11 +391,11 @@ void Preslice::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
     ns.search_step++;
 }
 
-vector<vector<MCGRPRoute::Timetable>>
+vector<vector<RouteInfo::TimeTable>>
 Preslice::expected_time_table(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, const int b)
 {
-    vector<vector<MCGRPRoute::Timetable>>
-        res(2, vector<MCGRPRoute::Timetable>({{-1, -1}}));
+    vector<vector<RouteInfo::TimeTable>>
+        res(2, vector<RouteInfo::TimeTable>({{-1, -1}}));
 
     const int b_route = ns.solution[b]->route_id;
 
@@ -406,7 +406,7 @@ Preslice::expected_time_table(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, c
     for (; ns.routes[b_route]->time_table[cur].task != b; cur++)
         sliced_route.push_back(ns.routes[b_route]->time_table[cur].task);
 
-    My_Assert(cur < ns.routes[b_route]->time_table.size(), "cannot find task b!");
+    My_Assert(cur < ns.routes[b_route]->time_table.size(), "cannot find Task b!");
 
     cur++;
     new_route.push_back(b);
@@ -417,8 +417,8 @@ Preslice::expected_time_table(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, c
     vector<int> time_tbl_sliced = mcgrp.cal_arrive_time(sliced_route);
     vector<int> time_tbl_new = mcgrp.cal_arrive_time(new_route);
 
-    vector<MCGRPRoute::Timetable> intermediate_sliced;
-    vector<MCGRPRoute::Timetable> intermediate_new;
+    vector<RouteInfo::TimeTable> intermediate_sliced;
+    vector<RouteInfo::TimeTable> intermediate_new;
     for (int k = 0; k < time_tbl_sliced.size(); k++)
         intermediate_sliced.push_back({sliced_route[k], time_tbl_sliced[k]});
 
@@ -438,8 +438,8 @@ Preslice::expected_time_table(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, c
 
 bool Postslice::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, const int b)
 {
-    My_Assert(b >= 1 && b <= mcgrp.actual_task_num, "Wrong task");
-    My_Assert(ns.solution[b]->next->ID > 0, "Wrong task");
+    My_Assert(b >= 1 && b <= mcgrp.actual_task_num, "Wrong Task");
+    My_Assert(ns.solution[b]->next->ID > 0, "Wrong Task");
 
     move_result.reset();
 
@@ -466,7 +466,7 @@ bool Postslice::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgr
     move_result.route_loads.push_back(new_route_load);
 
     const int c = ns.solution[b]->next->ID;
-    My_Assert(c >= 1 && c <= mcgrp.actual_task_num, "Wrong task");
+    My_Assert(c >= 1 && c <= mcgrp.actual_task_num, "Wrong Task");
     const auto
         bc = mcgrp.min_cost[mcgrp.inst_tasks[b].tail_node][mcgrp.inst_tasks[seg_after_b.segment_start].head_node];
     const auto dummy_c = mcgrp.min_cost[mcgrp.inst_tasks[DUMMY].tail_node][mcgrp.inst_tasks[c].head_node];
@@ -530,8 +530,8 @@ void Postslice::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
     new_route_start = move_result.move_arguments[0];
     new_route_end = move_result.move_arguments[1];
 
-    My_Assert(new_route_start >= 1 && new_route_start <= mcgrp.actual_task_num, "Wrong task");
-    My_Assert(new_route_end >= 1 && new_route_end <= mcgrp.actual_task_num, "Wrong task");
+    My_Assert(new_route_start >= 1 && new_route_start <= mcgrp.actual_task_num, "Wrong Task");
+    My_Assert(new_route_end >= 1 && new_route_end <= mcgrp.actual_task_num, "Wrong Task");
 
     ns.routes[sliced_route]->end = ns.solution[new_route_start]->pre->ID;
 
@@ -564,13 +564,13 @@ void Postslice::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
     ns.search_step++;
 }
 
-vector<vector<MCGRPRoute::Timetable>>
+vector<vector<RouteInfo::TimeTable>>
 Postslice::expected_time_table(HighSpeedNeighBorSearch &ns,
                                const MCGRP &mcgrp,
                                const int b)
 {
-    vector<vector<MCGRPRoute::Timetable>>
-        res(2, vector<MCGRPRoute::Timetable>({{-1, -1}}));
+    vector<vector<RouteInfo::TimeTable>>
+        res(2, vector<RouteInfo::TimeTable>({{-1, -1}}));
 
     const int b_route = ns.solution[b]->route_id;
 
@@ -582,7 +582,7 @@ Postslice::expected_time_table(HighSpeedNeighBorSearch &ns,
         sliced_route.push_back(ns.routes[b_route]->time_table[cur].task);
 
     sliced_route.push_back(b);
-    My_Assert(cur < ns.routes[b_route]->time_table.size(), "cannot find task b!");
+    My_Assert(cur < ns.routes[b_route]->time_table.size(), "cannot find Task b!");
 
     cur++;
     for (; cur < ns.routes[b_route]->time_table.size(); cur++) {
@@ -592,8 +592,8 @@ Postslice::expected_time_table(HighSpeedNeighBorSearch &ns,
     vector<int> time_tbl_sliced = mcgrp.cal_arrive_time(sliced_route);
     vector<int> time_tbl_new = mcgrp.cal_arrive_time(new_route);
 
-    vector<MCGRPRoute::Timetable> intermediate_sliced;
-    vector<MCGRPRoute::Timetable> intermediate_new;
+    vector<RouteInfo::TimeTable> intermediate_sliced;
+    vector<RouteInfo::TimeTable> intermediate_new;
     for (int k = 0; k < time_tbl_sliced.size(); k++)
         intermediate_sliced.push_back({sliced_route[k], time_tbl_sliced[k]});
 

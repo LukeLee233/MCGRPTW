@@ -12,9 +12,9 @@ using namespace std;
 
 bool NewSwap::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_task)
 {
-    My_Assert(chosen_task >= 1 && chosen_task <= mcgrp.actual_task_num,"Wrong task");
+    My_Assert(chosen_task >= 1 && chosen_task <= mcgrp.actual_task_num,"Wrong Task");
 
-    MCGRPMOVE BestM;
+    MOVE BestM;
 
     ns.create_search_neighborhood(mcgrp, chosen_task);
 
@@ -22,7 +22,7 @@ bool NewSwap::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen
 
 
     for(auto neighbor_task : ns.search_space) {
-        My_Assert(neighbor_task != b, "neighbor task can't be itself!");
+        My_Assert(neighbor_task != b, "neighbor Task can't be itself!");
 
         if (neighbor_task != DUMMY) {
             //j can't be dummy and b can't be dummy neither here
@@ -37,7 +37,7 @@ bool NewSwap::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen
             }
         }
         else {
-            DEBUG_PRINT("Neighbor task is dummy task");
+            DEBUG_PRINT("Neighbor Task is dummy Task");
             //j is dummy here but b can't be dummy
             //each start and end location of each route will be considered
             //total 2 x route_nums cases
@@ -48,7 +48,7 @@ bool NewSwap::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen
                 // Consider the start location
                 int j = current_start;
 
-                if (b != j) { //not the same task
+                if (b != j) { //not the same Task
                     if (considerable_move(ns, mcgrp, b, j) && ns.policy.check_move(move_result)) {
                         if (ns.policy.has_rule(FIRST_ACCEPT)) {
                             move(ns, mcgrp);
@@ -84,7 +84,7 @@ bool NewSwap::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen
                     }
                 }
 
-                // Advance to next route's starting task
+                // Advance to next route's starting Task
                 current_start = ns.solution[current_end]->next->next->ID;
             }
         }
@@ -113,9 +113,9 @@ bool NewSwap::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen
 
 bool NewSwap::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int i, int u)
 {
-    My_Assert(u != i, "two task need to be different!");
-    My_Assert(i >= 1 && i <= mcgrp.actual_task_num,"Wrong task");
-    My_Assert(u >= 1 && u <= mcgrp.actual_task_num,"Wrong task");
+    My_Assert(u != i, "two Task need to be different!");
+    My_Assert(i >= 1 && i <= mcgrp.actual_task_num,"Wrong Task");
+    My_Assert(u >= 1 && u <= mcgrp.actual_task_num,"Wrong Task");
 
 
     const int original_u = u;
@@ -218,17 +218,17 @@ bool NewSwap::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
     double i_delta = 0;
 
     double delta = 0;
-    vector<vector<MCGRPRoute::Timetable>> new_time_tbl{{{-1,-1}}};
+    vector<vector<RouteInfo::TimeTable>> new_time_tbl{{{-1, -1}}};
     bool allow_infeasible = ns.policy.has_rule(FITNESS_ONLY) ? true : false;
 
     if(j == u){
         //...h-i-u-v...
         DEBUG_PRINT("Swap:two tasks are neighbor");
         My_Assert(i_route == u_route,"Close tasks should be in the same route!");
-        My_Assert(t == i,"t task must be equal with i task!");
+        My_Assert(t == i,"t Task must be equal with i Task!");
 
         double deltas[4];
-        vector<vector<MCGRPRoute::Timetable>> time_tbl[4];
+        vector<vector<RouteInfo::TimeTable>> time_tbl[4];
         if (mcgrp.is_edge(u) && mcgrp.is_edge(i)) {
             const int u_tilde = mcgrp.inst_tasks[u].inverse;
             const int i_tilde = mcgrp.inst_tasks[i].inverse;
@@ -255,25 +255,25 @@ bool NewSwap::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
             //...h-u-i-v...
             deltas[0] = hu + mcgrp.inst_tasks[u].serv_cost + ui + mcgrp.inst_tasks[i].serv_cost + iv;
             time_tbl[0] = expected_time_table(ns,mcgrp,u,u,i,i,allow_infeasible);
-            if(!mcgrp.isTimetableFeasible(time_tbl[0][0]))
+            if(!mcgrp.isTimeTableFeasible(time_tbl[0][0]))
                 deltas[0] = 1e20;
 
             //...h-u-i_tilde-v...
             deltas[1] = hu + mcgrp.inst_tasks[u].serv_cost + ui_tilde + mcgrp.inst_tasks[i_tilde].serv_cost + i_tildev;
             time_tbl[1] = expected_time_table(ns,mcgrp,u,u,i,i_tilde,allow_infeasible);
-            if(!mcgrp.isTimetableFeasible(time_tbl[1][0]))
+            if(!mcgrp.isTimeTableFeasible(time_tbl[1][0]))
                 deltas[1] = 1e20;
 
             //...h-u_tilde-i-v...
             deltas[2] = hu_tilde + mcgrp.inst_tasks[u_tilde].serv_cost + u_tildei + mcgrp.inst_tasks[i].serv_cost + iv;
             time_tbl[2] = expected_time_table(ns,mcgrp,u,u_tilde,i,i,allow_infeasible);
-            if(!mcgrp.isTimetableFeasible(time_tbl[2][0]))
+            if(!mcgrp.isTimeTableFeasible(time_tbl[2][0]))
                 deltas[2] = 1e20;
 
             //...h-u_tilde-i_tilde-v...
             deltas[3] = hu_tilde + mcgrp.inst_tasks[u_tilde].serv_cost + u_tildei_tilde + mcgrp.inst_tasks[i_tilde].serv_cost + i_tildev;
             time_tbl[3] = expected_time_table(ns,mcgrp,u,u_tilde,i,i_tilde,allow_infeasible);
-            if(!mcgrp.isTimetableFeasible(time_tbl[3][0]))
+            if(!mcgrp.isTimeTableFeasible(time_tbl[3][0]))
                 deltas[3] = 1e20;
 
             int cases = -1;
@@ -292,7 +292,7 @@ bool NewSwap::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
                 delta = best_delta + base;
             }
 
-            //decide which task should be swapped finally
+            //decide which Task should be swapped finally
             switch (cases){
                 case -1:
                 case 0:
@@ -338,14 +338,14 @@ bool NewSwap::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
             //...h-u-i-v...
             deltas[0] = hu + mcgrp.inst_tasks[u].serv_cost + ui + mcgrp.inst_tasks[i].serv_cost + iv;
             time_tbl[0] = expected_time_table(ns,mcgrp,u,u,i,i,allow_infeasible);
-            if(!mcgrp.isTimetableFeasible(time_tbl[0][0]))
+            if(!mcgrp.isTimeTableFeasible(time_tbl[0][0]))
                 deltas[0] = 1e20;
 
 
             //...h-u_tilde-i-v...
             deltas[1] = hu_tilde + mcgrp.inst_tasks[u_tilde].serv_cost + u_tildei + mcgrp.inst_tasks[i].serv_cost + iv;
             time_tbl[1] = expected_time_table(ns,mcgrp,u,u_tilde,i,i,allow_infeasible);
-            if(!mcgrp.isTimetableFeasible(time_tbl[1][0]))
+            if(!mcgrp.isTimeTableFeasible(time_tbl[1][0]))
                 deltas[1] = 1e20;
 
 
@@ -365,7 +365,7 @@ bool NewSwap::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
                 delta = best_delta + base;
             }
 
-            //decide which task should be swapped finally
+            //decide which Task should be swapped finally
             switch (cases){
                 case -1:
                 case 0:
@@ -402,14 +402,14 @@ bool NewSwap::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
             //...h-u-i-v...
             deltas[0] = hu + mcgrp.inst_tasks[u].serv_cost + ui + mcgrp.inst_tasks[i].serv_cost + iv;
             time_tbl[0] = expected_time_table(ns,mcgrp,u,u,i,i,allow_infeasible);
-            if(!mcgrp.isTimetableFeasible(time_tbl[0][0]))
+            if(!mcgrp.isTimeTableFeasible(time_tbl[0][0]))
                 deltas[0] = 1e20;
 
 
             //...h-u-i_tilde-v...
             deltas[1] = hu + mcgrp.inst_tasks[u].serv_cost + ui_tilde + mcgrp.inst_tasks[i_tilde].serv_cost + i_tildev;
             time_tbl[1] = expected_time_table(ns,mcgrp,u,u,i,i_tilde,allow_infeasible);
-            if(!mcgrp.isTimetableFeasible(time_tbl[1][0]))
+            if(!mcgrp.isTimeTableFeasible(time_tbl[1][0]))
                 deltas[1] = 1e20;
 
 
@@ -429,7 +429,7 @@ bool NewSwap::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
                 delta = best_delta + base;
             }
 
-            //decide which task should be swapped finally
+            //decide which Task should be swapped finally
             switch (cases){
                 case -1:
                 case 0:
@@ -459,7 +459,7 @@ bool NewSwap::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
             //...h-u-i-v...
             deltas[0] = hu + mcgrp.inst_tasks[u].serv_cost + ui + mcgrp.inst_tasks[i].serv_cost + iv;
             time_tbl[0] = expected_time_table(ns,mcgrp,u,u,i,i,allow_infeasible);
-            if(!mcgrp.isTimetableFeasible(time_tbl[0][0])){
+            if(!mcgrp.isTimeTableFeasible(time_tbl[0][0])){
                 deltas[0] = 1e20;
             }
 
@@ -479,10 +479,10 @@ bool NewSwap::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
         //...t-u-i-j...
         DEBUG_PRINT("Swap:two tasks are neighbor");
         My_Assert(i_route == u_route,"Close tasks should be in the same route!");
-        My_Assert(u == h,"u task must be equal with h task!");
+        My_Assert(u == h,"u Task must be equal with h Task!");
 
         double deltas[4];
-        vector<vector<MCGRPRoute::Timetable>> time_tbl[4];
+        vector<vector<RouteInfo::TimeTable>> time_tbl[4];
         if (mcgrp.is_edge(u) && mcgrp.is_edge(i)) {
             const int u_tilde = mcgrp.inst_tasks[u].inverse;
             const int i_tilde = mcgrp.inst_tasks[i].inverse;
@@ -509,25 +509,25 @@ bool NewSwap::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
             //...t-i-u-j...
             deltas[0] = ti + mcgrp.inst_tasks[i].serv_cost + iu + mcgrp.inst_tasks[u].serv_cost + uj;
             time_tbl[0] = expected_time_table(ns,mcgrp,i,i,u,u,allow_infeasible);
-            if(!mcgrp.isTimetableFeasible(time_tbl[0][0]))
+            if(!mcgrp.isTimeTableFeasible(time_tbl[0][0]))
                 deltas[0] = 1e20;
 
             //...t-i-u_tilde-j...
             deltas[1] = ti + mcgrp.inst_tasks[i].serv_cost + iu_tilde + mcgrp.inst_tasks[u_tilde].serv_cost + u_tildej;
             time_tbl[1] = expected_time_table(ns,mcgrp,i,i,u,u_tilde,allow_infeasible);
-            if(!mcgrp.isTimetableFeasible(time_tbl[1][0]))
+            if(!mcgrp.isTimeTableFeasible(time_tbl[1][0]))
                 deltas[1] = 1e20;
 
             //...t-i_tilde-u-j...
             deltas[2] = ti_tilde + mcgrp.inst_tasks[i_tilde].serv_cost + i_tildeu + mcgrp.inst_tasks[u].serv_cost + uj;
             time_tbl[2] = expected_time_table(ns,mcgrp,i,i_tilde,u,u,allow_infeasible);
-            if(!mcgrp.isTimetableFeasible(time_tbl[2][0]))
+            if(!mcgrp.isTimeTableFeasible(time_tbl[2][0]))
                 deltas[2] = 1e20;
 
             //...t-i_tilde-u_tilde-j...
             deltas[3] = ti_tilde + mcgrp.inst_tasks[i_tilde].serv_cost + i_tildeu_tilde + mcgrp.inst_tasks[u_tilde].serv_cost + u_tildej;
             time_tbl[3] = expected_time_table(ns,mcgrp,i,i_tilde,u,u_tilde,allow_infeasible);
-            if(!mcgrp.isTimetableFeasible(time_tbl[3][0]))
+            if(!mcgrp.isTimeTableFeasible(time_tbl[3][0]))
                 deltas[3] = 1e20;
 
             int cases = -1;
@@ -546,7 +546,7 @@ bool NewSwap::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
                 delta = best_delta + base;
             }
 
-            //decide which task should be swapped finally
+            //decide which Task should be swapped finally
             switch (cases) {
                 case -1:
                 case 0:i = i;
@@ -584,13 +584,13 @@ bool NewSwap::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
             //...t-i-u-j...
             deltas[0] = ti + mcgrp.inst_tasks[i].serv_cost + iu + mcgrp.inst_tasks[u].serv_cost + uj;
             time_tbl[0] = expected_time_table(ns,mcgrp,i,i,u,u,allow_infeasible);
-            if(!mcgrp.isTimetableFeasible(time_tbl[0][0]))
+            if(!mcgrp.isTimeTableFeasible(time_tbl[0][0]))
                 deltas[0] = 1e20;
 
             //...t-i_tilde-u-j...
             deltas[1] = ti_tilde + mcgrp.inst_tasks[i_tilde].serv_cost + i_tildeu + mcgrp.inst_tasks[u].serv_cost + uj;
             time_tbl[1] = expected_time_table(ns,mcgrp,i,i_tilde,u,u,allow_infeasible);
-            if(!mcgrp.isTimetableFeasible(time_tbl[1][0]))
+            if(!mcgrp.isTimeTableFeasible(time_tbl[1][0]))
                 deltas[1] = 1e20;
 
             int cases = -1;
@@ -609,7 +609,7 @@ bool NewSwap::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
                 delta = best_delta + base;
             }
 
-            //decide which task should be swapped finally
+            //decide which Task should be swapped finally
             switch (cases) {
                 case -1:
                 case 0:
@@ -644,13 +644,13 @@ bool NewSwap::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
             //...t-i-u-j...
             deltas[0] = ti + mcgrp.inst_tasks[i].serv_cost + iu + mcgrp.inst_tasks[u].serv_cost + uj;
             time_tbl[0] = expected_time_table(ns,mcgrp,i,i,u,u,allow_infeasible);
-            if(!mcgrp.isTimetableFeasible(time_tbl[0][0]))
+            if(!mcgrp.isTimeTableFeasible(time_tbl[0][0]))
                 deltas[0] = 1e20;
 
             //...h-i-u_tilde-j...
             deltas[1] = ti + mcgrp.inst_tasks[i].serv_cost + iu_tilde + mcgrp.inst_tasks[u_tilde].serv_cost + u_tildej;
             time_tbl[1] = expected_time_table(ns,mcgrp,i,i,u,u_tilde,allow_infeasible);
-            if(!mcgrp.isTimetableFeasible(time_tbl[1][0]))
+            if(!mcgrp.isTimeTableFeasible(time_tbl[1][0]))
                 deltas[1] = 1e20;
 
             int cases = -1;
@@ -669,7 +669,7 @@ bool NewSwap::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
                 delta = best_delta + base;
             }
 
-            //decide which task should be swapped finally
+            //decide which Task should be swapped finally
             switch (cases) {
                 case -1:
                 case 0:i = i;
@@ -697,7 +697,7 @@ bool NewSwap::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
             //...t-i-u-j...
             deltas[0] = ti + mcgrp.inst_tasks[i].serv_cost + iu + mcgrp.inst_tasks[u].serv_cost + uj;
             time_tbl[0] = expected_time_table(ns,mcgrp,i,i,u,u,allow_infeasible);
-            if(!mcgrp.isTimetableFeasible(time_tbl[0][0])){
+            if(!mcgrp.isTimeTableFeasible(time_tbl[0][0])){
                 deltas[0] = 1e20;
             }
 
@@ -726,7 +726,7 @@ bool NewSwap::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
             i_tilde = mcgrp.inst_tasks[i].inverse;
         }
 
-        vector<vector<MCGRPRoute::Timetable>> time_tbl[4];
+        vector<vector<RouteInfo::TimeTable>> time_tbl[4];
         const double tu = mcgrp.min_cost[mcgrp.inst_tasks[t].tail_node][mcgrp.inst_tasks[u].head_node];
         const double uv = mcgrp.min_cost[mcgrp.inst_tasks[u].tail_node][mcgrp.inst_tasks[v].head_node];
         const double hi = mcgrp.min_cost[mcgrp.inst_tasks[h].tail_node][mcgrp.inst_tasks[i].head_node];
@@ -750,7 +750,7 @@ bool NewSwap::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
         delta_tmp[0][0] = u_delta_base + ti + iv + mcgrp.inst_tasks[i].serv_cost;
         delta_tmp[0][1] = i_delta_base + hu + uj + mcgrp.inst_tasks[u].serv_cost;
         time_tbl[0] = expected_time_table(ns,mcgrp,u,u,i,i,allow_infeasible);
-        if(!mcgrp.isTimetableFeasible(time_tbl[0][0])){
+        if(!mcgrp.isTimeTableFeasible(time_tbl[0][0])){
             delta_tmp[0][0] = 1e20;
             delta_tmp[0][1] = 1e20;
         }
@@ -759,7 +759,7 @@ bool NewSwap::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
         delta_tmp[1][0] = u_delta_base + ti_tilde + i_tildev + mcgrp.inst_tasks[i_tilde].serv_cost;
         delta_tmp[1][1] = i_delta_base + hu + uj + mcgrp.inst_tasks[u].serv_cost;
         time_tbl[1] = expected_time_table(ns,mcgrp,u,u,i,i_tilde,allow_infeasible);
-        if(!mcgrp.isTimetableFeasible(time_tbl[1][0])){
+        if(!mcgrp.isTimeTableFeasible(time_tbl[1][0])){
             delta_tmp[1][0] = 1e20;
             delta_tmp[1][1] = 1e20;
         }
@@ -768,7 +768,7 @@ bool NewSwap::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
         delta_tmp[2][0] = u_delta_base + ti + iv + mcgrp.inst_tasks[i].serv_cost;
         delta_tmp[2][1] = i_delta_base + hu_tilde + u_tildej + mcgrp.inst_tasks[u_tilde].serv_cost;
         time_tbl[2] = expected_time_table(ns,mcgrp,u,u_tilde,i,i,allow_infeasible);
-        if(!mcgrp.isTimetableFeasible(time_tbl[2][0])){
+        if(!mcgrp.isTimeTableFeasible(time_tbl[2][0])){
             delta_tmp[2][0] = 1e20;
             delta_tmp[2][1] = 1e20;
         }
@@ -777,7 +777,7 @@ bool NewSwap::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
         delta_tmp[3][0] = u_delta_base + ti_tilde + i_tildev + mcgrp.inst_tasks[i_tilde].serv_cost;
         delta_tmp[3][1] = i_delta_base + hu_tilde + u_tildej + mcgrp.inst_tasks[u_tilde].serv_cost;
         time_tbl[3] = expected_time_table(ns,mcgrp,u,u_tilde,i,i_tilde,allow_infeasible);
-        if(!mcgrp.isTimetableFeasible(time_tbl[3][0])){
+        if(!mcgrp.isTimeTableFeasible(time_tbl[3][0])){
             delta_tmp[3][0] = 1e20;
             delta_tmp[3][1] = 1e20;
         }
@@ -932,8 +932,8 @@ void NewSwap::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
     }
 
     if(original_u != actual_u && original_i != actual_i) {
-        //Edge task has been moved
-        //both task switch
+        //Edge Task has been moved
+        //both Task switch
         My_Assert(mcgrp.inst_tasks[original_u].inverse == actual_u, "This is not the inverse");
         My_Assert(mcgrp.inst_tasks[original_i].inverse == actual_i,"Wrong tasks");
         My_Assert(ns.solution[original_u]->next != nullptr && ns.solution[actual_u]->next == nullptr,"Wrong arguments");
@@ -1051,12 +1051,12 @@ void NewSwap::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
             ns.solution[actual_u]->next = original_i_next;
         }
 
-        //clear original i.u task info
+        //clear original i.u Task info
         ns.solution[original_i]->clear();
         ns.solution[original_u]->clear();
     }
     else if (original_u != actual_u){
-        //single task switch
+        //single Task switch
         My_Assert(mcgrp.inst_tasks[original_u].inverse == actual_u,"Wrong tasks");
         My_Assert(ns.solution[original_u]->next != nullptr && ns.solution[actual_u]->next == nullptr,
                   "Wrong arguments");
@@ -1171,11 +1171,11 @@ void NewSwap::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
             ns.solution[actual_u]->next = original_i_next;
         }
 
-        //clear original u task info
+        //clear original u Task info
         ns.solution[original_u]->clear();
     }
     else if (original_i != actual_i){
-        //single task switch
+        //single Task switch
         My_Assert(mcgrp.inst_tasks[original_i].inverse == actual_i,"Wrong tasks");
         My_Assert(ns.solution[original_i]->next != nullptr && ns.solution[actual_i]->next == nullptr,
                   "Wrong arguments");
@@ -1291,11 +1291,11 @@ void NewSwap::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
             ns.solution[original_u]->next = original_i_next;
         }
 
-        //clear original i task info
+        //clear original i Task info
         ns.solution[original_i]->clear();
     }
     else{
-        //no task switch
+        //no Task switch
         //Modify routes info
         My_Assert(original_i == actual_i && original_u == actual_u,"Wrong arguments");
         if(move_result.num_affected_routes == 1) {
@@ -1437,7 +1437,7 @@ void NewSwap::unit_test(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
     ns.policy.set(FIRST_ACCEPT | DOWNHILL | DELTA_ONLY);
     ns.policy.beta = 0.5;
     ns.policy.tolerance = 0.003;
-    ns.neigh_size = mcgrp.neigh_size;
+//    ns.neigh_size = mcgrp.neigh_size;
 
     int chosen_task = -1;
     for (int i = 0; i < mcgrp.actual_task_num; i++) {
@@ -1446,10 +1446,10 @@ void NewSwap::unit_test(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
         if (ns.solution[chosen_task]->next == nullptr) {
             if (mcgrp.is_edge(chosen_task)) {
                 chosen_task = mcgrp.inst_tasks[chosen_task].inverse;
-                My_Assert(ns.solution[chosen_task]->next != nullptr,"An edge task has been missed");
+                My_Assert(ns.solution[chosen_task]->next != nullptr,"An edge Task has been missed");
             }
             else {
-                My_Assert(false,"A non edge task has been missed!");
+                My_Assert(false,"A non edge Task has been missed!");
             }
         }
 
@@ -1462,16 +1462,16 @@ void NewSwap::unit_test(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
     ns.policy.tolerance = 0;
 }
 
-vector<vector<MCGRPRoute::Timetable>> NewSwap::expected_time_table(HighSpeedNeighBorSearch &ns,
-                                                                   const MCGRP &mcgrp,
-                                                                   int u,
-                                                                   int u_tilde,
-                                                                   int i,
-                                                                   int i_tilde,
-                                                                   bool allow_infeasible)
+vector<vector<RouteInfo::TimeTable>> NewSwap::expected_time_table(HighSpeedNeighBorSearch &ns,
+                                                                  const MCGRP &mcgrp,
+                                                                  int u,
+                                                                  int u_tilde,
+                                                                  int i,
+                                                                  int i_tilde,
+                                                                  bool allow_infeasible)
 {
-    vector<vector<MCGRPRoute::Timetable>>
-        res(2,vector<MCGRPRoute::Timetable>({{-1,-1}}));
+    vector<vector<RouteInfo::TimeTable>>
+        res(2,vector<RouteInfo::TimeTable>({{-1, -1}}));
 
     const int i_route = ns.solution[i]->route_id;
     const int u_route = ns.solution[u]->route_id;
@@ -1488,7 +1488,7 @@ vector<vector<MCGRPRoute::Timetable>> NewSwap::expected_time_table(HighSpeedNeig
             }
         }
         vector<int> time_tbl = mcgrp.cal_arrive_time(route_task);
-        vector<MCGRPRoute::Timetable> intermediate;
+        vector<RouteInfo::TimeTable> intermediate;
 
         My_Assert(time_tbl.size() == route_task.size(), "wrong time table");
         for(int k = 0; k<time_tbl.size(); k++){
@@ -1527,8 +1527,8 @@ vector<vector<MCGRPRoute::Timetable>> NewSwap::expected_time_table(HighSpeedNeig
         My_Assert(time_tbl_u.size() == route_task_u.size(), "wrong time table");
         My_Assert(time_tbl_i.size() == route_task_i.size(), "wrong time table");
 
-        vector<MCGRPRoute::Timetable> intermediate_u;
-        vector<MCGRPRoute::Timetable> intermediate_i;
+        vector<RouteInfo::TimeTable> intermediate_u;
+        vector<RouteInfo::TimeTable> intermediate_i;
         for(int k = 0; k<time_tbl_u.size(); k++){
             if(!allow_infeasible && time_tbl_u[k] > mcgrp.inst_tasks[route_task_u[k]].time_window.second)
                 return res;

@@ -14,7 +14,7 @@ Individual nearest_scanning(const MCGRP &mcgrp, vector<int> unserved_task_set)
     int load;
     int trial;
     int min_dist;
-    int drive_time; // the earliest time of a vehicle begins to serve the task
+    int drive_time; // the earliest time of a vehicle begins to serve the Task
 
     unordered_set<int> unserved_task_id_set;
 
@@ -68,7 +68,7 @@ Individual nearest_scanning(const MCGRP &mcgrp, vector<int> unserved_task_set)
 
         min_dist = MAX(min_dist);
 
-        //Find the nearest task from the current candidate task set
+        //Find the nearest Task from the current candidate Task set
         for (auto candidate_task : candidate_task_set) {
             if (mcgrp.min_cost[mcgrp.inst_tasks[current_tail_task].tail_node][mcgrp.inst_tasks[candidate_task]
                 .head_node]
@@ -322,7 +322,7 @@ vector<int> nearest_growing(const MCGRP &mcgrp, vector<int> tasks, const int con
             }
         }
 
-        My_Assert(!nearest_tasks.empty(), "you cannot have an empty nearest task set!");
+        My_Assert(!nearest_tasks.empty(), "you cannot have an empty nearest Task set!");
 
         int chosen_task = nearest_tasks[0];
         drive_time = mcgrp.cal_arrive_time(sequence.back(), chosen_task, drive_time, true);
@@ -392,7 +392,7 @@ vector<int> nearest_depot_growing(const MCGRP &mcgrp, vector<int> tasks, const i
             }
         }
 
-        My_Assert(!nearest_tasks.empty(), "you cannot have an empty nearest task set!");
+        My_Assert(!nearest_tasks.empty(), "you cannot have an empty nearest Task set!");
 
         int chosen_task = nearest_tasks[0];
         drive_time = mcgrp.cal_arrive_time(sequence.back(), chosen_task, drive_time, true);
@@ -463,7 +463,7 @@ vector<int> maximum_yield_growing(const MCGRP &mcgrp, vector<int> tasks, const i
             }
         }
 
-        My_Assert(!maximum_tasks.empty(), "you cannot have an empty nearest task set!");
+        My_Assert(!maximum_tasks.empty(), "you cannot have an empty nearest Task set!");
 
         int chosen_task = maximum_tasks[0];
         drive_time = mcgrp.cal_arrive_time(sequence.back(), chosen_task, drive_time, true);
@@ -534,7 +534,7 @@ vector<int> minimum_yield_growing(const MCGRP &mcgrp, vector<int> tasks, const i
             }
         }
 
-        My_Assert(!minimum_tasks.empty(), "you cannot have an empty nearest task set!");
+        My_Assert(!minimum_tasks.empty(), "you cannot have an empty nearest Task set!");
 
         int chosen_task = minimum_tasks[0];
         drive_time = mcgrp.cal_arrive_time(sequence.back(), chosen_task, drive_time, true);
@@ -608,7 +608,7 @@ vector<int> mixture_growing(const MCGRP &mcgrp, vector<int> tasks, const int con
                 }
             }
 
-            My_Assert(!potential_tasks.empty(), "you cannot have an empty nearest task set!");
+            My_Assert(!potential_tasks.empty(), "you cannot have an empty nearest Task set!");
 
             int chosen_task = potential_tasks[0];
             drive_time = mcgrp.cal_arrive_time(sequence.back(), chosen_task, drive_time, true);
@@ -645,7 +645,7 @@ vector<int> mixture_growing(const MCGRP &mcgrp, vector<int> tasks, const int con
                 }
             }
 
-            My_Assert(!potential_tasks.empty(), "you cannot have an empty nearest task set!");
+            My_Assert(!potential_tasks.empty(), "you cannot have an empty nearest Task set!");
 
             int chosen_task = potential_tasks[0];
             sequence.push_back(chosen_task);
@@ -759,7 +759,7 @@ Individual RTF(const MCGRP &mcgrp, const vector<int> &task_list, bool giant)
             }
         }
 
-        My_Assert(chosen_task != -1,"cannot find a task");
+        My_Assert(chosen_task != -1,"cannot find a Task");
 
         load += mcgrp.inst_tasks[chosen_task].demand;
         arrival_time = mcgrp.cal_arrive_time(tail_task, chosen_task, arrival_time, true);

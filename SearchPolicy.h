@@ -53,7 +53,7 @@ public:
 
     inline void set(bitset<RULES> _policy){current_policy = _policy;};
 
-    double getFitnessDelta(const MCGRPMOVE& move_result);
+    double getFitnessDelta(const MOVE& move_result);
 
     /*!
  * test policy whether has a given rule
@@ -71,7 +71,7 @@ public:
     * @param policy
     * @return
     */
-    bool check_move(const MCGRPMOVE &move_result);
+    bool check_move(const MOVE &move_result);
 
     /*!
      * @details check if moveresult M1 is better than moveresult M2
@@ -80,7 +80,7 @@ public:
      * @param M2
      * @return
      */
-    bool check_result(const MCGRPMOVE &M1, const MCGRPMOVE &M2);
+    bool check_result(const MOVE &M1, const MOVE &M2);
 };
 
 #endif //SEARCHPOLICY_H

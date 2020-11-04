@@ -156,11 +156,11 @@ vector<int> sort_solution(const vector<int>& negative_sol)
     return sorted;
 }
 
-vector<MCGRPRoute::Timetable>
-MCGRPRoute::Timetable::zip(const vector<int> &task_list, const vector<int> &ArriveTime)
+vector<RouteInfo::TimeTable>
+RouteInfo::TimeTable::zip(const vector<int> &task_list, const vector<int> &ArriveTime)
 {
     My_Assert(task_list.size() == ArriveTime.size(), "sequence length does not same");
-    vector<MCGRPRoute::Timetable> ans;
+    vector<RouteInfo::TimeTable> ans;
     for(int i = 0; i< task_list.size();i++){
         ans.push_back({task_list[i],ArriveTime[i]});
     }
@@ -169,7 +169,7 @@ MCGRPRoute::Timetable::zip(const vector<int> &task_list, const vector<int> &Arri
 }
 
 vector<vector<int>>
-MCGRPRoute::Timetable::unzip(const vector<Timetable> &time_tbl)
+RouteInfo::TimeTable::unzip(const vector<TimeTable> &time_tbl)
 {
     if(time_tbl.empty()) {
         return {};

@@ -5,8 +5,8 @@ using std::max;
 
 bool Postsert::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int u, const int i)
 {
-    My_Assert(i>=1 && i<=mcgrp.actual_task_num,"Wrong task");
-    My_Assert(u>=1 && u<=mcgrp.actual_task_num,"Wrong task");
+    My_Assert(i>=1 && i<=mcgrp.actual_task_num,"Wrong Task");
+    My_Assert(u>=1 && u<=mcgrp.actual_task_num,"Wrong Task");
 
     if(ns.solution[u]->pre->ID == i){
         // Nothing to do
@@ -32,7 +32,7 @@ bool Postsert::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp
             allow_infeasible = true;
             //i_route vio-load calculate
             if (ns.routes[i_route]->load + mcgrp.inst_tasks[u].demand > mcgrp.capacity) {
-                //if insert task to route i and over load
+                //if insert Task to route i and over load
                 if (ns.routes[i_route]->load >= mcgrp.capacity) {
                     //if the route i already over loaded
                     vio_load_delta += mcgrp.inst_tasks[u].demand;
@@ -44,7 +44,7 @@ bool Postsert::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp
 
             //u_route vio-load calculate
             if (ns.routes[u_route]->load > mcgrp.capacity) {
-                //if remove task from route u and over load
+                //if remove Task from route u and over load
                 if (ns.routes[u_route]->load - mcgrp.inst_tasks[u].demand >= mcgrp.capacity) {
                     //if still over loaded
                     vio_load_delta -= mcgrp.inst_tasks[u].demand;
@@ -89,7 +89,7 @@ bool Postsert::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp
         auto new_time_tbl = expected_time_table(ns,mcgrp,u,u,i,allow_infeasible);
         auto new_time_tbl_tilde = expected_time_table(ns,mcgrp,u,u_tilde,i,allow_infeasible);
 
-        if(mcgrp.isTimetableFeasible(new_time_tbl[0]) && mcgrp.isTimetableFeasible(new_time_tbl_tilde[0])){
+        if(mcgrp.isTimeTableFeasible(new_time_tbl[0]) && mcgrp.isTimeTableFeasible(new_time_tbl_tilde[0])){
             if (delta1 < delta) {
                 u = u_tilde;
                 i_delta = i_delta1;
@@ -97,10 +97,10 @@ bool Postsert::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp
                 new_time_tbl = new_time_tbl_tilde;
             }
         }
-        else if(mcgrp.isTimetableFeasible(new_time_tbl[0])){
+        else if(mcgrp.isTimeTableFeasible(new_time_tbl[0])){
             // pass
         }
-        else if(mcgrp.isTimetableFeasible(new_time_tbl_tilde[0])) {
+        else if(mcgrp.isTimeTableFeasible(new_time_tbl_tilde[0])) {
             u = u_tilde;
             i_delta = i_delta1;
             delta = delta1;
@@ -114,7 +114,7 @@ bool Postsert::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp
         const int start_u = ns.routes[u_route]->start;
         const int end_u = ns.routes[u_route]->end;
         // Check if we need to reduce the # of routes here
-        // The original u route only has task u itself
+        // The original u route only has Task u itself
         if (start_u == end_u)
             move_result.total_number_of_routes = ns.routes.activated_route_id.size() - 1;
         else
@@ -171,7 +171,7 @@ bool Postsert::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp
             move_result.route_loads.push_back(u_route_load);
             move_result.route_loads.push_back(i_route_load);
 
-            My_Assert(u != DUMMY, "You cannot postsert a dummy task");
+            My_Assert(u != DUMMY, "You cannot postsert a dummy Task");
             move_result.route_custs_num.push_back(ns.routes[u_route]->num_customers - 1);
             move_result.route_custs_num.push_back(ns.routes[i_route]->num_customers + 1);
 
@@ -213,7 +213,7 @@ bool Postsert::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp
 
         auto new_time_tbl = expected_time_table(ns,mcgrp,u,u,i,allow_infeasible);
 
-        if(mcgrp.isTimetableFeasible(new_time_tbl[0])){
+        if(mcgrp.isTimeTableFeasible(new_time_tbl[0])){
             // pass
         }else{
             move_result.reset();
@@ -221,7 +221,7 @@ bool Postsert::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp
         }
 
         // Check if we need to reduce the # of routes here
-        // The original u route only has task u itself
+        // The original u route only has Task u itself
         const int start_u = ns.routes[u_route]->start;
         const int end_u = ns.routes[u_route]->end;
         if (start_u == end_u)
@@ -281,7 +281,7 @@ bool Postsert::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp
             move_result.route_loads.push_back(u_route_load);
             move_result.route_loads.push_back(i_route_load);
 
-            My_Assert(u != DUMMY, "You cannot postsert a dummy task");
+            My_Assert(u != DUMMY, "You cannot postsert a dummy Task");
             move_result.route_custs_num.push_back(ns.routes[u_route]->num_customers - 1);
             move_result.route_custs_num.push_back(ns.routes[i_route]->num_customers + 1);
 
@@ -329,13 +329,13 @@ void Postsert::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
     }
 
     if(original_u != actual_u) {
-        //Edge task has been moved
+        //Edge Task has been moved
         My_Assert(mcgrp.inst_tasks[original_u].inverse == actual_u, "This is not the inverse");
         My_Assert(ns.solution[original_u]->next != nullptr && ns.solution[actual_u]->next == nullptr,
                   "Wrong arguments");
 
         if (move_result.total_number_of_routes != ns.routes.activated_route_id.size()) {
-            //new task switch
+            //new Task switch
             //routes eliminates
             //Modify routes info
             My_Assert(move_result.total_number_of_routes == ns.routes.activated_route_id.size() - 1,"Incorrect routes number");
@@ -366,7 +366,7 @@ void Postsert::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
             ns.routes.free_route(u_route);
 
             //handle solution
-            //record next dummy task of actual u
+            //record next dummy Task of actual u
             int dummy_marker = 0;
             if(ns.solution[original_u]->next == ns.solution.very_end){
                 dummy_marker = ns.solution[original_u]->pre->ID;
@@ -392,7 +392,7 @@ void Postsert::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
 
         }
         else{
-            //new task switch
+            //new Task switch
             //no routes eliminates
             //Modify routes info
             if(move_result.num_affected_routes == 1) {
@@ -465,12 +465,12 @@ void Postsert::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
 
         }
 
-        //clear original u task info
+        //clear original u Task info
         ns.solution[original_u]->clear();
     }
     else{
         if(move_result.total_number_of_routes != ns.routes.activated_route_id.size()){
-            //no new task switch
+            //no new Task switch
             //need to eliminate an empty route
             My_Assert(move_result.total_number_of_routes == ns.routes.activated_route_id.size() - 1,"Incorrect routes number");
             const int u_route = move_result.route_id[0];
@@ -497,7 +497,7 @@ void Postsert::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
             ns.routes.free_route(u_route);
 
             //handle solution
-            //record next dummy task of actual u
+            //record next dummy Task of actual u
             int dummy_marker = 0;
             if(ns.solution[actual_u]->next == ns.solution.very_end){
                 dummy_marker = ns.solution[actual_u]->pre->ID;
@@ -522,7 +522,7 @@ void Postsert::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
             ns.solution.dummypool.free_dummy(dummy_marker);
         }
         else{
-            //no new task switch
+            //no new Task switch
             //no routes eliminates
             //Modify routes info
             if(move_result.num_affected_routes == 1) {
@@ -607,12 +607,12 @@ void Postsert::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
     ns.search_step++;
 }
 
-vector<vector<MCGRPRoute::Timetable>>
+vector<vector<RouteInfo::TimeTable>>
 Postsert::expected_time_table(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
                               int u,int u_tilde, const int i,bool allow_infeasible)
 {
-    vector<vector<MCGRPRoute::Timetable>>
-    res(2,vector<MCGRPRoute::Timetable>({{-1,-1}}));
+    vector<vector<RouteInfo::TimeTable>>
+    res(2,vector<RouteInfo::TimeTable>({{-1, -1}}));
 
     const int i_route = ns.solution[i]->route_id;
     const int u_route = ns.solution[u]->route_id;
@@ -620,12 +620,12 @@ Postsert::expected_time_table(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
     auto intermediate = mcgrp.forecast_time_table(ns.routes[u_route]->time_table,
                                                   {u},"remove",-1 ,allow_infeasible);
 
-    if(!mcgrp.isTimetableFeasible(intermediate)){
+    if(!mcgrp.isTimeTableFeasible(intermediate)){
         return res;
     }
 
     u = u_tilde;
-    vector<MCGRPRoute::Timetable> final;
+    vector<RouteInfo::TimeTable> final;
     if(u_route == i_route){
         final = mcgrp.forecast_time_table(intermediate,
                                           {u},"insert_after",i,allow_infeasible);
@@ -635,7 +635,7 @@ Postsert::expected_time_table(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
                                           {u},"insert_after",i,allow_infeasible);
     }
 
-    if(!mcgrp.isTimetableFeasible(final)){
+    if(!mcgrp.isTimeTableFeasible(final)){
         return res;
     }
 

@@ -8,7 +8,7 @@ using namespace std;
 bool Invert::search(HighSpeedNeighBorSearch &ns, const class MCGRP &mcgrp, int chosen_task)
 {
     //No search space in Invert operator, No accept rule for invert operator
-    My_Assert(chosen_task != DUMMY, "Chosen task can't be dummy");
+    My_Assert(chosen_task != DUMMY, "Chosen Task can't be dummy");
 
     if (!mcgrp.is_edge(chosen_task)) {
         return false;
@@ -26,8 +26,8 @@ bool Invert::search(HighSpeedNeighBorSearch &ns, const class MCGRP &mcgrp, int c
 
 bool Invert::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int u)
 {
-    My_Assert(u != DUMMY, "task u cannot be dummy task!");
-    My_Assert(mcgrp.is_edge(u), "task u must be edge task!");
+    My_Assert(u != DUMMY, "Task u cannot be dummy Task!");
+    My_Assert(mcgrp.is_edge(u), "Task u must be edge Task!");
 
     bool allow_infeasible = ns.policy.has_rule(FITNESS_ONLY) ? true : false;
 
@@ -47,10 +47,10 @@ bool Invert::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, 
         delta = -tu - uv - mcgrp.inst_tasks[u].serv_cost + tu_tilde + u_tildev + mcgrp.inst_tasks[u_tilde].serv_cost;
 
     int u_route = ns.solution[u]->route_id;
-    vector<MCGRPRoute::Timetable> new_time_tbl{{{-1,-1}}};
+    vector<RouteInfo::TimeTable> new_time_tbl{{{-1, -1}}};
 
     new_time_tbl = expected_time_table(ns,mcgrp,u,u_tilde,allow_infeasible);
-    if(!mcgrp.isTimetableFeasible(new_time_tbl)){
+    if(!mcgrp.isTimeTableFeasible(new_time_tbl)){
         move_result.reset();
         return false;
     }
@@ -87,8 +87,8 @@ void Invert::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
     const int u = move_result.move_arguments[0];
     const int u_tilde = move_result.move_arguments[1];
 
-    My_Assert(u != DUMMY, "Invert can't handle dummy task!");
-    My_Assert(u_tilde == mcgrp.inst_tasks[u].inverse, "Invert can't handle dummy task!");
+    My_Assert(u != DUMMY, "Invert can't handle dummy Task!");
+    My_Assert(u_tilde == mcgrp.inst_tasks[u].inverse, "Invert can't handle dummy Task!");
     My_Assert(ns.solution[u]->next != nullptr && ns.solution[u]->pre != nullptr,"Wrong arguments");
     My_Assert(ns.solution[u_tilde]->next == nullptr && ns.solution[u_tilde]->pre == nullptr,"Wrong arguments");
 
@@ -119,7 +119,7 @@ void Invert::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
     ns.solution[u_tilde]->pre = ns.solution[u]->pre;
 
 
-    //clear original u task info
+    //clear original u Task info
     ns.solution[u]->clear();
 
 
@@ -149,7 +149,7 @@ void Invert::unit_test(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
     ns.policy.set(FIRST_ACCEPT | DOWNHILL | DELTA_ONLY);
     ns.policy.beta = 0.5;
     ns.policy.tolerance = 0.003;
-    ns.neigh_size = mcgrp.neigh_size;
+//    ns.neigh_size = mcgrp.neigh_size;
 
     int chosen_task = -1;
     for (int i = 0; i < mcgrp.actual_task_num; i++) {
@@ -158,10 +158,10 @@ void Invert::unit_test(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
         if (ns.solution[chosen_task]->next == nullptr) {
             if (mcgrp.is_edge(chosen_task)) {
                 chosen_task = mcgrp.inst_tasks[chosen_task].inverse;
-                My_Assert(ns.solution[chosen_task]->next != nullptr, "An edge task has been missed");
+                My_Assert(ns.solution[chosen_task]->next != nullptr, "An edge Task has been missed");
             }
             else {
-                My_Assert(false,"A non edge task has been missed!");
+                My_Assert(false,"A non edge Task has been missed!");
             }
         }
 
@@ -174,10 +174,10 @@ void Invert::unit_test(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
     ns.policy.tolerance = 0;
 }
 
-vector<MCGRPRoute::Timetable>
+vector<RouteInfo::TimeTable>
 Invert::expected_time_table(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int u, int u_tilde, bool allow_infeasible)
 {
-    vector<MCGRPRoute::Timetable> res({{-1,-1}});
+    vector<RouteInfo::TimeTable> res({{-1, -1}});
 
     const int u_route = ns.solution[u]->route_id;
 
@@ -190,7 +190,7 @@ Invert::expected_time_table(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int
     }
 
     vector<int> time_tbl = mcgrp.cal_arrive_time(route_task);
-    vector<MCGRPRoute::Timetable> intermediate;
+    vector<RouteInfo::TimeTable> intermediate;
 
     My_Assert(time_tbl.size() == route_task.size(), "wrong time table");
     for(int k = 0; k<time_tbl.size(); k++){

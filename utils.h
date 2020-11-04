@@ -1,16 +1,7 @@
 #pragma once
-#include <array>
-#include <dirent.h>
-#include <sys/types.h>
-#include <vector>
-#include <limits>
-#include <assert.h>
-#include <cmath>
-#include <iostream>
-#include <fstream>
-#include "RNG.h"
-#include <stack>
+#include <bits/stdc++.h>
 #include <sys/timeb.h>
+#include "RNG.h"
 
 #define seed_size 100
 
@@ -67,7 +58,7 @@ bool print(std::ostream &os1, const std::string &str);
 extern std::array<int, seed_size> seed;
 
 
-struct instance_num_information
+struct InstanceNumInfo
 {
     int node_num;
     int edge_num;
@@ -86,14 +77,14 @@ enum NeighborOperator
 };
 
 
-struct MCGRPRoute
+struct RouteInfo
 {
-    struct Timetable{
+    struct TimeTable{
         int task;
         int arrive_time;
 
-        static vector<Timetable> zip(const vector<int>& task_list, const vector<int>& ArriveTime);
-        static vector<vector<int>> unzip(const vector<Timetable>& time_tbl);
+        static vector<TimeTable> zip(const vector<int>& task_list, const vector<int>& ArriveTime);
+        static vector<vector<int>> unzip(const vector<TimeTable>& time_tbl);
     };
     int ID = -1;
     int start = -1;
@@ -102,7 +93,7 @@ struct MCGRPRoute
     double length = 0;
     int num_customers = 0;
     int num_edges = 0;
-    vector<Timetable> time_table;
+    vector<TimeTable> time_table;
 
     void clear(){
         start = -1;
@@ -114,28 +105,39 @@ struct MCGRPRoute
         time_table.clear();
     }
 
-    static double accumulate_load_op(double accumulator, const MCGRPRoute &a){
+    static double accumulate_load_op(double accumulator, const RouteInfo &a){
         return accumulator + a.length;
     };
 };
 
-struct MCGRPNeighborInfo
-{
+struct TaskNeighborInfo{
 public:
     int task_id;
     double distance;
 
-    ~MCGRPNeighborInfo()
-    {};
-    static bool cmp(const MCGRPNeighborInfo &a, const MCGRPNeighborInfo &b)
-    {
+    TaskNeighborInfo(int taskId, double distance)
+        : task_id(taskId), distance(distance){}
+
+    static bool cmp(const TaskNeighborInfo &a, const TaskNeighborInfo &b){
         return a.distance < b.distance;
     };
 };
 
-struct task
+struct NeighborInfo
+{
+public:
+    int start = -1;
+    int end = -1;
+    vector<TaskNeighborInfo> basic_neighbor;
+    unordered_map<int, vector<TaskNeighborInfo>> predecessor_neighbor;
+    unordered_map<int, vector<TaskNeighborInfo>> successor_neighbor;
+
+};
+
+struct Task
 {
     typedef pair<int,int> Window;
+    int task_id;
     int head_node;
     int tail_node;
     int trave_cost;
@@ -147,7 +149,7 @@ struct task
     Window time_window;
 };
 
-struct arc
+struct Arc
 {
     int tail_node;
     int head_node;
@@ -165,7 +167,7 @@ struct Individual
     bool giant_tour = false;
     std::vector<int> sequence;
     std::vector<int> route_seg_load;
-    std::vector<vector<MCGRPRoute::Timetable>> time_tbl;
+    std::vector<vector<RouteInfo::TimeTable>> time_tbl;
     double total_cost;
     int total_vio_load;
     int total_vio_time;
@@ -238,7 +240,7 @@ vector<int> get_negative_coding(const vector<int> &sequence);
 vector<int> get_delimiter_coding(const vector<int> &negative_coding);
 
 
-class MCGRPMOVE
+class MOVE
 {
 public:
     //pairwise tasks in a moving action
@@ -264,14 +266,14 @@ public:
     vector<int> route_custs_num;
 
     vector<double> route_lens;
-    vector<vector<MCGRPRoute::Timetable>> route_time_tbl;
+    vector<vector<RouteInfo::TimeTable>> route_time_tbl;
 
     NeighborOperator move_type;
 
     vector<vector<int>> old_route_seq;
     vector<vector<int>> new_route_seq;
 
-    MCGRPMOVE()
+    MOVE()
         : task1(-1), task2(-1), num_affected_routes(-1)
     {
         considerable = false;
@@ -279,19 +281,19 @@ public:
         seq1_cus_num = -1;
         seq2_cus_num = -1;
         new_total_route_length =
-            std::numeric_limits<identity<decltype(MCGRPMOVE::new_total_route_length)>::type>::max();
+            std::numeric_limits<identity<decltype(MOVE::new_total_route_length)>::type>::max();
 
         vio_load_delta = 0;
         vio_time_delta = 0;
     };
 
-    MCGRPMOVE(NeighborOperator _move_type)
+    MOVE(NeighborOperator _move_type)
         : task1(-1), task2(-1), num_affected_routes(-1)
     {
         considerable = false;
         delta = 0;
         new_total_route_length =
-            std::numeric_limits<identity<decltype(MCGRPMOVE::new_total_route_length)>::type>::max();
+            std::numeric_limits<identity<decltype(MOVE::new_total_route_length)>::type>::max();
         move_type = _move_type;
         seq1_cus_num = -1;
         seq2_cus_num = -1;
@@ -317,7 +319,7 @@ public:
         vio_load_delta = 0;
         vio_time_delta = 0;
         new_total_route_length =
-            std::numeric_limits<identity<decltype(MCGRPMOVE::new_total_route_length)>::type>::max();
+            std::numeric_limits<identity<decltype(MOVE::new_total_route_length)>::type>::max();
         move_arguments.clear();
 
         num_affected_routes = -1;

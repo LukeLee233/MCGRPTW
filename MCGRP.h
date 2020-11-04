@@ -1,7 +1,7 @@
 #pragma once
 #include "RNG.h"
 #include "utils.h"
-#include <string>
+#include <bits/stdc++.h>
 #include <mutex>
 
 #define DUMMY 0
@@ -36,8 +36,6 @@ public:
 
     int DEPOT;
 
-
-    int neigh_size;
     std::vector<std::vector<int> > trav_cost;        //trave cost(without loading), trav_cost[节点数+1][节点数+1]
 
     std::vector<std::vector<int> > serve_cost;        //serve cost(with loading), serve_cost[节点数+1][节点数+1]
@@ -46,7 +44,7 @@ public:
     std::vector<std::vector<int> > serve_time;
 
 
-    std::vector<arc> inst_arcs;
+    std::vector<Arc> inst_arcs;
 
     //L2-distance (dijkstra)min_cost[node+1][node+1]
     std::vector<std::vector<int>> min_cost;
@@ -56,14 +54,12 @@ public:
     // shortest_path, 1st dimension: origin node; 2nd dimension: terminal node; 3rd dimension: sequence(the fisrt
     // entity represent the whole node number in the sequence
     std::vector<std::vector<std::vector<int> > > shortest_path;
-    std::vector<task> inst_tasks;
+    std::vector<Task> inst_tasks;
     int sentinel;
 
 
-    std::vector<std::vector<double> > task_dist;
-    std::vector<std::vector<MCGRPNeighborInfo> > task_neigh_list;
-    std::vector<std::vector<MCGRPNeighborInfo> > predecessor_task_neigh_list;
-    std::vector<std::vector<MCGRPNeighborInfo> > successor_task_neigh_list;
+    vector<vector<double> > task_dist;
+    vector<vector<NeighborInfo>> neighbor;
 
     double total_service_cost;
     RNG &_rng;
@@ -81,7 +77,7 @@ public:
     mutable mutex global_mut;
 
 
-    MCGRP(const instance_num_information &instance_info, RNG &rng);
+    MCGRP(const InstanceNumInfo &instance_info, RNG &rng);
 
     /*!
      * convert a delimiter format solution into individual style
@@ -120,7 +116,7 @@ public:
      * @param input_file
      * @param instance_info
      */
-    void load_file_info(std::string input_file, const instance_num_information &instance_info);
+    void load_file_info(std::string input_file, const InstanceNumInfo &instance_info);
 
     /*!
      * 使用dijkstra算法求解各点之间的最短路径及路径序列
@@ -129,11 +125,11 @@ public:
     void dijkstra();
     void get_trave_matrix();
 
-    /*!
-     * 初始化各任务的邻域表（近该任务最近的几个任务）
-     * @param neighbor_size
-     */
-    void create_neighbor_lists(int neighbor_size);
+    void create_neighbor_lists();
+    void _build_neighbor_task(const Task& task, NeighborInfo& neighbor_info);
+    void _build_neighbor_node(int start, int end, NeighborInfo& neighbor_info);
+    unordered_map<int, vector<int>> end_task_lookup_tbl;
+    const vector<int>& _same_end_task(int end_node);
 
     /*!
      * 获得任务序列的总成本
@@ -150,7 +146,7 @@ public:
     int get_total_vio_load(const std::vector<int> &route_seg_load) const;
 
     /*!
-     * check whether task is edge task
+     * check whether Task is edge Task
      * @param task_id
      * @return
      */
@@ -186,7 +182,7 @@ public:
      * @param source
      * @param sink
      * @param start
-     * @param head_of_source true: need to sum the serve time of source task, vice versa
+     * @param head_of_source true: need to sum the serve time of source Task, vice versa
      * @return
      */
     int cal_arrive_time(int source, int sink, int start, bool head_of_source) const;
@@ -196,19 +192,19 @@ public:
      * @param old_table
      * @param tasks
      * @param indicator_task
-     * @param mode: 1. "insert_before": insert tasks in the route before a task
-     *              2. "insert_after": insert tasks in the route after a task
+     * @param mode: 1. "insert_before": insert tasks in the route before a Task
+     *              2. "insert_after": insert tasks in the route after a Task
      *              3. "remove": remove tasks in the route
      * @return:     {-1,-1} for infeasible time table
      */
-    vector<MCGRPRoute::Timetable> forecast_time_table(const vector<MCGRPRoute::Timetable>& old_table,
-                                                      const vector<int>& tasks,
-                                                      string mode, int indicator_task = -1,
-                                                      bool allow_infeasible = false) const;
+    vector<RouteInfo::TimeTable> forecast_time_table(const vector<RouteInfo::TimeTable>& old_table,
+                                                     const vector<int>& tasks,
+                                                     string mode, int indicator_task = -1,
+                                                     bool allow_infeasible = false) const;
 
-    bool isTimetableFeasible(const vector<MCGRPRoute::Timetable>& tbl,bool meta = true) const;
+    bool isTimeTableFeasible(const vector<RouteInfo::TimeTable>& tbl, bool meta = true) const;
 
-    int get_vio_time(const vector<MCGRPRoute::Timetable>& tbl) const;
+    int get_vio_time(const vector<RouteInfo::TimeTable>& tbl) const;
 
     /*!
      * sort a set of tasks based on time
@@ -218,9 +214,12 @@ public:
      */
     void time_window_sort(vector<int>& sequence) const;
 
-    vector<vector<MCGRPRoute::Timetable>> get_time_tbl(const vector<int>& sequence, string mode) const;
+    vector<vector<RouteInfo::TimeTable>> get_time_tbl(const vector<int>& sequence, string mode) const;
 
     int count_edges(const vector<int>& seq) const;
+
+    void show_shortest_info(string output_file = "");
+    void show_neighbor(int start, int end);
 };
 
 inline int MCGRP::get_travel_time(int source_task, int sink_task) const {

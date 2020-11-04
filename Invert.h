@@ -8,9 +8,9 @@
 class Invert
 {
 public:
-    MCGRPMOVE move_result;
+    MOVE move_result;
 
-    Invert() : move_result(MCGRPMOVE(NeighborOperator::INVERT)){};
+    Invert() : move_result(MOVE(NeighborOperator::INVERT)){};
 
     /***********************************************************/
 
@@ -20,8 +20,8 @@ public:
 
     void move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp);
 
-    vector<MCGRPRoute::Timetable> expected_time_table(HighSpeedNeighBorSearch &ns,const MCGRP &mcgrp,
-                                                              int u,int u_tilde, bool allow_infeasible);
+    vector<RouteInfo::TimeTable> expected_time_table(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
+                                                     int u, int u_tilde, bool allow_infeasible);
 
 
     void unit_test(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp);

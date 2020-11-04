@@ -12,7 +12,7 @@ bool Extraction::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int cho
 {
     // No search space in Extraction operator, No accept rule for invert operator
 
-    My_Assert(chosen_task != DUMMY, "Chosen task can't be dummy");
+    My_Assert(chosen_task != DUMMY, "Chosen Task can't be dummy");
 
     if (considerable_move(ns, mcgrp, chosen_task) && ns.policy.check_move(move_result)) {
         move(ns, mcgrp);
@@ -35,8 +35,8 @@ struct seg_info
 
 seg_info get_seg_info(const MCGRP &mcgrp, HighSpeedNeighBorSearch &ns, const int start_task, const int end_task)
 {
-    My_Assert(start_task >= 1 && start_task <= mcgrp.actual_task_num, "Wrong task");
-    My_Assert(end_task >= 1 && end_task <= mcgrp.actual_task_num, "Wrong task");
+    My_Assert(start_task >= 1 && start_task <= mcgrp.actual_task_num, "Wrong Task");
+    My_Assert(end_task >= 1 && end_task <= mcgrp.actual_task_num, "Wrong Task");
 
     int current_task = start_task;
     seg_info buffer;
@@ -65,7 +65,7 @@ seg_info get_seg_info(const MCGRP &mcgrp, HighSpeedNeighBorSearch &ns, const int
 
 bool Extraction::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, const int b)
 {
-    My_Assert(b >= 1 && b <= mcgrp.actual_task_num, "Wrong task");
+    My_Assert(b >= 1 && b <= mcgrp.actual_task_num, "Wrong Task");
 
     const int a = ns.solution[b]->pre->ID;
     const int c = ns.solution[b]->next->ID;
@@ -81,8 +81,8 @@ bool Extraction::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcg
     }
     else {
         //...a-b-c...
-        My_Assert(a >= 1 && a <= mcgrp.actual_task_num, "Wrong task");
-        My_Assert(c >= 1 && c <= mcgrp.actual_task_num, "Wrong task");
+        My_Assert(a >= 1 && a <= mcgrp.actual_task_num, "Wrong Task");
+        My_Assert(c >= 1 && c <= mcgrp.actual_task_num, "Wrong Task");
 
         int old_route_id = ns.solution[b]->route_id;
         const auto old_route_start = ns.routes[old_route_id]->start;
@@ -262,7 +262,7 @@ void Extraction::unit_test(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
     ns.policy.set(FIRST_ACCEPT | TOLERANCE | DELTA_ONLY);
     ns.policy.beta = 0.5;
     ns.policy.tolerance = 0.003;
-    ns.neigh_size = mcgrp.neigh_size;
+//    ns.neigh_size = mcgrp.neigh_size;
 
     int chosen_task = -1;
     for (int i = 0; i < mcgrp.actual_task_num; i++) {
@@ -271,11 +271,11 @@ void Extraction::unit_test(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
         if (ns.solution[chosen_task]->next == nullptr) {
             if (mcgrp.is_edge(chosen_task)) {
                 chosen_task = mcgrp.inst_tasks[chosen_task].inverse;
-                My_Assert(ns.solution[chosen_task]->next != nullptr, "An edge task has been missed");
+                My_Assert(ns.solution[chosen_task]->next != nullptr, "An edge Task has been missed");
 
             }
             else {
-                My_Assert(false, "A non edge task has been missed!");
+                My_Assert(false, "A non edge Task has been missed!");
             }
         }
 
@@ -288,10 +288,10 @@ void Extraction::unit_test(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
     ns.policy.tolerance = 0;
 }
 
-vector<vector<MCGRPRoute::Timetable>>
+vector<vector<RouteInfo::TimeTable>>
 Extraction::expected_time_table(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, const int b)
 {
-    vector<vector<MCGRPRoute::Timetable>> res;
+    vector<vector<RouteInfo::TimeTable>> res;
 
     const int b_route = ns.solution[b]->route_id;
 
@@ -303,7 +303,7 @@ Extraction::expected_time_table(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
 
 
     auto b_ite = find(original_route.begin(), original_route.end(), b);
-    My_Assert(b_ite != original_route.end(), "Cannot find task b!");
+    My_Assert(b_ite != original_route.end(), "Cannot find Task b!");
 
     vector<int> left_route(original_route.begin(), b_ite);
     vector<int> middle_route{b};
@@ -313,9 +313,9 @@ Extraction::expected_time_table(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
     vector<int> middle_time_tbl = mcgrp.cal_arrive_time(middle_route);
     vector<int> right_time_tbl = mcgrp.cal_arrive_time(right_route);
 
-    vector<MCGRPRoute::Timetable> intermediate_left;
-    vector<MCGRPRoute::Timetable> intermediate_middle;
-    vector<MCGRPRoute::Timetable> intermediate_right;
+    vector<RouteInfo::TimeTable> intermediate_left;
+    vector<RouteInfo::TimeTable> intermediate_middle;
+    vector<RouteInfo::TimeTable> intermediate_right;
 
     for (int i = 0; i < left_route.size(); i++)
         intermediate_left.push_back({left_route[i], left_time_tbl[i]});

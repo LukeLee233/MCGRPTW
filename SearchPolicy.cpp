@@ -4,12 +4,12 @@
 
 #include "SearchPolicy.h"
 
-double Policy::getFitnessDelta(const MCGRPMOVE &move_result) {
+double Policy::getFitnessDelta(const MOVE &move_result) {
     My_Assert(beta != MAX(beta), "beta is undefined!");
     return move_result.delta + beta * (move_result.vio_load_delta + move_result.vio_time_delta);
 }
 
-bool Policy::check_move(const MCGRPMOVE &move_result)
+bool Policy::check_move(const MOVE &move_result)
 {
     //To control the frequency
     static int count = 0;
@@ -69,7 +69,7 @@ bool Policy::check_move(const MCGRPMOVE &move_result)
     }
 }
 
-bool Policy::check_result(const MCGRPMOVE &M1, const MCGRPMOVE &M2)
+bool Policy::check_result(const MOVE &M1, const MOVE &M2)
 {
     // We are only concerned about the savings (increase/decrese) in total length
     // This is the default approach

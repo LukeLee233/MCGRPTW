@@ -361,11 +361,11 @@ void HighSpeedMemetic::best_insert_repair(const MCGRP &mcgrp, SOLUTION &solution
                     vector<int> expected_seq(solution.routes[route_id].seq.begin()+1,solution.routes[route_id].seq.end()-1);
                     expected_seq.insert(expected_seq.begin()+cursor - 1,omitted_task);
                     vector<int> time_tbl = mcgrp.cal_arrive_time(expected_seq);
-                    vector<MCGRPRoute::Timetable> buffer;
+                    vector<RouteInfo::TimeTable> buffer;
                     for(int i = 0;i<time_tbl.size();i++){
                         buffer.push_back({expected_seq[i],time_tbl[i]});
                     }
-                    if(!mcgrp.isTimetableFeasible(buffer,false)){
+                    if(!mcgrp.isTimeTableFeasible(buffer,false)){
                         continue;
                     }
 
@@ -732,12 +732,12 @@ vector<int> HighSpeedMemetic::remove_duplicates(const MCGRP &mcgrp, SOLUTION &so
                 }
 
                 if (distribution.empty()) {
-                    //omitted task
+                    //omitted Task
                     Omitted_task.push_back(i);
                     Omitted_task.push_back(i_tilde);
                 }
                 else if (distribution.size() != 1) {
-                    My_Assert(distribution.size() > 1, "Wrong task");
+                    My_Assert(distribution.size() > 1, "Wrong Task");
 
                     Reserve_Info reserve_info;
                     vector<double> deltas;
@@ -797,12 +797,12 @@ vector<int> HighSpeedMemetic::remove_duplicates(const MCGRP &mcgrp, SOLUTION &so
             }
 
             if (distribution.empty()) {
-                //omitted task
+                //omitted Task
                 Omitted_task.push_back(i);
             }
             else if (distribution.size() != 1) {
                 //duplicated tasks
-                My_Assert(distribution.size() > 1, "Wrong task");
+                My_Assert(distribution.size() > 1, "Wrong Task");
 
                 Reserve_Info reserve_info;
                 vector<double> deltas;

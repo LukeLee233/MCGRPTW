@@ -3,7 +3,7 @@
 #include <cstdlib>
 #include <cstring>
 
-void GetTasksNum(std::string filename, instance_num_information &number_info)
+void GetTasksNum(std::string filename, InstanceNumInfo &number_info)
 {
     FILE *infile;
 

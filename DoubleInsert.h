@@ -9,7 +9,7 @@ class DoubleInsert
 {
     // Here you can set a given length to achieve m-sert
     const int length = 2;
-    MCGRPMOVE move_result;
+    MOVE move_result;
 
     int presert_times;
     int postsert_times;
@@ -20,12 +20,12 @@ class DoubleInsert
 public:
     DoubleInsert(): pre_move_string(PreMoveString())
     ,post_move_string(PostMoveString())
-    ,move_result(MCGRPMOVE(NeighborOperator::DOUBLE_INSERT))
+    ,move_result(MOVE(NeighborOperator::DOUBLE_INSERT))
     ,presert_times(0),postsert_times(0){};
 
 
     /*!
- * @details get the successor of the chosen task within the same route,exclude dummy task
+ * @details get the successor of the chosen Task within the same route,exclude dummy Task
  * @param ns
  * @param chosen_task
  * @return

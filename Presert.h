@@ -8,14 +8,14 @@
 class Presert
 {
 public:
-    MCGRPMOVE move_result;
+    MOVE move_result;
 public:
 
-    Presert():move_result(MCGRPMOVE(NeighborOperator::PRESERT)){};
+    Presert():move_result(MOVE(NeighborOperator::PRESERT)){};
 
 
     /*!
- * @details presert from task u to task i
+ * @details presert from Task u to Task i
  * @param ns
  * @param mcgrp
  * @param u
@@ -35,8 +35,8 @@ public:
      * @param allow_infeasible
      * @return
      */
-    vector<vector<MCGRPRoute::Timetable>> expected_time_table(HighSpeedNeighBorSearch &ns,const MCGRP &mcgrp,
-                                                              int u,int u_tilde, const int i,bool allow_infeasible);
+    vector<vector<RouteInfo::TimeTable>> expected_time_table(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
+                                                             int u, int u_tilde, const int i, bool allow_infeasible);
 
 
     void move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp);

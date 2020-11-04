@@ -3,16 +3,16 @@
 
 using namespace std;
 
-//MCGRPMOVE SwapEnds::move_result = MCGRPMOVE(NeighborOperator::SWAP_ENDS);
+//MOVE SwapEnds::move_result = MOVE(NeighborOperator::SWAP_ENDS);
 //
 //bool
 //SwapEnds::considerable_move(NeighBorSearch &ns, const MCGRP &mcgrp, vector<int> chosen_seq, vector<int> candidate_seq)
 //{
 //    My_Assert(find(chosen_seq.begin(), chosen_seq.end(), DUMMY) == chosen_seq.end(),
-//              "Chosen sequence can't have dummy task!");
+//              "Chosen sequence can't have dummy Task!");
 //
 //    My_Assert(find(candidate_seq.begin(), candidate_seq.end(), DUMMY) == candidate_seq.end(),
-//              "Candidate sequence can't have dummy task!");
+//              "Candidate sequence can't have dummy Task!");
 //
 //    const int chosen_route = ns.route_id[chosen_seq.front()];
 //    const int candidate_route = ns.route_id[candidate_seq.front()];
@@ -25,12 +25,12 @@ using namespace std;
 //
 //    //check load
 //    int chosen_seq_load = 0;
-//    for (auto task : chosen_seq) {
-//        chosen_seq_load += mcgrp.inst_tasks[task].demand;
+//    for (auto Task : chosen_seq) {
+//        chosen_seq_load += mcgrp.inst_tasks[Task].demand;
 //    }
 //    int candidate_seq_load = 0;
-//    for (auto task : candidate_seq) {
-//        candidate_seq_load += mcgrp.inst_tasks[task].demand;
+//    for (auto Task : candidate_seq) {
+//        candidate_seq_load += mcgrp.inst_tasks[Task].demand;
 //    }
 //
 //    if (ns.routes[chosen_route].load - chosen_seq_load + candidate_seq_load > mcgrp.capacity ||
@@ -449,7 +449,7 @@ struct RouteSegment
 RouteSegment get_segment_info(const MCGRP &mcgrp, HighSpeedNeighBorSearch &ns, const int chosen_task)
 {
     // Calculate the length, load, and # of customers of the segment
-    // after chosen task.
+    // after chosen Task.
     // Example:  chosen_task-a-i-j-b-dummy has
     // length: d(a,i) + d(i,j) + d(j,b)
     // load:   a + i + j + b
@@ -491,7 +491,7 @@ RouteSegment get_segment_info(const MCGRP &mcgrp, HighSpeedNeighBorSearch &ns, c
         current_task = next_task;
     }
 
-    //handle last task in the segment
+    //handle last Task in the segment
     buffer.len += mcgrp.inst_tasks[current_task].serv_cost;
     buffer.load += mcgrp.inst_tasks[current_task].demand;
     buffer.num_custs += 1;
@@ -539,7 +539,7 @@ NewSwapEnds::considerable_move(HighSpeedNeighBorSearch &ns,
         if (a_load_delta >= 0) {
             //a_route vio-load calculate
             if (ns.routes[a_route]->load + a_load_delta > mcgrp.capacity) {
-                //if insert task to route a and over load
+                //if insert Task to route a and over load
                 if (ns.routes[a_route]->load >= mcgrp.capacity) {
                     //if the route a already over loaded
                     vio_load_delta += a_load_delta;
@@ -551,7 +551,7 @@ NewSwapEnds::considerable_move(HighSpeedNeighBorSearch &ns,
 
             My_Assert(v_load_delta <= 0, "Wrong arguments!");
             if (ns.routes[v_route]->load > mcgrp.capacity) {
-                //if insert task to route a and over load
+                //if insert Task to route a and over load
                 if (ns.routes[v_route]->load + v_load_delta >= mcgrp.capacity) {
                     //if the route v still over loaded
                     vio_load_delta += v_load_delta;
@@ -563,7 +563,7 @@ NewSwapEnds::considerable_move(HighSpeedNeighBorSearch &ns,
         }
         else {
             if (ns.routes[a_route]->load > mcgrp.capacity) {
-                //if insert task to route a and over load
+                //if insert Task to route a and over load
                 if (ns.routes[a_route]->load + a_load_delta >= mcgrp.capacity) {
                     //if the route v still over loaded
                     vio_load_delta += a_load_delta;
@@ -576,7 +576,7 @@ NewSwapEnds::considerable_move(HighSpeedNeighBorSearch &ns,
             My_Assert(v_load_delta >= 0, "Wrong arguments!");
             //v_route vio-load calculate
             if (ns.routes[v_route]->load + v_load_delta > mcgrp.capacity) {
-                //if insert task to route v and over load
+                //if insert Task to route v and over load
                 if (ns.routes[v_route]->load >= mcgrp.capacity) {
                     //if the route v already over loaded
                     vio_load_delta += v_load_delta;
@@ -597,11 +597,11 @@ NewSwapEnds::considerable_move(HighSpeedNeighBorSearch &ns,
     const int v = max(neighbor_task, 0);
 
     bool allow_infeasible = ns.policy.has_rule(FITNESS_ONLY) ? true : false;
-    vector<vector<MCGRPRoute::Timetable>> new_time_tbl{{{-1,-1}}};
+    vector<vector<RouteInfo::TimeTable>> new_time_tbl{{{-1, -1}}};
 
     new_time_tbl = expected_time_table(ns,mcgrp,a,v,a_route,v_route,seg_after_a,seg_after_v,allow_infeasible);
 
-    if(!mcgrp.isTimetableFeasible(new_time_tbl[0])){
+    if(!mcgrp.isTimeTableFeasible(new_time_tbl[0])){
         move_result.reset();
         return false;
     }
@@ -783,11 +783,11 @@ void NewSwapEnds::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
     }
 
     My_Assert(all_of(a_seq.begin(), a_seq.end(), [&](int i)
-    { return i >= 1 && i <= mcgrp.actual_task_num; }), "Wrong task");
+    { return i >= 1 && i <= mcgrp.actual_task_num; }), "Wrong Task");
     My_Assert(all_of(v_seq.begin(), v_seq.end(), [&](int i)
-    { return i >= 1 && i <= mcgrp.actual_task_num; }), "Wrong task");
+    { return i >= 1 && i <= mcgrp.actual_task_num; }), "Wrong Task");
 
-    My_Assert(a_seq.size() == move_result.seq1_cus_num && v_seq.size() == move_result.seq2_cus_num, "Wrong task");
+    My_Assert(a_seq.size() == move_result.seq1_cus_num && v_seq.size() == move_result.seq2_cus_num, "Wrong Task");
 
     My_Assert(move_result.num_affected_routes == 2, "Wrong routes number");
 
@@ -805,8 +805,8 @@ void NewSwapEnds::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
     if (move_result.seq1_cus_num != 0 && move_result.seq2_cus_num != 0) {
         //Modify routes info
         My_Assert(!a_seq.empty() && !v_seq.empty(), "Wrong arguments");
-        My_Assert(ns.solution[a]->next->ID == a_seq.front(), "Wrong task");
-        My_Assert(ns.solution[v]->next->ID == v_seq.front(), "Wrong task");
+        My_Assert(ns.solution[a]->next->ID == a_seq.front(), "Wrong Task");
+        My_Assert(ns.solution[v]->next->ID == v_seq.front(), "Wrong Task");
 
         ns.routes[a_route]->length = move_result.route_lens[0];
         ns.routes[v_route]->length = move_result.route_lens[1];
@@ -859,7 +859,7 @@ void NewSwapEnds::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
     else if (move_result.seq1_cus_num == 0) {
         My_Assert(move_result.seq2_cus_num != 0, "Wrong arguments");
         My_Assert(a_seq.empty() && !v_seq.empty(), "Wrong arguments");
-        My_Assert(ns.solution[v]->next->ID == v_seq.front(), "Wrong task");
+        My_Assert(ns.solution[v]->next->ID == v_seq.front(), "Wrong Task");
 
         if (v_seq.front() == ns.routes[v_route]->start && v_seq.back() == ns.routes[v_route]->end) {
             //v route need to be eliminated
@@ -882,7 +882,7 @@ void NewSwapEnds::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
             ns.routes.free_route(v_route);
 
             //handle solution
-            //record next dummy task of seg v
+            //record next dummy Task of seg v
             int dummy_marker = 0;
             HighSpeedNeighBorSearch::TASK_NODE *reserve_dummy;
             bool very_end_case = false;
@@ -959,7 +959,7 @@ void NewSwapEnds::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
     else if (move_result.seq2_cus_num == 0) {
         My_Assert(move_result.seq1_cus_num != 0, "Wrong arguments");
         My_Assert(!a_seq.empty() && v_seq.empty(), "Wrong arguments");
-        My_Assert(ns.solution[a]->next->ID == a_seq.front(), "Wrong task");
+        My_Assert(ns.solution[a]->next->ID == a_seq.front(), "Wrong Task");
 
         if (a_seq.front() == ns.routes[a_route]->start && a_seq.back() == ns.routes[a_route]->end) {
             //a route need to be eliminated
@@ -982,7 +982,7 @@ void NewSwapEnds::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
             ns.routes.free_route(a_route);
 
             //handle solution
-            //record next dummy task of seg v
+            //record next dummy Task of seg v
             int dummy_marker = 0;
             HighSpeedNeighBorSearch::TASK_NODE *reserve_dummy;
             bool very_end_case = false;
@@ -1074,7 +1074,7 @@ void NewSwapEnds::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
     ns.search_step++;
 }
 
-vector<vector<MCGRPRoute::Timetable>>
+vector<vector<RouteInfo::TimeTable>>
 NewSwapEnds::expected_time_table(HighSpeedNeighBorSearch &ns,
                     const MCGRP &mcgrp,
                     int a,
@@ -1085,8 +1085,8 @@ NewSwapEnds::expected_time_table(HighSpeedNeighBorSearch &ns,
                     const RouteSegment& v_seg,
                     bool allow_infeasible)
 {
-    vector<vector<MCGRPRoute::Timetable>>
-        res(2, vector<MCGRPRoute::Timetable>({{-1, -1}}));
+    vector<vector<RouteInfo::TimeTable>>
+        res(2, vector<RouteInfo::TimeTable>({{-1, -1}}));
 
     My_Assert(a_route != v_route, "Two routes can't be the same route in swap ends!");
 
@@ -1129,7 +1129,7 @@ NewSwapEnds::expected_time_table(HighSpeedNeighBorSearch &ns,
         route_task_v.push_back(ns.routes[v_route]->time_table[cur].task);
     }
 
-    My_Assert(a_pos != -1 && v_pos != -1, "can't find chosen task!");
+    My_Assert(a_pos != -1 && v_pos != -1, "can't find chosen Task!");
 
     vector<int> buffer;
     std::move(route_task_a.begin() + a_pos, route_task_a.end(), back_inserter(buffer));
@@ -1146,8 +1146,8 @@ NewSwapEnds::expected_time_table(HighSpeedNeighBorSearch &ns,
     My_Assert(time_tbl_u.size() == route_task_a.size(), "wrong time table");
     My_Assert(time_tbl_i.size() == route_task_v.size(), "wrong time table");
 
-    vector<MCGRPRoute::Timetable> intermediate_a;
-    vector<MCGRPRoute::Timetable> intermediate_v;
+    vector<RouteInfo::TimeTable> intermediate_a;
+    vector<RouteInfo::TimeTable> intermediate_v;
     for (int k = 0; k < time_tbl_u.size(); k++) {
         if (!allow_infeasible && time_tbl_u[k] > mcgrp.inst_tasks[route_task_a[k]].time_window.second)
             return res;
