@@ -40,7 +40,7 @@ private:
 
     struct TASK_NODE{
         int ID;
-        int route_id;   //tell the Task which route it belong to
+        int route_id;   //tell the Task which route it belongs to
         TASK_NODE *pre;
         TASK_NODE *next;
 
@@ -333,7 +333,7 @@ public:
      * @param mcgrp
      * @param task
      */
-    void create_search_neighborhood(const MCGRP &mcgrp, const int task,string mode = "", int offset = 0);
+    void create_search_neighborhood(const MCGRP &mcgrp, const vector<int>& chosen_seq,string mode = "", int offset = 0);
 
     /*!
      * @details pack current sol info to delimiter coding format
