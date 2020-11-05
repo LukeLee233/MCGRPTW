@@ -362,7 +362,6 @@ void HighSpeedNeighBorSearch::descent_search(const MCGRP &mcgrp)
 
 void HighSpeedNeighBorSearch::create_search_neighborhood(const MCGRP &mcgrp, const vector<int>& chosen_seq,string mode, int offset)
 {
-    int original_neigh_size = neigh_size;
     search_space.clear();
     if(mode.empty() || chosen_seq.empty()) return;
 
@@ -371,34 +370,54 @@ void HighSpeedNeighBorSearch::create_search_neighborhood(const MCGRP &mcgrp, con
 
     const NeighborInfo& neighbor_info = mcgrp.neighbor[start_node][end_node];
 
-    int loc = offset;
-    if(mode == "basic"){
+    unordered_set<int> check_tbl;
+    for(const auto task_id : chosen_seq){
+        if(mcgrp.is_edge(task_id)) check_tbl.insert(mcgrp.inst_tasks[task_id].inverse);
+        check_tbl.insert(task_id);
+    }
 
-        neigh_size = min(neigh_size, (int)neighbor_info.basic_neighbor.size());
+    if(mode == "basic"){
+        offset %= neighbor_info.basic_neighbor.size();
+        int loc = offset;
+
         while(search_space.size() < neigh_size){
-            loc %= neighbor_info.basic_neighbor.size();
-            search_space.push_back(neighbor_info.basic_neighbor[loc].task_id);
+            int task_id = neighbor_info.basic_neighbor[loc].task_id;
+            if(solution.tasks[task_id].next != nullptr && check_tbl.find(task_id) == check_tbl.end())
+                search_space.push_back(task_id);
             loc++;
+            loc %= neighbor_info.basic_neighbor.size();
+            if(loc == offset) break;
         }
 
     }else if(mode == "predecessor"){
         const auto& predecessor_seq = neighbor_info.predecessor_neighbor.at(chosen_seq.front());
 
-        neigh_size = min(neigh_size, (int)predecessor_seq.size());
+        offset %= predecessor_seq.size();
+        int loc = offset;
+
         while(search_space.size() < neigh_size){
-            loc %= predecessor_seq.size();
-            search_space.push_back(predecessor_seq[loc].task_id);
+            int task_id = predecessor_seq[loc].task_id;
+            if(solution.tasks[task_id].next != nullptr && check_tbl.find(task_id) == check_tbl.end())
+                search_space.push_back(task_id);
             loc++;
+            loc %= predecessor_seq.size();
+            if(loc == offset) break;
         }
 
     }else if(mode == "successor"){
         const auto& successor_seq = neighbor_info.successor_neighbor.at(chosen_seq.back());
 
-        neigh_size = min(neigh_size,(int)successor_seq.size());
+        offset %= successor_seq.size();
+        int loc = offset;
+
         while(search_space.size() < neigh_size){
             loc %= successor_seq.size();
-            search_space.push_back(successor_seq[loc].task_id);
+            int task_id = successor_seq[loc].task_id;
+            if(solution.tasks[task_id].next != nullptr && check_tbl.find(task_id) == check_tbl.end())
+                search_space.push_back(task_id);
             loc++;
+            loc %= successor_seq.size();
+            if(loc == offset) break;
         }
 
     }else {
@@ -407,7 +426,6 @@ void HighSpeedNeighBorSearch::create_search_neighborhood(const MCGRP &mcgrp, con
 
 
     mcgrp._rng.RandPerm(search_space);
-    neigh_size = original_neigh_size;
 }
 
 bool HighSpeedNeighBorSearch::valid_sol(const MCGRP &mcgrp)

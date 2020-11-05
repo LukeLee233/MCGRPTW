@@ -14,7 +14,14 @@ class MoveOperator{
 public:
     MoveResult move_result;
 
+    int hit_count;
+    int attempt_count;
+
+    MoveOperator();
+
     virtual bool search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_task) = 0;
+
+    vector<int> getHitInfo();
 };
 
 void unit_test(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, MoveOperator& move_operator);

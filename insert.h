@@ -13,7 +13,7 @@ class XPreInsert : public MoveOperator
 public:
     const int length;
 
-    XPreInsert(int length): length(length){
+    XPreInsert(int length): MoveOperator(), length(length){
         move_result = MoveResult(NeighborOperator::PRE_INSERT);
     };
 

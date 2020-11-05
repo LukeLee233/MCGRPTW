@@ -39,3 +39,13 @@ void unit_test(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, MoveOperator &mo
     ns.policy.beta = 0;
     ns.policy.tolerance = 0;
 }
+
+MoveOperator::MoveOperator()
+    : hit_count(0), attempt_count(0){}
+
+
+vector<int> MoveOperator::getHitInfo()
+{
+    return {attempt_count, hit_count};
+}
+

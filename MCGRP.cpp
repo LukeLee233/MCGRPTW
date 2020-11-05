@@ -528,9 +528,7 @@ void MCGRP::create_neighbor_lists(int neighbor_size)
     // Second build node neighbor
     for( int row = 1; row <= node_num; row++){
         for(int col = 1; col <= node_num; col++){
-            if(neighbor[row][col].start == -1){
-                _build_neighbor_node(row,col,neighbor[row][col]);
-            }
+            _build_neighbor_node(row, col,neighbor[row][col]);
         }
     }
 }
@@ -1064,6 +1062,10 @@ void MCGRP::_build_neighbor_node(int start, int end, NeighborInfo &neighbor_info
         vector<TaskNeighborInfo> successor_NList;
 
         for(const auto& neighbor: neighbor_info.basic_neighbor){
+            if(task == neighbor.task_id) continue;
+
+            if(is_edge(task) && inst_tasks[task].inverse == neighbor.task_id) continue;
+
             if(inst_tasks[task].time_window.first
                 + inst_tasks[task].serve_time
                 + get_travel_time(task, neighbor.task_id)
@@ -1080,6 +1082,10 @@ void MCGRP::_build_neighbor_node(int start, int end, NeighborInfo &neighbor_info
         vector<TaskNeighborInfo> predecessor_NList;
 
         for(const auto& neighbor: neighbor_info.basic_neighbor){
+            if(task == neighbor.task_id) continue;
+
+            if(is_edge(task) && inst_tasks[task].inverse == neighbor.task_id) continue;
+
             if(inst_tasks[neighbor.task_id].time_window.first
                 + inst_tasks[neighbor.task_id].serve_time
                 + get_travel_time(neighbor.task_id, task)

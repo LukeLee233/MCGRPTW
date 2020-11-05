@@ -227,7 +227,12 @@ bool XPostInsert::considerable_move(HighSpeedNeighBorSearch &ns,
 
 void XPostInsert::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
 {
-    DEBUG_PRINT("execute a double insert:postsert move");
+
+#ifdef DEBUG
+    hit_count++;
+#endif
+
+    DEBUG_PRINT("execute a " + to_string(length) + "-insert:postsert move");
     My_Assert(move_result.considerable,"Invalid predictions");
 
     //extract move arguments
@@ -396,6 +401,11 @@ bool XPostInsert::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int ch
 {
     My_Assert(chosen_task >= 1 && chosen_task <= mcgrp.actual_task_num,"Wrong Task");
 
+#ifdef DEBUG
+    attempt_count = 0;
+    hit_count = 0;
+#endif
+
     MoveResult BestM;
 
     vector<int> chosen_seq = ns.get_successor_tasks(length, chosen_task);
@@ -406,7 +416,7 @@ bool XPostInsert::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int ch
     My_Assert(chosen_seq.size()>0,"You cannot generate an empty sequence!");
 
     if (chosen_seq.size() != length) {
-        DEBUG_PRINT("The length after chosen Task is not" + to_string(length) + "in " + to_string(length) + "-insert");
+        DEBUG_PRINT("The length after chosen Task is not " + to_string(length) + " in " + to_string(length) + "-insert");
         return false;
     }
 
@@ -416,6 +426,11 @@ bool XPostInsert::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int ch
         My_Assert(neighbor_task != b, "neighbor Task can't be itself!");
 
         if (neighbor_task != DUMMY) {
+
+#ifdef DEBUG
+            attempt_count++;
+#endif
+
             //j can't be dummy and b can't be dummy neither here
             int j = neighbor_task;
 
@@ -445,6 +460,11 @@ bool XPostInsert::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int ch
             int current_start = ns.solution.very_start->next->ID;
 
             while (ns.solution[current_start]->next != ns.solution.very_end) {
+
+#ifdef DEBUG
+                attempt_count += 2;
+#endif
+
                 // Consider the start location
                 int j = current_start;
 
@@ -745,7 +765,12 @@ XPreInsert::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, v
 
 void XPreInsert::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
 {
-    DEBUG_PRINT("execute a double insert:postsert move");
+
+#ifdef DEBUG
+    hit_count++;
+#endif
+
+    DEBUG_PRINT("execute a " + to_string(length) + "-insert:presert move");
     My_Assert(move_result.considerable,"Invalid predictions");
 
     //extract move arguments
@@ -914,6 +939,11 @@ bool XPreInsert::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int cho
 {
     My_Assert(chosen_task >= 1 && chosen_task <= mcgrp.actual_task_num,"Wrong Task");
 
+#ifdef DEBUG
+    attempt_count = 0;
+    hit_count = 0;
+#endif
+
     MoveResult BestM;
 
     vector<int> chosen_seq = ns.get_successor_tasks(length, chosen_task);
@@ -924,7 +954,7 @@ bool XPreInsert::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int cho
     My_Assert(chosen_seq.size()>0,"You cannot generate an empty sequence!");
 
     if (chosen_seq.size() != length) {
-        DEBUG_PRINT("The length after chosen Task is not" + to_string(length) + "in " + to_string(length) + "-insert");
+        DEBUG_PRINT("The length after chosen Task is not " + to_string(length) + " in " + to_string(length) + "-insert");
         return false;
     }
 
@@ -934,6 +964,11 @@ bool XPreInsert::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int cho
         My_Assert(neighbor_task != b, "neighbor Task can't be itself!");
 
         if (neighbor_task != DUMMY) {
+
+#ifdef DEBUG
+            attempt_count++;
+#endif
+
             //j can't be dummy and b can't be dummy neither here
             int j = neighbor_task;
 
@@ -963,6 +998,11 @@ bool XPreInsert::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int cho
             int current_start = ns.solution.very_start->next->ID;
 
             while (ns.solution[current_start]->next != ns.solution.very_end) {
+
+#ifdef DEBUG
+                attempt_count += 2;
+#endif
+
                 // Consider the start location
                 int j = current_start;
 
