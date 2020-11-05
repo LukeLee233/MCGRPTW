@@ -36,6 +36,8 @@ public:
 
     int DEPOT;
 
+    int neigh_size;
+
     std::vector<std::vector<int> > trav_cost;        //trave cost(without loading), trav_cost[节点数+1][节点数+1]
 
     std::vector<std::vector<int> > serve_cost;        //serve cost(with loading), serve_cost[节点数+1][节点数+1]
@@ -125,7 +127,7 @@ public:
     void dijkstra();
     void get_trave_matrix();
 
-    void create_neighbor_lists();
+    void create_neighbor_lists(int neighbor_size);
     void _build_neighbor_task(const Task& task, NeighborInfo& neighbor_info);
     void _build_neighbor_node(int start, int end, NeighborInfo& neighbor_info);
     unordered_map<int, vector<int>> end_task_lookup_tbl;

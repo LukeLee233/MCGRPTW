@@ -15,7 +15,7 @@ void unit_test(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, MoveOperator &mo
     ns.policy.set(BEST_ACCEPT | DOWNHILL | DELTA_ONLY);
     ns.policy.beta = 0.5;
     ns.policy.tolerance = 0.003;
-//    ns.neigh_size = mcgrp.neigh_size;
+    ns.neigh_size = mcgrp.neigh_size;
 
     int chosen_task = -1;
     for (int i = 0; i < mcgrp.actual_task_num; i++) {

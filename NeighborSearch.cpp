@@ -363,6 +363,7 @@ void HighSpeedNeighBorSearch::descent_search(const MCGRP &mcgrp)
 
 void HighSpeedNeighBorSearch::create_search_neighborhood(const MCGRP &mcgrp, const vector<int>& chosen_seq,string mode, int offset)
 {
+    int original_neigh_size = neigh_size;
     search_space.clear();
     if(mode.empty() || chosen_seq.empty()) return;
 
@@ -373,8 +374,8 @@ void HighSpeedNeighBorSearch::create_search_neighborhood(const MCGRP &mcgrp, con
 
     int loc = offset;
     if(mode == "basic"){
-        if(neighbor_info.basic_neighbor.empty()) return;
 
+        neigh_size = min(neigh_size, (int)neighbor_info.basic_neighbor.size());
         while(search_space.size() < neigh_size){
             loc %= neighbor_info.basic_neighbor.size();
             search_space.push_back(neighbor_info.basic_neighbor[loc].task_id);
@@ -383,7 +384,8 @@ void HighSpeedNeighBorSearch::create_search_neighborhood(const MCGRP &mcgrp, con
 
     }else if(mode == "predecessor"){
         const auto& predecessor_seq = neighbor_info.predecessor_neighbor.at(chosen_seq.front());
-        if(predecessor_seq.empty()) return;
+
+        neigh_size = min(neigh_size, (int)predecessor_seq.size());
         while(search_space.size() < neigh_size){
             loc %= predecessor_seq.size();
             search_space.push_back(predecessor_seq[loc].task_id);
@@ -392,8 +394,8 @@ void HighSpeedNeighBorSearch::create_search_neighborhood(const MCGRP &mcgrp, con
 
     }else if(mode == "successor"){
         const auto& successor_seq = neighbor_info.successor_neighbor.at(chosen_seq.back());
-        if(successor_seq.empty()) return;
 
+        neigh_size = min(neigh_size,(int)successor_seq.size());
         while(search_space.size() < neigh_size){
             loc %= successor_seq.size();
             search_space.push_back(successor_seq[loc].task_id);
@@ -406,6 +408,7 @@ void HighSpeedNeighBorSearch::create_search_neighborhood(const MCGRP &mcgrp, con
 
 
     mcgrp._rng.RandPerm(search_space);
+    neigh_size = original_neigh_size;
 }
 
 bool HighSpeedNeighBorSearch::valid_sol(const MCGRP &mcgrp)

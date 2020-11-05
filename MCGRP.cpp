@@ -515,8 +515,9 @@ void MCGRP::dijkstra()
 //    show_shortest_info("shortest_path.json");
 }
 
-void MCGRP::create_neighbor_lists()
+void MCGRP::create_neighbor_lists(int neighbor_size)
 {
+    neigh_size = neighbor_size;
     neighbor = vector<vector<NeighborInfo>>(node_num + 1, vector<NeighborInfo>(node_num + 1));
 
     // First build task neighbor

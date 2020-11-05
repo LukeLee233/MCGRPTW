@@ -212,7 +212,7 @@ int main(int argc, char *argv[])
         MCGRP Mixed_Instance(instance_info, rng);
 
         Mixed_Instance.load_file_info(instance_directory + '/' + file_name, instance_info);
-        Mixed_Instance.create_neighbor_lists();
+        Mixed_Instance.create_neighbor_lists(neighbor_size);
 
 #ifdef DEBUG
         log_out.open(date_folder + '/' + file_name + ".log", ios::out);
