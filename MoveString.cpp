@@ -396,6 +396,13 @@ PostMoveString::expected_time_table(HighSpeedNeighBorSearch &ns,
     return res;
 }
 
+
+bool PostMoveString::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_task)
+{
+    // TODO: need implement
+    return false;
+}
+
 //---------------------------------------------------------------------------------------------
 
 
@@ -790,4 +797,10 @@ vector<vector<RouteInfo::TimeTable>> PreMoveString::expected_time_table(HighSpee
     res[1] = final;
 
     return res;
+}
+
+bool PreMoveString::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_task)
+{
+    // TODO(luke): need implement
+    return false;
 }

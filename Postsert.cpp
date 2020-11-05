@@ -645,3 +645,9 @@ Postsert::expected_time_table(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
 
     return res;
 }
+
+bool Postsert::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_task)
+{
+    // TODO(luke): need implement
+    return false;
+}

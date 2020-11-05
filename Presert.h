@@ -5,13 +5,13 @@
 #include "NeighborSearch.h"
 
 //low level operator
-class Presert
+class Presert : public MoveOperator
 {
 public:
-    MOVE move_result;
+    MoveResult move_result;
 public:
 
-    Presert():move_result(MOVE(NeighborOperator::PRESERT)){};
+    Presert():move_result(MoveResult(NeighborOperator::PRESERT)){};
 
 
     /*!
@@ -40,4 +40,6 @@ public:
 
 
     void move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp);
+
+    bool search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_task) override;
 };

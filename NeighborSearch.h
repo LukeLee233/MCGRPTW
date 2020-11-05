@@ -4,14 +4,10 @@
 #include "RNG.h"
 #include "utils.h"
 #include "MCGRP.h"
-#include <vector>
-#include <limits>
 #include "SearchPolicy.h"
 #include "ConstructPolicy.h"
-#include <memory>
-#include <stack>
-#include <unordered_set>
 #include "config.h"
+#include "operator.h"
 
 extern vector<double> ratios;
 extern vector<double> prob;
@@ -19,26 +15,27 @@ extern vector<double> prob;
 class HighSpeedNeighBorSearch
 {
     friend class SingleInsert;
-    friend class DoubleInsert;
-    friend class NewSwap;
-    friend class NewTwoOpt;
     friend class Presert;
     friend class Postsert;
+    friend class DoubleInsert;
     friend class PreMoveString;
     friend class PostMoveString;
+    friend class NewSwap;
+    friend class Invert;
+    friend class NewTwoOpt;
+    friend class NewFlip;
+    friend class NewSwapEnds;
+    friend class MoveOperator;
+    friend class Policy;
     friend class Slice;
     friend class Preslice;
     friend class Postslice;
     friend class Extraction;
-    friend class Invert;
-    friend class NewFlip;
-    friend class NewSwapEnds;
-    friend class Policy;
 
     friend void merge_split(class HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, const int merge_size, const int pseudo_capacity);
     friend struct RouteSegment get_segment_info(const MCGRP &mcgrp,HighSpeedNeighBorSearch &ns,const int chosen_task);
     friend struct seg_info get_seg_info(const MCGRP &mcgrp, HighSpeedNeighBorSearch &ns, const int start_task, const int end_task);
-
+    friend void unit_test(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, MoveOperator& move_operator);
 private:
 
     struct TASK_NODE{

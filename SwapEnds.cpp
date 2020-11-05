@@ -3,7 +3,7 @@
 
 using namespace std;
 
-//MOVE SwapEnds::move_result = MOVE(NeighborOperator::SWAP_ENDS);
+//MoveResult SwapEnds::move_result = MoveResult(NeighborOperator::SWAP_ENDS);
 //
 //bool
 //SwapEnds::considerable_move(NeighBorSearch &ns, const MCGRP &mcgrp, vector<int> chosen_seq, vector<int> candidate_seq)
@@ -1164,4 +1164,10 @@ NewSwapEnds::expected_time_table(HighSpeedNeighBorSearch &ns,
     res[1] = intermediate_v;
 
     return res;
+}
+
+bool NewSwapEnds::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_task)
+{
+    // TODO(luke): need implement
+    return false;
 }

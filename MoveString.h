@@ -4,15 +4,13 @@
 #include "NeighborSearch.h"
 
 //low level operator
-class PreMoveString
+class PreMoveString : public MoveOperator
 {
 public:
-    MOVE move_result;
-public:
 
-    PreMoveString()
-        : move_result(MOVE(NeighborOperator::PRE_MOVE_STRING))
-    {};
+    PreMoveString(){
+        move_result = MoveResult(NeighborOperator::PRE_MOVE_STRING);
+    };
 
     /*!
      * @details Evaluates the move of inserting the string i-j-k(disturbance seq) between u and v (i.e.h-i-j-k-l & t-u-v-w )
@@ -47,17 +45,17 @@ public:
                         const int i, bool allow_infeasible);
 
     void move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp);
+
+    bool search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_task) override;
 };
 
 //low level operator
-class PostMoveString
+class PostMoveString : public MoveOperator
 {
 public:
-    MOVE move_result;
-public:
-    PostMoveString()
-        : move_result(MOVE(NeighborOperator::POST_MOVE_STRING))
-    {};
+    PostMoveString(){
+        move_result = MoveResult(NeighborOperator::POST_MOVE_STRING);
+    };
 
     /*!
      * @details Evaluates the move of inserting the string i-j-k(disturbance seq) between u and v (i.e.h-i-j-k-l & t-u-v-w )
@@ -92,4 +90,6 @@ public:
                         const int i, bool allow_infeasible);
 
     void move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp);
+
+    bool search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_task) override;
 };

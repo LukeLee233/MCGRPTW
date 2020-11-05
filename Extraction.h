@@ -18,16 +18,15 @@
  *   This operator will only be used in the feasible search phase
  */
 
-class Extraction
+class Extraction : public MoveOperator
 {
-    MOVE move_result;
 public:
-    Extraction()
-        : move_result(MOVE(NeighborOperator::EXTRACTION))
-    {};
+    Extraction(){
+        move_result = MoveResult(NeighborOperator::EXTRACTION);
+    };
 
     /*----------------High speed neighbor search---------------------*/
-    bool search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_task);
+    bool search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_task) override;
 
     /*!
      * @details insert Task b to Task j
@@ -42,8 +41,6 @@ public:
     bool considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, const int b);
 
     void move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp);
-
-    void unit_test(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp);
 
     vector<vector<RouteInfo::TimeTable>>
     expected_time_table(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,

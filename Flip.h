@@ -4,12 +4,10 @@
 #include "MCGRP.h"
 
 //low level operator
-class NewFlip
+class NewFlip : public MoveOperator
 {
     //This will flip the whole tasks within two ends
 public:
-    MOVE move_result;
-
     /*!
      * @details get the entire sequence needed to be fliped
      * @param ns
@@ -19,7 +17,9 @@ public:
      */
     vector<int> get_sequence(HighSpeedNeighBorSearch &ns, const int start, const int end);
 public:
-    NewFlip():move_result(MOVE(NeighborOperator::FLIP)){};
+    NewFlip(){
+        move_result = MoveResult(NeighborOperator::FLIP);
+    };
 
     bool considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int start_task, int end_task);
 
@@ -30,4 +30,6 @@ public:
                         bool allow_infeasible);
 
     void move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp);
+
+    bool search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_task) override;
 };

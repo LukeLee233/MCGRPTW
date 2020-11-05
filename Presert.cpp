@@ -662,3 +662,10 @@ vector<vector<RouteInfo::TimeTable>> Presert::expected_time_table(HighSpeedNeigh
 
     return res;
 }
+
+
+bool Presert::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_task)
+{
+    // TODO(luke): need implement
+    return false;
+}

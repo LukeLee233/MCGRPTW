@@ -7,9 +7,8 @@
 #include <vector>
 
 
-class NewTwoOpt{
+class NewTwoOpt : public MoveOperator{
 //    static const int length = 2;
-    MOVE move_result;
     int flip_times;
     int swapends_times;
 
@@ -21,12 +20,13 @@ public:
 
     NewTwoOpt():flip(NewFlip())
     ,swap_ends(NewSwapEnds())
-    ,move_result(MOVE(NeighborOperator::TWO_OPT))
     ,flip_times(0)
-    ,swapends_times(0){};
+    ,swapends_times(0){
+        move_result = MoveResult(NeighborOperator::TWO_OPT);
+    };
 
 
-    bool search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_task);
+    bool search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_task) override;
 
     bool considerable_move(HighSpeedNeighBorSearch &ns,
                                   const MCGRP &mcgrp,
@@ -34,7 +34,6 @@ public:
 
     void move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp);
 
-    void unit_test(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp);
 };
 
 

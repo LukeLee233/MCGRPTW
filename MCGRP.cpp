@@ -1042,24 +1042,24 @@ void MCGRP::_build_neighbor_task(const Task &task, NeighborInfo &neighbor_info)
 
 void MCGRP::_build_neighbor_node(int start, int end, NeighborInfo &neighbor_info)
 {
-    if(neighbor_info.start != -1) return;
+    if(neighbor_info.start == -1){
+        neighbor_info.start = start;
+        neighbor_info.end = end;
 
-    neighbor_info.start = start;
-    neighbor_info.end = end;
+        for(int neighbor_id = 0; neighbor_id <= actual_task_num; neighbor_id++){
+            double distance = double(min_cost[end][inst_tasks[neighbor_id].head_node]
+                                         + min_cost[inst_tasks[neighbor_id].tail_node][start]) / 2.0;
 
-    for(int neighbor_id = 0; neighbor_id <= actual_task_num; neighbor_id++){
-        double distance = double(min_cost[end][inst_tasks[neighbor_id].head_node]
-            + min_cost[inst_tasks[neighbor_id].tail_node][start]) / 2.0;
+            neighbor_info.basic_neighbor.push_back(TaskNeighborInfo(
+                neighbor_id, distance));
+        }
 
-        neighbor_info.basic_neighbor.push_back(TaskNeighborInfo(
-            neighbor_id, distance));
+        sort(neighbor_info.basic_neighbor.begin(), neighbor_info.basic_neighbor.end(), TaskNeighborInfo::cmp);
     }
 
-    sort(neighbor_info.basic_neighbor.begin(), neighbor_info.basic_neighbor.end(), TaskNeighborInfo::cmp);
 
-    const vector<int> & candidate_tasks = _same_end_task(end);
-    for(const auto task : candidate_tasks){
-        vector<TaskNeighborInfo> predecessor_NList;
+    const vector<int> & candidate_end_tasks = _same_end_task(end);
+    for(const auto task : candidate_end_tasks){
         vector<TaskNeighborInfo> successor_NList;
 
         for(const auto& neighbor: neighbor_info.basic_neighbor){
@@ -1069,7 +1069,16 @@ void MCGRP::_build_neighbor_node(int start, int end, NeighborInfo &neighbor_info
                 <= inst_tasks[neighbor.task_id].time_window.second){
                 successor_NList.push_back(neighbor);
             }
+        }
 
+        neighbor_info.successor_neighbor.insert({task,successor_NList});
+    }
+
+    const vector<int> & candidate_start_tasks = _same_start_task(start);
+    for(const auto task : candidate_start_tasks){
+        vector<TaskNeighborInfo> predecessor_NList;
+
+        for(const auto& neighbor: neighbor_info.basic_neighbor){
             if(inst_tasks[neighbor.task_id].time_window.first
                 + inst_tasks[neighbor.task_id].serve_time
                 + get_travel_time(neighbor.task_id, task)
@@ -1079,8 +1088,8 @@ void MCGRP::_build_neighbor_node(int start, int end, NeighborInfo &neighbor_info
         }
 
         neighbor_info.predecessor_neighbor.insert({task,predecessor_NList});
-        neighbor_info.successor_neighbor.insert({task,successor_NList});
     }
+
 
 //    show_neighbor(start,end);
 }
@@ -1109,14 +1118,18 @@ void MCGRP::show_neighbor(int start, int end)
         for(const auto& neighbor_task : pair.second){
             cout << "[" << neighbor_task.task_id << "," << neighbor_task.distance << "]->";
         }
-        cout <<"\b\b"<<endl;
+        cout <<"\b\b\n\n"<<endl;
+    }
 
+    for(const auto& pair: task.predecessor_neighbor){
+        int task_id  = pair.first;
         cout << "task " << task_id << " predecessor task:"<<endl;
         for(const auto& neighbor_task : task.predecessor_neighbor.at(task_id)){
             cout << "[" << neighbor_task.task_id << "," << neighbor_task.distance << "]->";
         }
         cout <<"\b\b\n\n"<<endl;
     }
+
 }
 
 const vector<int>& MCGRP::_same_end_task(int end_node)
@@ -1130,4 +1143,17 @@ const vector<int>& MCGRP::_same_end_task(int end_node)
             end_task_lookup_tbl[end_node].push_back(ii);
     }
     return end_task_lookup_tbl[end_node];
+}
+
+const vector<int> &MCGRP::_same_start_task(int start_node)
+{
+    if(!start_task_lookup_tbl[start_node].empty()){
+        return start_task_lookup_tbl[start_node];
+    }
+
+    for(int ii = 0; ii<=actual_task_num; ii++){
+        if(inst_tasks[ii].head_node == start_node)
+            start_task_lookup_tbl[start_node].push_back(ii);
+    }
+    return start_task_lookup_tbl[start_node];
 }

@@ -5,13 +5,13 @@
 
 
 //low level operator
-class Postsert
+class Postsert : public MoveOperator
 {
 public:
-    MOVE move_result;
+    MoveResult move_result;
 public:
 
-    Postsert(): move_result(MOVE(NeighborOperator::POSTSERT)){};
+    Postsert(): move_result(MoveResult(NeighborOperator::POSTSERT)){};
 
     /*!
  * prosert from Task u to Task i
@@ -38,4 +38,6 @@ public:
                                                              int u, int u_tilde, const int i, bool allow_infeasible);
 
     void move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp);
+
+    bool search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_task) override;
 };

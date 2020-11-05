@@ -19,13 +19,13 @@
  */
 
 
-class Preslice
+class Preslice : public MoveOperator
 {
 public:
-    MOVE move_result;
-public:
 
-    Preslice(): move_result(MOVE(NeighborOperator::PRE_SLICE)){};
+    Preslice(){
+        move_result = MoveResult(NeighborOperator::PRE_SLICE);
+    };
 
     /*!
  * @details presert from Task u to Task i
@@ -42,16 +42,18 @@ public:
 
     vector<vector<RouteInfo::TimeTable>> expected_time_table(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
                                                              const int b);
+
+    bool search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_task) override;
 };
 
 //low level operator
-class Postslice
+class Postslice : public MoveOperator
 {
 public:
-    MOVE move_result;
-public:
 
-    Postslice(): move_result(MOVE(NeighborOperator::POST_SLICE)){};
+    Postslice(){
+        move_result = MoveResult(NeighborOperator::POST_SLICE);
+    };
 
     /*!
  * prosert from Task u to Task i
@@ -69,25 +71,26 @@ public:
     vector<vector<RouteInfo::TimeTable>> expected_time_table(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
                                                              const int b);
 
+    bool search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_task) override;
 };
 
 
 //high level operator
-class Slice
+class Slice : public MoveOperator
 {
-    MOVE move_result;
     int pre_slice_times;
     int post_slice_times;
     Preslice preslice;
     Postslice postslice;
 public:
     Slice(): preslice(Preslice()), postslice(Postslice())
-    ,move_result(MOVE(NeighborOperator::SLICE))
     ,pre_slice_times(0)
-    ,post_slice_times(0){};
+    ,post_slice_times(0){
+        move_result = MoveResult(NeighborOperator::SLICE);
+    };
 
     /*----------------High speed neighbor search---------------------*/
-    bool search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_task);
+    bool search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_task) override;
 
     /*!
      * @details insert Task b to Task j
@@ -103,7 +106,6 @@ public:
 
     void move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp);
 
-    void unit_test(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp);
 };
 
 

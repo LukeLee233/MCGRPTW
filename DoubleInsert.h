@@ -5,11 +5,10 @@
 
 
 //high level operator
-class DoubleInsert
+class DoubleInsert : public MoveOperator
 {
     // Here you can set a given length to achieve m-sert
     const int length = 2;
-    MOVE move_result;
 
     int presert_times;
     int postsert_times;
@@ -20,8 +19,9 @@ class DoubleInsert
 public:
     DoubleInsert(): pre_move_string(PreMoveString())
     ,post_move_string(PostMoveString())
-    ,move_result(MOVE(NeighborOperator::DOUBLE_INSERT))
-    ,presert_times(0),postsert_times(0){};
+    ,presert_times(0),postsert_times(0){
+        move_result = MoveResult(NeighborOperator::DOUBLE_INSERT);
+    };
 
 
     /*!
@@ -32,7 +32,7 @@ public:
  */
     vector<int> get_successor_tasks(HighSpeedNeighBorSearch &ns, const int chosen_task);
 
-    bool search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_task);
+    bool search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_task) override;
 
     /*!
      * @details double sert from disturbance_seq to candidate_task
@@ -51,5 +51,4 @@ public:
 
     void move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp);
 
-    void unit_test(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp);
 };

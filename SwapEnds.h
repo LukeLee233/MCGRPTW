@@ -4,12 +4,12 @@
 #include "NeighborSearch.h"
 
 
-class NewSwapEnds
+class NewSwapEnds : public MoveOperator
 {
 public:
-    MOVE move_result;
-public:
-    NewSwapEnds():move_result(MOVE(NeighborOperator::SWAP_ENDS)){}
+    NewSwapEnds(){
+        move_result = MoveResult(NeighborOperator::SWAP_ENDS);
+    }
     
     bool considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, const int chosen_task, const int neighbor_task,const int chosen_route,const int neighbor_route);
 
@@ -26,4 +26,5 @@ public:
                         const struct RouteSegment& v_seg,
                         bool allow_infeasible);
 
+    bool search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_task) override;
 };

@@ -35,5 +35,5 @@ aux_source_directory(. MCGRP_src)
 add_executable(MCGRP_debug ${MCGRP_src}
         json.hpp SearchPolicy.cpp SearchPolicy.h
         Slice.cpp Slice.h Extraction.cpp Extraction.h
-        Similarity.cpp Similarity.h config.cpp config.h)
+        Similarity.cpp Similarity.h config.cpp config.h operator.cpp operator.h)
 target_link_libraries(MCGRP_debug gsl gslcblas ${Boost_LIBRARIES})

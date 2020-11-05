@@ -7,21 +7,21 @@
 #include "PostSert.h"
 
 //high level operator
-class SingleInsert
+class SingleInsert : public MoveOperator
 {
-    MOVE move_result;
     int presert_times;
     int postsert_times;
     Presert presert;
     Postsert postsert;
 public:
-    SingleInsert() : presert(Presert()), postsert(Postsert()),
-    move_result(MOVE(NeighborOperator::SINGLE_INSERT)),
-    presert_times(0),postsert_times(0){};
+    SingleInsert()
+    : presert(Presert()), postsert(Postsert()), presert_times(0), postsert_times(0){
+        move_result=MoveResult(NeighborOperator::SINGLE_INSERT);
+    };
 
 
     /*----------------High speed neighbor search---------------------*/
-    bool search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_task);
+    bool search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_task) override;
 
     /*!
      * @details insert Task b to Task j
@@ -37,5 +37,4 @@ public:
 
     void move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp);
 
-    void unit_test(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp);
 };

@@ -129,7 +129,9 @@ public:
     void _build_neighbor_task(const Task& task, NeighborInfo& neighbor_info);
     void _build_neighbor_node(int start, int end, NeighborInfo& neighbor_info);
     unordered_map<int, vector<int>> end_task_lookup_tbl;
+    unordered_map<int, vector<int>> start_task_lookup_tbl;
     const vector<int>& _same_end_task(int end_node);
+    const vector<int>& _same_start_task(int start_node);
 
     /*!
      * 获得任务序列的总成本

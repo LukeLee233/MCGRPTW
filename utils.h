@@ -240,7 +240,7 @@ vector<int> get_negative_coding(const vector<int> &sequence);
 vector<int> get_delimiter_coding(const vector<int> &negative_coding);
 
 
-class MOVE
+class MoveResult
 {
 public:
     //pairwise tasks in a moving action
@@ -273,7 +273,7 @@ public:
     vector<vector<int>> old_route_seq;
     vector<vector<int>> new_route_seq;
 
-    MOVE()
+    MoveResult()
         : task1(-1), task2(-1), num_affected_routes(-1)
     {
         considerable = false;
@@ -281,19 +281,19 @@ public:
         seq1_cus_num = -1;
         seq2_cus_num = -1;
         new_total_route_length =
-            std::numeric_limits<identity<decltype(MOVE::new_total_route_length)>::type>::max();
+            std::numeric_limits<identity<decltype(MoveResult::new_total_route_length)>::type>::max();
 
         vio_load_delta = 0;
         vio_time_delta = 0;
     };
 
-    MOVE(NeighborOperator _move_type)
+    MoveResult(NeighborOperator _move_type)
         : task1(-1), task2(-1), num_affected_routes(-1)
     {
         considerable = false;
         delta = 0;
         new_total_route_length =
-            std::numeric_limits<identity<decltype(MOVE::new_total_route_length)>::type>::max();
+            std::numeric_limits<identity<decltype(MoveResult::new_total_route_length)>::type>::max();
         move_type = _move_type;
         seq1_cus_num = -1;
         seq2_cus_num = -1;
@@ -319,7 +319,7 @@ public:
         vio_load_delta = 0;
         vio_time_delta = 0;
         new_total_route_length =
-            std::numeric_limits<identity<decltype(MOVE::new_total_route_length)>::type>::max();
+            std::numeric_limits<identity<decltype(MoveResult::new_total_route_length)>::type>::max();
         move_arguments.clear();
 
         num_affected_routes = -1;

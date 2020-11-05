@@ -182,3 +182,9 @@ NewFlip::expected_time_table(HighSpeedNeighBorSearch &ns,
     res = intermediate;
     return res;
 }
+
+bool NewFlip::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_task)
+{
+    // TODO(luke): need implement
+    return false;
+}
