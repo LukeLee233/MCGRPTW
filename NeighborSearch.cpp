@@ -1,7 +1,5 @@
 #include "NeighborSearch.h"
 #include <iostream>
-#include "SingleInsert.h"
-#include "DoubleInsert.h"
 #include "Swap.h"
 #include "Invert.h"
 #include "TwoOpt.h"
@@ -50,8 +48,9 @@ void HighSpeedNeighBorSearch::DUMMYPOOL::extend()
 
 HighSpeedNeighBorSearch::HighSpeedNeighBorSearch(const MCGRP &mcgrp)
     : solution(mcgrp.actual_task_num), routes(mcgrp.actual_task_num),
-    task_set(mcgrp.actual_task_num), single_insert(new SingleInsert),
-    double_insert(new DoubleInsert), two_opt(new NewTwoOpt),
+    task_set(mcgrp.actual_task_num), single_pre_insert(new XPreInsert(1)),
+    single_post_insert(new XPostInsert(1)), double_pre_insert(new XPreInsert(2)),
+    double_post_insert(new XPostInsert(2)),two_opt(new NewTwoOpt),
     invert(new Invert), swap(new NewSwap), extraction(new Extraction), slice(new Slice) {
     search_step = 0;
     equal_step = 0;
@@ -500,9 +499,13 @@ void HighSpeedNeighBorSearch::threshold_exploration_version_0(const MCGRP &mcgrp
                 }
 
                 switch (cur_operator) {
-                    case SINGLE_INSERT:single_insert->search(*this, mcgrp, chosen_task);
+                    case SINGLE_INSERT:
+                        single_pre_insert->search(*this, mcgrp, chosen_task);
+                        single_post_insert->search(*this, mcgrp,chosen_task);
                         break;
-                    case DOUBLE_INSERT:double_insert->search(*this, mcgrp, chosen_task);
+                    case DOUBLE_INSERT:
+                        double_pre_insert->search(*this, mcgrp, chosen_task);
+                        double_post_insert->search(*this, mcgrp, chosen_task);
                         break;
                     case SWAP:swap->search(*this, mcgrp, chosen_task);
                         break;
@@ -568,9 +571,13 @@ void HighSpeedNeighBorSearch::descent_exploration_version_0(const MCGRP &mcgrp)
                 }
 
                 switch (cur_operator) {
-                    case SINGLE_INSERT:single_insert->search(*this, mcgrp, chosen_task);
+                    case SINGLE_INSERT:
+                        single_pre_insert->search(*this, mcgrp, chosen_task);
+                        single_post_insert->search(*this, mcgrp, chosen_task);
                         break;
-                    case DOUBLE_INSERT:double_insert->search(*this, mcgrp, chosen_task);
+                    case DOUBLE_INSERT:
+                        double_pre_insert->search(*this, mcgrp, chosen_task);
+                        double_post_insert->search(*this, mcgrp, chosen_task);
                         break;
                     case SWAP:swap->search(*this, mcgrp, chosen_task);
                         break;
@@ -724,9 +731,13 @@ void HighSpeedNeighBorSearch::small_step_infeasible_descent_search(const MCGRP &
                 }
 
                 switch (cur_operator) {
-                    case SINGLE_INSERT:single_insert->search(*this, mcgrp, chosen_task);
+                    case SINGLE_INSERT:
+                        single_pre_insert->search(*this, mcgrp, chosen_task);
+                        single_post_insert->search(*this, mcgrp, chosen_task);
                         break;
-                    case DOUBLE_INSERT:double_insert->search(*this, mcgrp, chosen_task);
+                    case DOUBLE_INSERT:
+                        double_pre_insert->search(*this, mcgrp, chosen_task);
+                        double_post_insert->search(*this, mcgrp, chosen_task);
                         break;
                     case SWAP:swap->search(*this, mcgrp, chosen_task);
                         break;
@@ -798,9 +809,13 @@ void HighSpeedNeighBorSearch::small_step_infeasible_tabu_search(const MCGRP &mcg
                 }
 
                 switch (cur_operator) {
-                    case SINGLE_INSERT:single_insert->search(*this, mcgrp, chosen_task);
+                    case SINGLE_INSERT:
+                        single_pre_insert->search(*this, mcgrp, chosen_task);
+                        single_post_insert->search(*this, mcgrp, chosen_task);
                         break;
-                    case DOUBLE_INSERT:double_insert->search(*this, mcgrp, chosen_task);
+                    case DOUBLE_INSERT:
+                        double_pre_insert->search(*this, mcgrp, chosen_task);
+                        double_post_insert->search(*this, mcgrp, chosen_task);
                         break;
                     case SWAP:swap->search(*this, mcgrp, chosen_task);
                         break;
@@ -1485,6 +1500,30 @@ void HighSpeedNeighBorSearch::_tour_splitting_repair(const MCGRP &mcgrp)
     My_Assert(total_vio_time == 0, "This is not a infeasible Task!");
 
     My_Assert(valid_sol(mcgrp), "Repair method doesn't work properly!");
+}
+
+vector<int>
+HighSpeedNeighBorSearch::get_successor_tasks(int length, const int chosen_task)
+{
+    My_Assert(chosen_task != DUMMY, "Chosen task can't be dummy");
+
+    int current_node;
+    vector<int> buffer;
+
+    current_node = chosen_task;
+    buffer.push_back(current_node);
+    while (buffer.size() < length) {
+        current_node = solution[current_node]->next->ID;
+
+        if (current_node < 0) {
+            return buffer;
+        }
+        else {
+            buffer.push_back(current_node);
+        }
+    }
+
+    return buffer;
 }
 
 pair<struct HighSpeedNeighBorSearch::TASK_NODE *, struct HighSpeedNeighBorSearch::TASK_NODE *>

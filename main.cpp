@@ -9,8 +9,6 @@
 #include <boost/filesystem.hpp>
 #include <boost/date_time.hpp>
 #include "ConstructPolicy.h"
-#include "SingleInsert.h"
-#include "DoubleInsert.h"
 #include "Slice.h"
 #include "Extraction.h"
 #include "Swap.h"

@@ -1,24 +1,60 @@
-#include "MoveString.h"
-#include "NeighborSearch.h"
-#include "PostSert.h"
-#include "Presert.h"
-#include <algorithm>
+//
+// Created by luke on 2020/11/5.
+//
 
+#include "insert.h"
 
+vector<vector<RouteInfo::TimeTable>> XPostInsert::expected_time_table(HighSpeedNeighBorSearch &ns,
+                                                                      const MCGRP &mcgrp,
+                                                                      vector<int> &disturbance_seq,
+                                                                      const int i,
+                                                                      bool allow_infeasible)
+{
+    vector<vector<RouteInfo::TimeTable>>
+        res(2,vector<RouteInfo::TimeTable>({{-1, -1}}));
 
+    const int i_route = ns.solution[i]->route_id;
+    const int u_route = ns.solution[disturbance_seq.front()]->route_id;
 
-bool
-PostMoveString::considerable_move(HighSpeedNeighBorSearch &ns,
-                                  const MCGRP &mcgrp,
-                                  vector<int> disturbance_seq,
-                                  const int u)
+    auto intermediate = mcgrp.forecast_time_table(ns.routes[u_route]->time_table,
+                                                  disturbance_seq,"remove",-1 ,allow_infeasible);
+
+    if(!mcgrp.isTimeTableFeasible(intermediate)){
+        return res;
+    }
+
+    vector<RouteInfo::TimeTable> final;
+    if(u_route == i_route){
+        final = mcgrp.forecast_time_table(intermediate,
+                                          disturbance_seq,"insert_after",i,allow_infeasible);
+        intermediate = final;
+    }else{
+        final = mcgrp.forecast_time_table(ns.routes[i_route]->time_table,
+                                          disturbance_seq,"insert_after",i,allow_infeasible);
+    }
+
+    if(!mcgrp.isTimeTableFeasible(final)){
+        return res;
+    }
+
+    // 0 for u_route, 1 for i_route
+    res[0] = intermediate;
+    res[1] = final;
+
+    return res;
+}
+
+bool XPostInsert::considerable_move(HighSpeedNeighBorSearch &ns,
+                                    const MCGRP &mcgrp,
+                                    vector<int> disturbance_seq,
+                                    const int u)
 {
     // Task u cannot be dummy Task
     My_Assert(u>=1 && u<=mcgrp.actual_task_num,"Wrong Task");
     My_Assert(all_of(disturbance_seq.begin(),disturbance_seq.end(),
                      [&](int i){return i>=1 && i<=mcgrp.actual_task_num;}),"Wrong Task");
 
-    if(u == ns.solution[disturbance_seq.back()]->next->ID){
+    if(u == ns.solution[disturbance_seq.front()]->pre->ID){
         // Nothing to do
         move_result.reset();
         return false;
@@ -151,7 +187,7 @@ PostMoveString::considerable_move(HighSpeedNeighBorSearch &ns,
         move_result.route_time_tbl.emplace_back(new_time_tbl[0]);
         move_result.vio_time_delta =
             mcgrp.get_vio_time(move_result.route_time_tbl[0])
-            - mcgrp.get_vio_time(ns.routes[i_route]->time_table);
+                - mcgrp.get_vio_time(ns.routes[i_route]->time_table);
         return true;
     }
     else {
@@ -180,16 +216,16 @@ PostMoveString::considerable_move(HighSpeedNeighBorSearch &ns,
         move_result.route_time_tbl = new_time_tbl;
         move_result.vio_time_delta =
             mcgrp.get_vio_time(move_result.route_time_tbl[0])
-            + mcgrp.get_vio_time(move_result.route_time_tbl[1])
-            - mcgrp.get_vio_time(ns.routes[i_route]->time_table)
-            - mcgrp.get_vio_time(ns.routes[u_route]->time_table);
+                + mcgrp.get_vio_time(move_result.route_time_tbl[1])
+                - mcgrp.get_vio_time(ns.routes[i_route]->time_table)
+                - mcgrp.get_vio_time(ns.routes[u_route]->time_table);
         return true;
     }
 
     My_Assert(false,"Cannot reach here!");
 }
 
-void PostMoveString::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
+void XPostInsert::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
 {
     DEBUG_PRINT("execute a double insert:postsert move");
     My_Assert(move_result.considerable,"Invalid predictions");
@@ -355,13 +391,140 @@ void PostMoveString::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
     ns.search_step++;
 }
 
-vector<vector<RouteInfo::TimeTable>>
-PostMoveString::expected_time_table(HighSpeedNeighBorSearch &ns,
-                                    const MCGRP &mcgrp,
-                                    vector<int> &disturbance_seq,
-                                    const int i,
-                                    bool allow_infeasible)
+
+bool XPostInsert::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_task)
 {
+    My_Assert(chosen_task >= 1 && chosen_task <= mcgrp.actual_task_num,"Wrong Task");
+
+    MoveResult BestM;
+
+    vector<int> chosen_seq = ns.get_successor_tasks(length, chosen_task);
+
+    ns.create_search_neighborhood(mcgrp, chosen_seq,"predecessor", 0);
+
+
+    My_Assert(chosen_seq.size()>0,"You cannot generate an empty sequence!");
+
+    if (chosen_seq.size() != length) {
+        DEBUG_PRINT("The length after chosen Task is not" + to_string(length) + "in " + to_string(length) + "-insert");
+        return false;
+    }
+
+    int b = chosen_seq.front();
+
+    for(auto neighbor_task : ns.search_space) {
+        My_Assert(neighbor_task != b, "neighbor Task can't be itself!");
+
+        if (neighbor_task != DUMMY) {
+            //j can't be dummy and b can't be dummy neither here
+            int j = neighbor_task;
+
+            if (std::find(chosen_seq.begin(), chosen_seq.end(), j) == chosen_seq.end()) {
+                // doesn't overlap
+                if (considerable_move(ns, mcgrp, chosen_seq, j)) {
+                    if (ns.policy.has_rule(FIRST_ACCEPT)) {
+                        move(ns, mcgrp);
+                        return true;
+                    }
+                    else if (ns.policy.has_rule(BEST_ACCEPT)) {
+                        if (ns.policy.check_result(move_result, BestM))
+                            BestM = move_result;
+                    }
+                    else {
+                        My_Assert(false, "Unknown accept rule!");
+                    }
+                }
+            }
+        }
+        else {
+            DEBUG_PRINT("Neighbor Task is dummy Task");
+            //j is dummy here and b can't be dummy neither
+            //each start and end location of each route will be considered
+            //total 2 x route_nums cases
+
+            int current_start = ns.solution.very_start->next->ID;
+
+            while (ns.solution[current_start]->next != ns.solution.very_end) {
+                // Consider the start location
+                int j = current_start;
+
+                if (std::find(chosen_seq.begin(), chosen_seq.end(), j) == chosen_seq.end()) {
+                    // doesn't overlap
+                    if (considerable_move(ns, mcgrp, chosen_seq, j)) {
+                        if (ns.policy.has_rule(FIRST_ACCEPT)) {
+                            move(ns, mcgrp);
+                            return true;
+                        }
+                        else if (ns.policy.has_rule(BEST_ACCEPT)) {
+                            if (ns.policy.check_result(move_result, BestM))
+                                BestM = move_result;
+                        }
+                        else {
+                            My_Assert(false, "Unknown accept rule!");
+                        }
+                    }
+                }
+
+                // Consider the end location
+                const int current_route = ns.solution[current_start]->route_id;
+                const int current_end = ns.routes[current_route]->end;
+                j = current_end;
+                if (std::find(chosen_seq.begin(), chosen_seq.end(), j) == chosen_seq.end()) {
+                    // doesn't overlap
+                    if (considerable_move(ns, mcgrp, chosen_seq, j)) {
+                        if (ns.policy.has_rule(FIRST_ACCEPT)) {
+                            move(ns, mcgrp);
+                            return true;
+                        }
+                        else if (ns.policy.has_rule(BEST_ACCEPT)) {
+                            if (ns.policy.check_result(move_result, BestM))
+                                BestM = move_result;
+                        }
+                        else {
+                            My_Assert(false, "Unknown accept rule!");
+                        }
+                    }
+                }
+
+                // Advance to next route's starting Task
+                current_start = ns.solution[current_end]->next->next->ID;
+            }
+        }
+    }
+
+    if (ns.policy.has_rule(FIRST_ACCEPT)) {
+        DEBUG_PRINT("No actual move: First Accept Rule");
+        return false;
+    }
+    else if (ns.policy.has_rule(BEST_ACCEPT)) {
+        if (BestM.considerable == false) {
+            DEBUG_PRINT("No actual move: Best Accept Rule");
+            return false;
+        }
+        else {
+            move_result = BestM;
+            move(ns, mcgrp);
+            return true;
+        }
+    }
+    else {
+        My_Assert(false, "Unknown accept rule");
+    }
+
+}
+
+
+
+
+/*------------------------------------------------------------------------*/
+
+
+vector<vector<RouteInfo::TimeTable>>
+XPreInsert::expected_time_table(HighSpeedNeighBorSearch &ns,
+                                const MCGRP &mcgrp,
+                                vector<int> &disturbance_seq,
+                                const int i,
+                                bool allow_infeasible){
     vector<vector<RouteInfo::TimeTable>>
         res(2,vector<RouteInfo::TimeTable>({{-1, -1}}));
 
@@ -378,11 +541,11 @@ PostMoveString::expected_time_table(HighSpeedNeighBorSearch &ns,
     vector<RouteInfo::TimeTable> final;
     if(u_route == i_route){
         final = mcgrp.forecast_time_table(intermediate,
-                                          disturbance_seq,"insert_after",i,allow_infeasible);
+                                          disturbance_seq,"insert_before",i,allow_infeasible);
         intermediate = final;
     }else{
         final = mcgrp.forecast_time_table(ns.routes[i_route]->time_table,
-                                          disturbance_seq,"insert_after",i,allow_infeasible);
+                                          disturbance_seq,"insert_before",i,allow_infeasible);
     }
 
     if(!mcgrp.isTimeTableFeasible(final)){
@@ -397,29 +560,15 @@ PostMoveString::expected_time_table(HighSpeedNeighBorSearch &ns,
 }
 
 
-bool PostMoveString::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_task)
-{
-    // TODO: need implement
-    return false;
-}
-
-//---------------------------------------------------------------------------------------------
-
-
-
 bool
-PreMoveString::considerable_move(HighSpeedNeighBorSearch &ns,
-                                 const class MCGRP &mcgrp,
-                                 vector<int> disturbance_seq,
-                                 const int u)
+XPreInsert::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, vector<int> disturbance_seq, const int u)
 {
-
     // Task u cannot be dummy Task
     My_Assert(u >= 1 && u <= mcgrp.actual_task_num,"Wrong Task");
     My_Assert(all_of(disturbance_seq.begin(), disturbance_seq.end(),
                      [&](int i){return i>=1 && i<=mcgrp.actual_task_num;}), "Wrong Task");
 
-    if(u == ns.solution[disturbance_seq.front()]->pre->ID){
+    if(u == ns.solution[disturbance_seq.back()]->next->ID){
         // Nothing to do
         move_result.reset();
         return false;
@@ -555,7 +704,7 @@ PreMoveString::considerable_move(HighSpeedNeighBorSearch &ns,
         move_result.route_time_tbl.emplace_back(new_time_tbl[0]);
         move_result.vio_time_delta =
             mcgrp.get_vio_time(move_result.route_time_tbl[0])
-            - mcgrp.get_vio_time(ns.routes[i_route]->time_table);
+                - mcgrp.get_vio_time(ns.routes[i_route]->time_table);
         return true;
     }
     else {
@@ -584,16 +733,17 @@ PreMoveString::considerable_move(HighSpeedNeighBorSearch &ns,
         move_result.route_time_tbl = new_time_tbl;
         move_result.vio_time_delta =
             mcgrp.get_vio_time(move_result.route_time_tbl[0])
-            + mcgrp.get_vio_time(move_result.route_time_tbl[1])
-            - mcgrp.get_vio_time(ns.routes[i_route]->time_table)
-            - mcgrp.get_vio_time(ns.routes[u_route]->time_table);
+                + mcgrp.get_vio_time(move_result.route_time_tbl[1])
+                - mcgrp.get_vio_time(ns.routes[i_route]->time_table)
+                - mcgrp.get_vio_time(ns.routes[u_route]->time_table);
         return true;
     }
 
     My_Assert(false,"Cannot reach here!");
 }
 
-void PreMoveString::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
+
+void XPreInsert::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
 {
     DEBUG_PRINT("execute a double insert:postsert move");
     My_Assert(move_result.considerable,"Invalid predictions");
@@ -759,48 +909,126 @@ void PreMoveString::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
     ns.search_step++;
 }
 
-vector<vector<RouteInfo::TimeTable>> PreMoveString::expected_time_table(HighSpeedNeighBorSearch &ns,
-                                                                        const MCGRP &mcgrp,
-                                                                        vector<int> &disturbance_seq,
-                                                                        const int i,
-                                                                        bool allow_infeasible)
+
+bool XPreInsert::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_task)
 {
-    vector<vector<RouteInfo::TimeTable>>
-        res(2,vector<RouteInfo::TimeTable>({{-1, -1}}));
+    My_Assert(chosen_task >= 1 && chosen_task <= mcgrp.actual_task_num,"Wrong Task");
 
-    const int i_route = ns.solution[i]->route_id;
-    const int u_route = ns.solution[disturbance_seq.front()]->route_id;
+    MoveResult BestM;
 
-    auto intermediate = mcgrp.forecast_time_table(ns.routes[u_route]->time_table,
-                                                  disturbance_seq,"remove",-1 ,allow_infeasible);
+    vector<int> chosen_seq = ns.get_successor_tasks(length, chosen_task);
 
-    if(!mcgrp.isTimeTableFeasible(intermediate)){
-        return res;
+    ns.create_search_neighborhood(mcgrp, chosen_seq,"successor", 0);
+
+
+    My_Assert(chosen_seq.size()>0,"You cannot generate an empty sequence!");
+
+    if (chosen_seq.size() != length) {
+        DEBUG_PRINT("The length after chosen Task is not" + to_string(length) + "in " + to_string(length) + "-insert");
+        return false;
     }
 
-    vector<RouteInfo::TimeTable> final;
-    if(u_route == i_route){
-        final = mcgrp.forecast_time_table(intermediate,
-                                          disturbance_seq,"insert_before",i,allow_infeasible);
-        intermediate = final;
-    }else{
-        final = mcgrp.forecast_time_table(ns.routes[i_route]->time_table,
-                                          disturbance_seq,"insert_before",i,allow_infeasible);
+    int b = chosen_seq.front();
+
+    for(auto neighbor_task : ns.search_space) {
+        My_Assert(neighbor_task != b, "neighbor Task can't be itself!");
+
+        if (neighbor_task != DUMMY) {
+            //j can't be dummy and b can't be dummy neither here
+            int j = neighbor_task;
+
+            if (std::find(chosen_seq.begin(), chosen_seq.end(), j) == chosen_seq.end()) {
+                // doesn't overlap
+                if (considerable_move(ns, mcgrp, chosen_seq, j)) {
+                    if (ns.policy.has_rule(FIRST_ACCEPT)) {
+                        move(ns, mcgrp);
+                        return true;
+                    }
+                    else if (ns.policy.has_rule(BEST_ACCEPT)) {
+                        if (ns.policy.check_result(move_result, BestM))
+                            BestM = move_result;
+                    }
+                    else {
+                        My_Assert(false, "Unknown accept rule!");
+                    }
+                }
+            }
+        }
+        else {
+            DEBUG_PRINT("Neighbor Task is dummy Task");
+            //j is dummy here and b can't be dummy neither
+            //each start and end location of each route will be considered
+            //total 2 x route_nums cases
+
+            int current_start = ns.solution.very_start->next->ID;
+
+            while (ns.solution[current_start]->next != ns.solution.very_end) {
+                // Consider the start location
+                int j = current_start;
+
+                if (std::find(chosen_seq.begin(), chosen_seq.end(), j) == chosen_seq.end()) {
+                    // doesn't overlap
+                    if (considerable_move(ns, mcgrp, chosen_seq, j)) {
+                        if (ns.policy.has_rule(FIRST_ACCEPT)) {
+                            move(ns, mcgrp);
+                            return true;
+                        }
+                        else if (ns.policy.has_rule(BEST_ACCEPT)) {
+                            if (ns.policy.check_result(move_result, BestM))
+                                BestM = move_result;
+                        }
+                        else {
+                            My_Assert(false, "Unknown accept rule!");
+                        }
+                    }
+                }
+
+                // Consider the end location
+                const int current_route = ns.solution[current_start]->route_id;
+                const int current_end = ns.routes[current_route]->end;
+                j = current_end;
+                if (std::find(chosen_seq.begin(), chosen_seq.end(), j) == chosen_seq.end()) {
+                    // doesn't overlap
+                    if (considerable_move(ns, mcgrp, chosen_seq, j)) {
+                        if (ns.policy.has_rule(FIRST_ACCEPT)) {
+                            move(ns, mcgrp);
+                            return true;
+                        }
+                        else if (ns.policy.has_rule(BEST_ACCEPT)) {
+                            if (ns.policy.check_result(move_result, BestM))
+                                BestM = move_result;
+                        }
+                        else {
+                            My_Assert(false, "Unknown accept rule!");
+                        }
+                    }
+                }
+
+                // Advance to next route's starting Task
+                current_start = ns.solution[current_end]->next->next->ID;
+            }
+        }
     }
 
-    if(!mcgrp.isTimeTableFeasible(final)){
-        return res;
+    if (ns.policy.has_rule(FIRST_ACCEPT)) {
+        DEBUG_PRINT("No actual move: First Accept Rule");
+        return false;
+    }
+    else if (ns.policy.has_rule(BEST_ACCEPT)) {
+        if (BestM.considerable == false) {
+            DEBUG_PRINT("No actual move: Best Accept Rule");
+            return false;
+        }
+        else {
+            move_result = BestM;
+            move(ns, mcgrp);
+            return true;
+        }
+    }
+    else {
+        My_Assert(false, "Unknown accept rule");
     }
 
-    // 0 for u_route, 1 for i_route
-    res[0] = intermediate;
-    res[1] = final;
-
-    return res;
 }
 
-bool PreMoveString::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_task)
-{
-    // TODO(luke): need implement
-    return false;
-}
+

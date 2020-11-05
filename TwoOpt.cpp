@@ -76,7 +76,7 @@ bool NewTwoOpt::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chos
 
     MoveResult BestM;
 
-    ns.create_search_neighborhood(mcgrp, chosen_task);
+    ns.create_search_neighborhood(mcgrp, {chosen_task});
 
     int b = chosen_task;
     int a = ns.solution[b]->pre->ID;

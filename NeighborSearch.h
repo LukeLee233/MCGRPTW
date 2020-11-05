@@ -8,18 +8,13 @@
 #include "ConstructPolicy.h"
 #include "config.h"
 #include "operator.h"
+#include "insert.h"
 
 extern vector<double> ratios;
 extern vector<double> prob;
 
 class HighSpeedNeighBorSearch
 {
-    friend class SingleInsert;
-    friend class Presert;
-    friend class Postsert;
-    friend class DoubleInsert;
-    friend class PreMoveString;
-    friend class PostMoveString;
     friend class NewSwap;
     friend class Invert;
     friend class NewTwoOpt;
@@ -31,6 +26,8 @@ class HighSpeedNeighBorSearch
     friend class Preslice;
     friend class Postslice;
     friend class Extraction;
+    friend class XPreInsert;
+    friend class XPostInsert;
 
     friend void merge_split(class HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, const int merge_size, const int pseudo_capacity);
     friend struct RouteSegment get_segment_info(const MCGRP &mcgrp,HighSpeedNeighBorSearch &ns,const int chosen_task);
@@ -292,8 +289,10 @@ private:
     int total_vio_time;
 
     //move operator
-    unique_ptr<class SingleInsert> single_insert;
-    unique_ptr<class DoubleInsert> double_insert;
+    unique_ptr<class XPreInsert> single_pre_insert;
+    unique_ptr<class XPreInsert> double_pre_insert;
+    unique_ptr<class XPostInsert> single_post_insert;
+    unique_ptr<class XPostInsert> double_post_insert;
     unique_ptr<class Invert> invert;
     unique_ptr<class NewSwap> swap;
     unique_ptr<class NewTwoOpt> two_opt;
@@ -432,6 +431,15 @@ public:
     void _neigh_search(const MCGRP &mcgrp, int mode);
 
     int getSearch_step() const;
+
+    /*!
+ * @details get the successor of the chosen task within the same route,exclude dummy task
+ * @param ns
+ * @param chosen_task
+ * @return
+ */
+    vector<int> get_successor_tasks(int length, const int chosen_task);
+
 };
 
 #endif
