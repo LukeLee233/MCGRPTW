@@ -18,6 +18,7 @@
 #include <numeric>
 #include "json.hpp"
 #include "config.h"
+#include "insert.h"
 
 using namespace std;
 namespace bpo = boost::program_options;
@@ -229,21 +230,56 @@ int main(int argc, char *argv[])
 
             HighSpeedNeighBorSearch NBS(Mixed_Instance);
 
+            // unit test on local operator
             /*----------------------------------------------------------*/
-            cout << "Begin Local Search..." << endl;
+            {
+                // heuristic data
+                Individual initial_solution = nearest_scanning(Mixed_Instance, vector<int>());
+                My_Assert(Mixed_Instance.valid_sol(get_negative_coding(initial_solution.sequence), initial_solution.total_cost),
+                          "Wrong outcome!\n");
 
-            Individual buffer = nearest_scanning(Mixed_Instance, vector<int>());
-            My_Assert(Mixed_Instance.valid_sol(get_negative_coding(buffer.sequence), buffer.total_cost), "Wrong outcome!\n");
+                ftime(&phase_start_time);
+                NBS.unpack_seq(initial_solution.sequence, Mixed_Instance);
+                Mixed_Instance.check_best_solution(NBS.get_cur_cost(), NBS.get_solution("negative"));
+                cout << "Begin Single insert...\n";
 
-            NBS.unpack_seq(buffer.sequence, Mixed_Instance);
-            NBS.trace(Mixed_Instance);
+                int max_search_step = 500;
+                vector<int> Hit;
+                vector<int> Attempt;
+                for (int i = 1; i <= max_search_step; i++) {
+                    if (i % 1000 == 0) {
+                        cout << "Starting Point: " << NBS.get_cur_cost() << endl;
+                        ftime(&cur_time);
+                        cout << "Finish " << i << "th search, spent: "
+                             << (cur_time.time - phase_start_time.time)
+                                 + ((cur_time.millitm - phase_start_time.millitm) * 1.0 / 1000) << 's' << endl;
+                    }
+                    auto single_pre_insert = XPreInsert(1);
+                    unit_test(NBS,Mixed_Instance,single_pre_insert);
 
-            ftime(&phase_start_time);
-            NBS.neighbor_search(Mixed_Instance);
-            ftime(&cur_time);
-            cout << "Finish " << start_seed - random_seed << "th search, spent: "
-                 << get_time_difference(phase_start_time, cur_time) << 's' << endl;
+                    auto single_post_insert = XPostInsert(1);
+                    unit_test(NBS,Mixed_Instance,single_post_insert);
 
+                    vector<int> hit_info = single_pre_insert.getHitInfo();
+                    Hit.push_back(hit_info[1]);
+                    Attempt.push_back(hit_info[0]);
+
+                    hit_info = single_post_insert.getHitInfo();
+                    Hit.push_back(hit_info[1]);
+                    Attempt.push_back(hit_info[0]);
+                }
+
+                My_Assert(Mixed_Instance.valid_sol(NBS.get_solution("negative"), NBS.get_cur_cost()),
+                          "Wrong solution!");
+                Mixed_Instance.check_best_solution(NBS.get_cur_cost(), NBS.get_solution("negative"));
+                log_out.close();
+                cout << "Finished!\n\n\n";
+                double numerator = accumulate(Hit.begin(),Hit.end(),0);
+                double denominator = accumulate(Attempt.begin(),Attempt.end(),0);
+                cout << "Attempt: "<< denominator<< endl;
+                cout << "Total actual search step: " << numerator << endl;
+                cout << "hit rate: "<< numerator / denominator<<endl;
+            }
             /*----------------------------------------------------------*/
 
             /* solution record */
