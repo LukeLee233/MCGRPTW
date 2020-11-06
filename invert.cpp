@@ -1,4 +1,4 @@
-#include "Invert.h"
+#include "invert.h"
 #include <algorithm>
 
 using namespace std;

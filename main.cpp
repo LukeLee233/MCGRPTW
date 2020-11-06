@@ -12,7 +12,7 @@
 #include "Slice.h"
 #include "Extraction.h"
 #include "Swap.h"
-#include "Invert.h"
+#include "invert.h"
 #include "TwoOpt.h"
 #include <boost/program_options.hpp>
 #include <algorithm>

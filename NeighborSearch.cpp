@@ -1,7 +1,7 @@
 #include "NeighborSearch.h"
 #include <iostream>
 #include "Swap.h"
-#include "Invert.h"
+#include "invert.h"
 #include "TwoOpt.h"
 #include "Slice.h"
 #include "Extraction.h"
