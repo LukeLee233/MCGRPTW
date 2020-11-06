@@ -11,7 +11,7 @@
 #include "ConstructPolicy.h"
 #include "Slice.h"
 #include "Extraction.h"
-#include "Swap.h"
+#include "swap.h"
 #include "invert.h"
 #include "TwoOpt.h"
 #include <boost/program_options.hpp>

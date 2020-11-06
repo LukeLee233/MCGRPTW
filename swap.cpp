@@ -1,7 +1,6 @@
-#include "Swap.h"
+#include "swap.h"
 #include <iostream>
 #include <vector>
-#include <algorithm>
 
 
 using namespace std;
@@ -14,9 +13,14 @@ bool NewSwap::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen
 {
     My_Assert(chosen_task >= 1 && chosen_task <= mcgrp.actual_task_num,"Wrong Task");
 
+#ifdef DEBUG
+    attempt_count = 0;
+    hit_count = 0;
+#endif
+
     MoveResult BestM;
 
-    ns.create_search_neighborhood(mcgrp, {chosen_task});
+    ns.create_search_neighborhood(mcgrp, {chosen_task},"basic",0);
 
     int b = chosen_task;
 
@@ -26,6 +30,11 @@ bool NewSwap::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen
 
         if (neighbor_task != DUMMY) {
             //j can't be dummy and b can't be dummy neither here
+
+#ifdef DEBUG
+            attempt_count++;
+#endif
+
             int j = neighbor_task;
             if (considerable_move(ns, mcgrp, b, j) && ns.policy.check_move(move_result)) {
                 move(ns, mcgrp);
@@ -45,6 +54,11 @@ bool NewSwap::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen
             int current_start = ns.solution.very_start->next->ID;
 
             while (current_start != DUMMY) {
+
+#ifdef DEBUG
+                attempt_count += 2;
+#endif
+
                 // Consider the start location
                 int j = current_start;
 
@@ -903,6 +917,11 @@ bool NewSwap::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
 
 void NewSwap::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
 {
+
+#ifdef DEBUG
+    hit_count++;
+#endif
+
     DEBUG_PRINT("execute a swap move");
 
     My_Assert(move_result.considerable,"Invalid predictions");
