@@ -518,8 +518,13 @@ void HighSpeedNeighBorSearch::threshold_exploration_version_0(const MCGRP &mcgrp
 
                 switch (cur_operator) {
                     case SINGLE_INSERT:
-                        single_pre_insert->search(*this, mcgrp, chosen_task);
-                        single_post_insert->search(*this, mcgrp,chosen_task);
+                        if (mcgrp._rng.Randint(0, 1) == 0){
+                            single_pre_insert->search(*this, mcgrp, chosen_task);
+                            single_post_insert->search(*this, mcgrp,chosen_task);
+                        }else{
+                            single_post_insert->search(*this, mcgrp,chosen_task);
+                            single_pre_insert->search(*this, mcgrp, chosen_task);
+                        }
                         break;
                     case DOUBLE_INSERT:
                         double_pre_insert->search(*this, mcgrp, chosen_task);
@@ -590,8 +595,13 @@ void HighSpeedNeighBorSearch::descent_exploration_version_0(const MCGRP &mcgrp)
 
                 switch (cur_operator) {
                     case SINGLE_INSERT:
-                        single_pre_insert->search(*this, mcgrp, chosen_task);
-                        single_post_insert->search(*this, mcgrp, chosen_task);
+                        if (mcgrp._rng.Randint(0, 1) == 0){
+                            single_pre_insert->search(*this, mcgrp, chosen_task);
+                            single_post_insert->search(*this, mcgrp,chosen_task);
+                        }else{
+                            single_post_insert->search(*this, mcgrp,chosen_task);
+                            single_pre_insert->search(*this, mcgrp, chosen_task);
+                        }
                         break;
                     case DOUBLE_INSERT:
                         double_pre_insert->search(*this, mcgrp, chosen_task);
@@ -750,8 +760,13 @@ void HighSpeedNeighBorSearch::small_step_infeasible_descent_search(const MCGRP &
 
                 switch (cur_operator) {
                     case SINGLE_INSERT:
-                        single_pre_insert->search(*this, mcgrp, chosen_task);
-                        single_post_insert->search(*this, mcgrp, chosen_task);
+                        if (mcgrp._rng.Randint(0, 1) == 0){
+                            single_pre_insert->search(*this, mcgrp, chosen_task);
+                            single_post_insert->search(*this, mcgrp,chosen_task);
+                        }else{
+                            single_post_insert->search(*this, mcgrp,chosen_task);
+                            single_pre_insert->search(*this, mcgrp, chosen_task);
+                        }
                         break;
                     case DOUBLE_INSERT:
                         double_pre_insert->search(*this, mcgrp, chosen_task);
@@ -828,8 +843,13 @@ void HighSpeedNeighBorSearch::small_step_infeasible_tabu_search(const MCGRP &mcg
 
                 switch (cur_operator) {
                     case SINGLE_INSERT:
-                        single_pre_insert->search(*this, mcgrp, chosen_task);
-                        single_post_insert->search(*this, mcgrp, chosen_task);
+                        if (mcgrp._rng.Randint(0, 1) == 0){
+                            single_pre_insert->search(*this, mcgrp, chosen_task);
+                            single_post_insert->search(*this, mcgrp,chosen_task);
+                        }else{
+                            single_post_insert->search(*this, mcgrp,chosen_task);
+                            single_pre_insert->search(*this, mcgrp, chosen_task);
+                        }
                         break;
                     case DOUBLE_INSERT:
                         double_pre_insert->search(*this, mcgrp, chosen_task);

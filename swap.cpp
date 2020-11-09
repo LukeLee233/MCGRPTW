@@ -20,7 +20,11 @@ bool NewSwap::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen
 
     MoveResult BestM;
 
-    ns.create_search_neighborhood(mcgrp, {chosen_task},"basic",0);
+    int offset = 0;
+    if(ns.policy.has_rule(TOLERANCE)){
+        offset = rand() % mcgrp.actual_task_num;
+    }
+    ns.create_search_neighborhood(mcgrp, {chosen_task},"basic",offset);
 
     int b = chosen_task;
 
@@ -37,12 +41,17 @@ bool NewSwap::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen
 
             int j = neighbor_task;
             if (considerable_move(ns, mcgrp, b, j) && ns.policy.check_move(move_result)) {
-                move(ns, mcgrp);
-                return true;
-            }
-            else {
-                move_result.reset();
-                return true;
+                if (ns.policy.has_rule(FIRST_ACCEPT)) {
+                    move(ns, mcgrp);
+                    return true;
+                }
+                else if (ns.policy.has_rule(BEST_ACCEPT)) {
+                    if (ns.policy.check_result(move_result, BestM))
+                        BestM = move_result;
+                }
+                else {
+                    My_Assert(false, "Unknown accept rule!");
+                }
             }
         }
         else {

@@ -410,7 +410,11 @@ bool XPostInsert::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int ch
 
     vector<int> chosen_seq = ns.get_successor_tasks(length, chosen_task);
 
-    ns.create_search_neighborhood(mcgrp, chosen_seq,"predecessor", 0);
+    int offset = 0;
+    if(ns.policy.has_rule(TOLERANCE)){
+        offset = rand() % mcgrp.actual_task_num;
+    }
+    ns.create_search_neighborhood(mcgrp, chosen_seq,"predecessor", offset);
 
 
     My_Assert(chosen_seq.size()>0,"You cannot generate an empty sequence!");
@@ -948,7 +952,11 @@ bool XPreInsert::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int cho
 
     vector<int> chosen_seq = ns.get_successor_tasks(length, chosen_task);
 
-    ns.create_search_neighborhood(mcgrp, chosen_seq,"successor", 0);
+    int offset = 0;
+    if(ns.policy.has_rule(TOLERANCE)){
+        offset = rand() % mcgrp.actual_task_num;
+    }
+    ns.create_search_neighborhood(mcgrp, chosen_seq,"successor", offset);
 
 
     My_Assert(chosen_seq.size()>0,"You cannot generate an empty sequence!");
