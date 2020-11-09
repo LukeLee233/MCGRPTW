@@ -2,20 +2,18 @@
 
 #include "NeighborSearch.h"
 #include "MCGRP.h"
-#include "Flip.h"
-#include "SwapEnds.h"
+#include "flip.h"
+#include "swapends.h"
 #include <vector>
 
 
 class NewTwoOpt : public MoveOperator{
-//    static const int length = 2;
     int flip_times;
     int swapends_times;
 
     NewFlip flip;
     NewSwapEnds swap_ends;
 
-    bool before(const int a,const int b, HighSpeedNeighBorSearch &ns);
 public:
 
     NewTwoOpt():flip(NewFlip())

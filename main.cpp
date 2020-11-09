@@ -8,9 +8,8 @@
 #include "Memetic.h"
 #include <boost/filesystem.hpp>
 #include <boost/date_time.hpp>
-#include "ConstructPolicy.h"
-#include "Slice.h"
-#include "Extraction.h"
+#include "slice.h"
+#include "extraction.h"
 #include "swap.h"
 #include "invert.h"
 #include "TwoOpt.h"

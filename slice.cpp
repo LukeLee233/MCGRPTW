@@ -2,16 +2,19 @@
 // Created by luke on 2020/1/26.
 //
 
-#include "Slice.h"
-#include <algorithm>
+#include "slice.h"
 
 using namespace std;
 
 bool Slice::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_task)
 {
     //No search space in Slice operator, No accept rule for invert operator
+
+#ifdef DEBUG
     pre_slice_times = 0;
     post_slice_times = 0;
+    attempt_count++;
+#endif
 
     My_Assert(chosen_task != DUMMY, "Chosen Task can't be dummy");
 
@@ -138,6 +141,11 @@ bool Slice::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, c
 
 void Slice::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
 {
+
+#ifdef DEBUG
+    hit_count++;
+#endif
+
     DEBUG_PRINT("execute a slice move");
 
     My_Assert(move_result.considerable, "Invalid predictions");
@@ -283,6 +291,11 @@ bool Preslice::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp
 
 void Preslice::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
 {
+
+#ifdef DEBUG
+    hit_count++;
+#endif
+
     DEBUG_PRINT("execute a slice : pre-slice move");
     My_Assert(move_result.considerable, "Invalid predictions");
 
@@ -398,8 +411,22 @@ Preslice::expected_time_table(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, c
 
 bool Preslice::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_task)
 {
-    // TODO(luke): need implement
-    return false;
+
+#ifdef DEBUG
+    attempt_count++;
+#endif
+
+    //No search space in Slice operator, No accept rule for invert operator
+    My_Assert(chosen_task != DUMMY, "Chosen Task can't be dummy");
+
+    if (considerable_move(ns, mcgrp, chosen_task)) {
+        move(ns, mcgrp);
+        return true;
+    }
+    else {
+        move_result.reset();
+        return false;
+    }
 }
 
 /*
@@ -469,6 +496,11 @@ bool Postslice::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgr
 
 void Postslice::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
 {
+
+#ifdef DEBUG
+    hit_count++;
+#endif
+
     DEBUG_PRINT("execute a slice : post-slice move");
     My_Assert(move_result.considerable, "Invalid predictions");
 
@@ -579,6 +611,20 @@ Postslice::expected_time_table(HighSpeedNeighBorSearch &ns,
 
 bool Postslice::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_task)
 {
-    // TODO(luke): need implement
-    return false;
+
+#ifdef DEBUG
+    attempt_count++;
+#endif
+
+    //No search space in Slice operator, No accept rule for invert operator
+    My_Assert(chosen_task != DUMMY, "Chosen Task can't be dummy");
+
+    if (considerable_move(ns, mcgrp, chosen_task)) {
+        move(ns, mcgrp);
+        return true;
+    }
+    else {
+        move_result.reset();
+        return false;
+    }
 }

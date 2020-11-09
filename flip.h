@@ -16,6 +16,7 @@ public:
      * @return
      */
     vector<int> get_sequence(HighSpeedNeighBorSearch &ns, const int start, const int end);
+
 public:
     NewFlip(){
         move_result = MoveResult(NeighborOperator::FLIP);

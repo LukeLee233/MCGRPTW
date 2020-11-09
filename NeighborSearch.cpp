@@ -3,8 +3,8 @@
 #include "swap.h"
 #include "invert.h"
 #include "TwoOpt.h"
-#include "Slice.h"
-#include "Extraction.h"
+#include "slice.h"
+#include "extraction.h"
 #include <sys/timeb.h>
 #include <vector>
 #include <numeric>
@@ -1567,4 +1567,65 @@ HighSpeedNeighBorSearch::SOLUTION::connect_tasks(const vector<int> &route_seq)
     }
 
     return {&tasks[route_seq.front()], &tasks[route_seq.back()]};
+}
+
+
+bool HighSpeedNeighBorSearch::before(const int a,const int b){
+    /// This function returns TRUE if a comes before b in their route
+    /// and FALSE if b is before a.
+
+    if(solution.very_start == solution[a]){
+        return true;
+    }
+
+    if(solution.very_end == solution[a]){
+        return false;
+    }
+
+
+    if(a < 0 && b < 0){
+        int next_a = solution[a]->next->ID;
+
+        while(next_a > 0){
+            next_a = solution[next_a]->next->ID;
+        }
+
+        return next_a == b;
+    }
+    else if (a < 0)
+    {
+        int next_a = solution[a]->next->ID;
+
+        while(next_a > 0){
+            if(next_a == b)
+                return true;
+            next_a = solution[next_a]->next->ID;
+        }
+
+        return false;
+    }
+    else if (b < 0)
+    {
+        int next_a = solution[a]->next->ID;
+
+        while(next_a > 0){
+            next_a = solution[next_a]->next->ID;
+        }
+
+        return next_a == b;
+    }
+    else
+    {
+        int next_a = solution[a]->next->ID;
+
+        while(next_a > 0){
+            if(next_a == b)
+                return true;
+            next_a = solution[next_a]->next->ID;
+        }
+
+        return false;
+    }
+
+    My_Assert(false,"Can't reach here!");
 }

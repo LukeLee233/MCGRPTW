@@ -3,7 +3,7 @@
 //
 
 
-#include "Extraction.h"
+#include "extraction.h"
 #include <algorithm>
 
 using namespace std;
@@ -11,6 +11,10 @@ using namespace std;
 bool Extraction::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_task)
 {
     // No search space in Extraction operator, No accept rule for invert operator
+
+#ifdef DEBUG
+    attempt_count++;
+#endif
 
     My_Assert(chosen_task != DUMMY, "Chosen Task can't be dummy");
 
@@ -154,6 +158,11 @@ bool Extraction::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcg
 
 void Extraction::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
 {
+
+#ifdef DEBUG
+    hit_count++;
+#endif
+
     DEBUG_PRINT("execute a extraction move");
 
     My_Assert(move_result.considerable, "Invalid predictions");

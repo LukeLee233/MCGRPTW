@@ -9,7 +9,16 @@ bool Invert::search(HighSpeedNeighBorSearch &ns, const class MCGRP &mcgrp, int c
     //No search space in Invert operator, No accept rule for invert operator
     My_Assert(chosen_task != DUMMY, "Chosen Task can't be dummy");
 
+#ifdef DEBUG
+    attempt_count++;
+#endif
+
     if (!mcgrp.is_edge(chosen_task)) {
+
+#ifdef DEBUG
+        attempt_count--;
+#endif
+
         return false;
     }
     else if (considerable_move(ns, mcgrp, chosen_task) && ns.policy.check_move(move_result)) {
@@ -78,6 +87,11 @@ bool Invert::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, 
 
 void Invert::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
 {
+
+#ifdef DEBUG
+    hit_count++;
+#endif
+
     DEBUG_PRINT("execute an invert move");
 
     My_Assert(move_result.considerable,"Invalid predictions");

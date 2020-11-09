@@ -18,6 +18,12 @@ void unit_test(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, MoveOperator &mo
     ns.neigh_size = mcgrp.neigh_size;
 
     int chosen_task = -1;
+
+#ifdef DEBUG
+    move_operator.attempt_count = 0;
+    move_operator.hit_count = 0;
+#endif
+
     for (int i = 0; i < mcgrp.actual_task_num; i++) {
         chosen_task = task_set[i];
 

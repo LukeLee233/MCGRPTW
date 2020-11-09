@@ -1,5 +1,4 @@
 #include "TwoOpt.h"
-#include <algorithm>
 
 using namespace std;
 
@@ -7,76 +6,20 @@ using namespace std;
  * High Speed
  */
 
-bool NewTwoOpt::before(const int a,const int b, HighSpeedNeighBorSearch &ns){
-    /// This function returns TRUE if a comes before b in their route
-    /// and FALSE if b is before a.
-
-    if(ns.solution.very_start == ns.solution[a]){
-        return true;
-    }
-
-    if(ns.solution.very_end == ns.solution[a]){
-        return false;
-    }
-
-
-    if(a < 0 && b < 0){
-        int next_a = ns.solution[a]->next->ID;
-
-        while(next_a > 0){
-            next_a = ns.solution[next_a]->next->ID;
-        }
-
-        return next_a == b;
-    }
-    else if (a < 0)
-    {
-        int next_a = ns.solution[a]->next->ID;
-
-        while(next_a > 0){
-            if(next_a == b)
-                return true;
-            next_a = ns.solution[next_a]->next->ID;
-        }
-
-        return false;
-    }
-    else if (b < 0)
-    {
-        int next_a = ns.solution[a]->next->ID;
-
-        while(next_a > 0){
-            next_a = ns.solution[next_a]->next->ID;
-        }
-
-        return next_a == b;
-    }
-    else
-    {
-        int next_a = ns.solution[a]->next->ID;
-
-        while(next_a > 0){
-            if(next_a == b)
-                return true;
-            next_a = ns.solution[next_a]->next->ID;
-        }
-
-        return false;
-    }
-
-    My_Assert(false,"Can't reach here!");
-}
-
-
 bool NewTwoOpt::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_task){
+
     My_Assert(chosen_task >= 1 && chosen_task <= mcgrp.actual_task_num,"Wrong Task");
 
+#ifdef DEBUG
     flip_times = 0;
     swapends_times = 0;
+    attempt_count = 0;
+    hit_count = 0;
+#endif
 
     MoveResult BestM;
 
-    ns.create_search_neighborhood(mcgrp, {chosen_task});
+    ns.create_search_neighborhood(mcgrp, {chosen_task},"basic", 0);
 
     int b = chosen_task;
     int a = ns.solution[b]->pre->ID;
@@ -86,6 +29,11 @@ bool NewTwoOpt::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chos
         My_Assert(neighbor_task != b,"Neighbor Task can't be itself at all!");
 
         if(neighbor_task != DUMMY){
+
+#ifdef DEBUG
+            attempt_count += 4;
+#endif
+
             //j can't be dummy and b can't be dummy neither here
             int j = neighbor_task;
             My_Assert(j >= 1 && j <= mcgrp.actual_task_num,"Wrong Task");
@@ -162,6 +110,11 @@ bool NewTwoOpt::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chos
             int current_start = ns.solution.very_start->next->ID;
 
             while (current_start != DUMMY){
+
+#ifdef DEBUG
+                attempt_count += 4;
+#endif
+
                 // Consider the start location
                 int j = current_start;
                 My_Assert(ns.solution[j]->pre->ID < 0,"Wrong Task");
@@ -305,7 +258,7 @@ NewTwoOpt::considerable_move(
         DEBUG_PRINT("Flip operator in 2-opt");
         flip_times++;
 
-        if(before(a, c, ns)){      //...ab...cd...
+        if(ns.before(a, c)){      //...ab...cd...
             if(flip.considerable_move(ns, mcgrp, a, d) && ns.policy.check_move(flip.move_result)){
                 move_result = flip.move_result;
                 return true;
@@ -357,6 +310,11 @@ NewTwoOpt::considerable_move(
 
 
 void NewTwoOpt::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp){
+
+#ifdef DEBUG
+    hit_count++;
+#endif
+
     DEBUG_PRINT("execute a 2-opt move");
 
     My_Assert(move_result.considerable,"Invalid predictions");

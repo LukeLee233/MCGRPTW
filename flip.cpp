@@ -1,4 +1,4 @@
-#include "Flip.h"
+#include "flip.h"
 #include <algorithm>
 
 using namespace std;
@@ -185,6 +185,6 @@ NewFlip::expected_time_table(HighSpeedNeighBorSearch &ns,
 
 bool NewFlip::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_task)
 {
-    // TODO(luke): need implement
+    // stub block
     return false;
 }

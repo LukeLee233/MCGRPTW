@@ -440,6 +440,7 @@ public:
  */
     vector<int> get_successor_tasks(int length, const int chosen_task);
 
+    bool before(const int a,const int b);
 };
 
 #endif
