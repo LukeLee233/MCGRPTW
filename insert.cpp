@@ -436,7 +436,7 @@ bool XPostInsert::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int ch
 
             if (std::find(chosen_seq.begin(), chosen_seq.end(), j) == chosen_seq.end()) {
                 // doesn't overlap
-                if (considerable_move(ns, mcgrp, chosen_seq, j)) {
+                if (considerable_move(ns, mcgrp, chosen_seq, j) && ns.policy.check_move(move_result)) {
                     if (ns.policy.has_rule(FIRST_ACCEPT)) {
                         move(ns, mcgrp);
                         return true;
@@ -470,7 +470,7 @@ bool XPostInsert::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int ch
 
                 if (std::find(chosen_seq.begin(), chosen_seq.end(), j) == chosen_seq.end()) {
                     // doesn't overlap
-                    if (considerable_move(ns, mcgrp, chosen_seq, j)) {
+                    if (considerable_move(ns, mcgrp, chosen_seq, j) && ns.policy.check_move(move_result)) {
                         if (ns.policy.has_rule(FIRST_ACCEPT)) {
                             move(ns, mcgrp);
                             return true;
@@ -491,7 +491,7 @@ bool XPostInsert::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int ch
                 j = current_end;
                 if (std::find(chosen_seq.begin(), chosen_seq.end(), j) == chosen_seq.end()) {
                     // doesn't overlap
-                    if (considerable_move(ns, mcgrp, chosen_seq, j)) {
+                    if (considerable_move(ns, mcgrp, chosen_seq, j) && ns.policy.check_move(move_result)) {
                         if (ns.policy.has_rule(FIRST_ACCEPT)) {
                             move(ns, mcgrp);
                             return true;
@@ -974,7 +974,7 @@ bool XPreInsert::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int cho
 
             if (std::find(chosen_seq.begin(), chosen_seq.end(), j) == chosen_seq.end()) {
                 // doesn't overlap
-                if (considerable_move(ns, mcgrp, chosen_seq, j)) {
+                if (considerable_move(ns, mcgrp, chosen_seq, j) && ns.policy.check_move(move_result)) {
                     if (ns.policy.has_rule(FIRST_ACCEPT)) {
                         move(ns, mcgrp);
                         return true;
@@ -1008,7 +1008,7 @@ bool XPreInsert::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int cho
 
                 if (std::find(chosen_seq.begin(), chosen_seq.end(), j) == chosen_seq.end()) {
                     // doesn't overlap
-                    if (considerable_move(ns, mcgrp, chosen_seq, j)) {
+                    if (considerable_move(ns, mcgrp, chosen_seq, j) && ns.policy.check_move(move_result)) {
                         if (ns.policy.has_rule(FIRST_ACCEPT)) {
                             move(ns, mcgrp);
                             return true;
@@ -1029,7 +1029,7 @@ bool XPreInsert::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int cho
                 j = current_end;
                 if (std::find(chosen_seq.begin(), chosen_seq.end(), j) == chosen_seq.end()) {
                     // doesn't overlap
-                    if (considerable_move(ns, mcgrp, chosen_seq, j)) {
+                    if (considerable_move(ns, mcgrp, chosen_seq, j) && ns.policy.check_move(move_result)) {
                         if (ns.policy.has_rule(FIRST_ACCEPT)) {
                             move(ns, mcgrp);
                             return true;
