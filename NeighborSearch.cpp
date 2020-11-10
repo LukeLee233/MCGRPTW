@@ -323,12 +323,12 @@ void HighSpeedNeighBorSearch::RTR_search(const MCGRP &mcgrp)
         struct timeb start_time;
         ftime(&start_time);
 
-        threshold_exploration_version_0(mcgrp);
+        threshold_exploration(mcgrp);
         orig_val_for_uphill = cur_solution_cost;
 
         do {
             orig_val_for_downhill = cur_solution_cost;
-            descent_exploration_version_0(mcgrp);
+            descent_exploration(mcgrp);
         }
         while (cur_solution_cost < orig_val_for_downhill);
 
@@ -357,7 +357,7 @@ void HighSpeedNeighBorSearch::RTR_search(const MCGRP &mcgrp)
 
 void HighSpeedNeighBorSearch::descent_search(const MCGRP &mcgrp)
 {
-    descent_exploration_version_0(mcgrp);
+    descent_exploration(mcgrp);
 }
 
 void HighSpeedNeighBorSearch::create_search_neighborhood(const MCGRP &mcgrp, const vector<int>& chosen_seq,string mode, int offset)
@@ -466,7 +466,7 @@ bool HighSpeedNeighBorSearch::valid_sol(const MCGRP &mcgrp)
         && vio_load == total_vio_load && vio_time == total_vio_time;
 }
 
-void HighSpeedNeighBorSearch::threshold_exploration_version_0(const MCGRP &mcgrp)
+void HighSpeedNeighBorSearch::threshold_exploration(const MCGRP &mcgrp)
 {
     DEBUG_PRINT("Uphill and downhill...");
 
@@ -556,7 +556,7 @@ void HighSpeedNeighBorSearch::threshold_exploration_version_0(const MCGRP &mcgrp
     neigh_size = 0;
 }
 
-void HighSpeedNeighBorSearch::descent_exploration_version_0(const MCGRP &mcgrp)
+void HighSpeedNeighBorSearch::descent_exploration(const MCGRP &mcgrp)
 {
     DEBUG_PRINT("Downhill...");
 

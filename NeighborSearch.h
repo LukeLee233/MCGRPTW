@@ -371,13 +371,13 @@ public:
      *  @details threshold exploration
      * @param mcgrp
      */
-    void threshold_exploration_version_0(const MCGRP &mcgrp);
+    void threshold_exploration(const MCGRP &mcgrp);
 
     /*!
      * @details descent exploration
      * @param mcgrp
      */
-    void descent_exploration_version_0(const MCGRP &mcgrp);
+    void descent_exploration(const MCGRP &mcgrp);
 
     /*!
      * @details Infeasible search
