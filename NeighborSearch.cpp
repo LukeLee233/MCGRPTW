@@ -481,7 +481,7 @@ void HighSpeedNeighBorSearch::threshold_exploration_version_0(const MCGRP &mcgrp
 
     //you need to decide the dynamic neighbor size when you search based on different policy
 //    neigh_size = mcgrp.neigh_size;
-//    neigh_size = min(10,mcgrp.neigh_size);
+    neigh_size = min(10,mcgrp.neigh_size);
 
 
     vector<NeighborOperator> neighbor_operator{
@@ -563,7 +563,7 @@ void HighSpeedNeighBorSearch::descent_exploration_version_0(const MCGRP &mcgrp)
     const auto original_policy = policy.get();
     policy.set(BEST_ACCEPT | DOWNHILL | DELTA_ONLY);
 
-//    neigh_size = mcgrp.neigh_size;
+    neigh_size = mcgrp.neigh_size;
 
     vector<NeighborOperator> neighbor_operator{
         NeighborOperator::SINGLE_INSERT,
@@ -1075,7 +1075,7 @@ void HighSpeedNeighBorSearch::repair_solution(const MCGRP &mcgrp)
 */
 
     _tour_splitting_repair(mcgrp);
-    My_Assert(total_vio_load > 0 || total_vio_time > 0, "This is not a infeasible Task!");
+    My_Assert(total_vio_load == 0 && total_vio_time == 0, "Repair failed");
 
 }
 
