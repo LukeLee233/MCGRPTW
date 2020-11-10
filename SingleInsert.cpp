@@ -116,6 +116,7 @@ bool SingleInsert::search(NeighBorSearch &ns, const MCGRP &mcgrp, int chosen_tas
         My_Assert(false, "Unknown accept rule");
     }
 
+
     DEBUG_PRINT("Single insert presert times:" + to_string(presert_times));
     DEBUG_PRINT("Single insert postsert times:" + to_string(postsert_times));
 }
@@ -312,6 +313,8 @@ bool SingleInsert::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int c
 
     presert_times = 0;
     postsert_times = 0;
+    attempt_count = 0;
+    hit_count = 0;
 
     MCGRPMOVE BestM;
 
@@ -324,6 +327,7 @@ bool SingleInsert::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int c
         My_Assert(neighbor_task != b, "neighbor task can't be itself!");
 
         if (neighbor_task != DUMMY) {
+            attempt_count++;
             //j can't be dummy and b can't be dummy neither here
             int j = neighbor_task;
 
@@ -349,6 +353,8 @@ bool SingleInsert::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int c
             int current_start = ns.solution.very_start->next->ID;
 
             while (ns.solution[current_start]->next != ns.solution.very_end) {
+                attempt_count += 2;
+
                 // Consider the start location
                 int j = current_start;
 
@@ -414,6 +420,7 @@ bool SingleInsert::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int c
     else {
         My_Assert(false, "Unknown accept rule");
     }
+
 
     DEBUG_PRINT("Single insert presert times:" + to_string(presert_times));
     DEBUG_PRINT("Single insert postsert times:" + to_string(postsert_times));
@@ -530,6 +537,7 @@ bool SingleInsert::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &m
 
 void SingleInsert::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
 {
+    hit_count++;
     DEBUG_PRINT("execute a single insert move");
 
     My_Assert(move_result.considerable,"Invalid predictions");

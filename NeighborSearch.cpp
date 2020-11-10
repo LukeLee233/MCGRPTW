@@ -2227,6 +2227,8 @@ void HighSpeedNeighBorSearch::descent_exploration_version_0(const MCGRP &mcgrp)
     };
 
     int chosen_task = -1;
+    int attempt = 0;
+    int hit = 0;
     mcgrp._rng.RandPerm(neighbor_operator);
     for (auto cur_operator : neighbor_operator) {
         double start_val = 0;
@@ -2248,6 +2250,8 @@ void HighSpeedNeighBorSearch::descent_exploration_version_0(const MCGRP &mcgrp)
 
                 switch (cur_operator) {
                     case SINGLE_INSERT:single_insert->search(*this, mcgrp, chosen_task);
+                        hit += single_insert->hit_count;
+                        attempt += single_insert->attempt_count;
                         break;
                     case DOUBLE_INSERT:double_insert->search(*this, mcgrp, chosen_task);
                         break;
@@ -2266,6 +2270,10 @@ void HighSpeedNeighBorSearch::descent_exploration_version_0(const MCGRP &mcgrp)
         }
         while (cur_solution_cost < start_val);
     }
+
+    DEBUG_PRINT("Single insert hit count: " + to_string(hit));
+    DEBUG_PRINT("Single insert attempt count: " + to_string(attempt));
+    DEBUG_PRINT("Single insert hit rate: " + to_string(double(hit)/double(attempt)));
 
     policy.set(original_policy);
     neigh_size = 0;

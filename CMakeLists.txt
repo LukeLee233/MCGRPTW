@@ -22,7 +22,7 @@ message(STATUS "Boost_LIBRARIES: ${Boost_LIBRARIES}")
 message(STATUS "Boost_VERSION: ${Boost_VERSION}")
 
 
-#add_definitions(-D DEBUG)
+add_definitions(-D DEBUG)
 
 # disable compile warning flag
 add_definitions(-w)

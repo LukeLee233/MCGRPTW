@@ -14,7 +14,11 @@ class SingleInsert
     int postsert_times;
     Presert presert;
     Postsert postsert;
+
 public:
+    int attempt_count;
+    int hit_count;
+
     SingleInsert() : presert(Presert()), postsert(Postsert()),
     move_result(MCGRPMOVE(NeighborOperator::SINGLE_INSERT)),
     presert_times(0),postsert_times(0){};
