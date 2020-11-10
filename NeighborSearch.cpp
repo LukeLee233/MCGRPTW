@@ -450,8 +450,9 @@ bool HighSpeedNeighBorSearch::valid_sol(const MCGRP &mcgrp)
     int vio_time = 0;
     for (auto id : routes.activated_route_id) {
         if(routes[id]->num_customers != routes[id]->time_table.size()
-            || routes[id]->num_edges < 0
-            || routes[id]->num_edges > routes[id]->num_customers)
+//            || routes[id]->num_edges < 0
+//            || routes[id]->num_edges > routes[id]->num_customers
+            )
             return false;
         if (routes[id]->load > mcgrp.capacity) {
             vio_load += routes[id]->load - mcgrp.capacity;
@@ -574,6 +575,8 @@ void HighSpeedNeighBorSearch::descent_exploration(const MCGRP &mcgrp)
     };
 
     int chosen_task = -1;
+    int hit = 0;
+    int attempt = 0;
     mcgrp._rng.RandPerm(neighbor_operator);
     for (auto cur_operator : neighbor_operator) {
         double start_val = 0;
@@ -602,6 +605,10 @@ void HighSpeedNeighBorSearch::descent_exploration(const MCGRP &mcgrp)
                             single_post_insert->search(*this, mcgrp,chosen_task);
                             single_pre_insert->search(*this, mcgrp, chosen_task);
                         }
+                        hit += single_pre_insert->hit_count;
+                        hit += single_post_insert->hit_count;
+                        attempt += single_pre_insert->attempt_count;
+                        attempt += single_post_insert->attempt_count;
                         break;
                     case DOUBLE_INSERT:
                         double_pre_insert->search(*this, mcgrp, chosen_task);
@@ -623,6 +630,9 @@ void HighSpeedNeighBorSearch::descent_exploration(const MCGRP &mcgrp)
         while (cur_solution_cost < start_val);
     }
 
+
+    DEBUG_PRINT("single insert hit:" + to_string(hit));
+    DEBUG_PRINT("single insert attempt:" + to_string(attempt));
     policy.set(original_policy);
     neigh_size = 0;
 }
