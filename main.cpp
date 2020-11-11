@@ -179,7 +179,7 @@ int main(int argc, char *argv[])
 /*----------------------------------------------------------------*/
 
 
-    vector<string> file_set = read_directory(instance_directory);
+    vector<string> file_set{"TWA40C_t.dat"};
     for (auto file_name : file_set) {
         cout << string(2, '\n') << string(24, '-')
              << "Start instance: "
@@ -223,43 +223,43 @@ int main(int argc, char *argv[])
                  << "th times search" << string(24, '-') << endl;
 
             Mixed_Instance._rng.change(seed[start_seed % seed_size]);
-            Mixed_Instance.best_total_route_length = DBL_MAX;
-            Mixed_Instance.best_sol_time = DBL_MAX;
+            Mixed_Instance.best_total_route_length = numeric_limits<double>::max();
+            Mixed_Instance.best_sol_time = numeric_limits<double>::max();
 
+            HighSpeedNeighBorSearch NBS(Mixed_Instance);
 
-            if(pool_size == 1){
-                HighSpeedNeighBorSearch NBS(Mixed_Instance,tabu_step);
-                NBS.initialize_score_matrix(Mixed_Instance);
-                Individual initial_solution = NearestScanner(Mixed_Instance, *Mixed_Instance.distance_look_tbl["cost"])();
-
-//                Individual initial_solution = nearest_scanning(Mixed_Instance, vector<int>());
-                NBS.unpack_seq(initial_solution.sequence, Mixed_Instance);
-                NBS.trace(Mixed_Instance);
-                cout << "Begin Local search..." << endl;
-
-                for (auto iter = 1; iter <= evolve_steps
-                    && get_time_difference(search_start_time, cur_time) < search_time; iter++) {
-                    cout << start_seed - random_seed <<"-"<< iter << " th times local search\n";
-                    ftime(&phase_start_time);
-                    NBS.neighbor_search(Mixed_Instance);
-                    ftime(&cur_time);
-                    cout << "Finish " << start_seed - random_seed <<"-"<< iter  << "steps, spent: "
-                         << get_time_difference(phase_start_time, cur_time) << 's' << endl;
+            /*----------------------------------------------------------*/
+            cout << "Begin Optimal check..." << endl;
+            vector<vector<int>> best_sol{
+                {1,13,32,29,6,31,6,29,32,13,12,1},
+                {1,13,34,7,17,40,20,4,21,5,24,25,26,23,11,1},
+                {1,14,15,6,31,30,29,32,33,32,13,1},
+                {1,11,23,26,27,28,16,15,14,13,1},
+                {1,14,13,1},
+                {1,12,8,40,17,3,17,39,7,17,7,2,35,34,13,1},
+                {1,12,8,40,20,18,19,4,21,10,22,24,25,26,23,11,1},
+                {1,11,8,12,1},
+                {1,14,15,6,31,30,31,9,33,37,38,36,35,34,13,1},
+                {1,11,23,26,27,26,23,22,5,24,25,26,23,11,1},
+                {1,13,34,35,34,13,1},
+                {1,12,8,40,20,4,21,10,8,12,1},
+                {1,11,23,26,16,15,14,13,1},
+                {1,12,8,40,20,8,7,2,38,36,37,33,32,13,1},
+                {1,11,23,22,24,25,26,23,11,1},
+                {1,11,23,26,27,6,15,14,13,1}
+            };
+            int total_length = 0;
+            for(const vector<int>& route_seq: best_sol){
+                for(int i = 1; i < route_seq.size();i++){
+                    total_length += Mixed_Instance.min_cost[route_seq[i-1]][route_seq[i]];
                 }
-
-                cout << start_seed - random_seed << "th search:\n";
-                cout << "Total spend " << get_time_difference(search_start_time, cur_time) << endl;
-
-            }else{
-                HighSpeedMemetic MA(pool_size, evolve_steps, QNDF_weights);
-
-                cout << "Begin Memetic search..." << endl;
-                ftime(&phase_start_time);
-                MA.memetic_search(Mixed_Instance);
-                ftime(&cur_time);
-                cout << "Finish " << start_seed - random_seed << "th search, spent: "
-                     << get_time_difference(phase_start_time, cur_time) << 's' << endl;
             }
+            cout << total_length << endl;
+
+            cout << "Finish " << start_seed - random_seed << "th search, spent: "
+                 << get_time_difference(phase_start_time, cur_time) << 's' << endl;
+
+            /*----------------------------------------------------------*/
 
             /* solution record */
             ftime(&cur_time);
