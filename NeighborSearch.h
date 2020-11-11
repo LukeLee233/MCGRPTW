@@ -442,6 +442,10 @@ public:
 
     bool before(const int a,const int b);
 
+#ifdef DEBUG
+    int success_viterbi = 0;
+#endif
+
     void viterbi_refine(const MCGRP &mcgrp);
 };
 

@@ -890,7 +890,7 @@ BestServeSeq viterbi_decoding(const MCGRP &mcgrp, const vector<int>& task_list, 
         int index = -1;
         int val = INT32_MAX;
         for(int ii = 0;ii < seq.size();ii++){
-            if (seq[ii] < INT32_MAX){
+            if (seq[ii] < val){
                 index  = ii;
                 val = seq[ii];
             }

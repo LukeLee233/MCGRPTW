@@ -1658,14 +1658,20 @@ void HighSpeedNeighBorSearch::viterbi_refine(const MCGRP &mcgrp)
 {
     My_Assert(valid_sol(mcgrp), "Wrong state!");
 
-    for(int route_id : routes.activated_route_id){
+    vector<int> old_route_id = vector<int>(routes.activated_route_id.begin(),routes.activated_route_id.end());
+
+    for(int route_id : old_route_id){
         if((double)routes[route_id]->num_edges / (double)routes[route_id]->num_customers >= 0.4){
             vector<int> task_seq;
             for(const auto &pair :routes[route_id]->time_table) task_seq.push_back(pair.task);
 
             auto refine_result = viterbi_decoding(mcgrp,task_seq,policy.has_rule(FITNESS_ONLY));
 
-            if(refine_result.cost <= routes[route_id]->length){
+            if(refine_result.cost < routes[route_id]->length){
+
+#ifdef DEBUG
+                success_viterbi++;
+#endif
                 cur_solution_cost -= routes[route_id]->length;
                 total_vio_load -= max(0,(routes[route_id]->load - mcgrp.capacity));
                 total_vio_time -= mcgrp.get_vio_time(routes[route_id]->time_table);
