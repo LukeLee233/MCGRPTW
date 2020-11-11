@@ -477,10 +477,11 @@ void HighSpeedNeighBorSearch::threshold_exploration(const MCGRP &mcgrp)
 
     policy.tolerance = sel_ratio(prob, ratios, mcgrp._rng);
     const auto original_policy = policy.get();
-    policy.set(BEST_ACCEPT | TOLERANCE | DELTA_ONLY);
+
+    if(rand() % 2) policy.set(BEST_ACCEPT | TOLERANCE | DELTA_ONLY);
+    else policy.set(FIRST_ACCEPT | TOLERANCE | DELTA_ONLY);;
 
     //you need to decide the dynamic neighbor size when you search based on different policy
-//    neigh_size = mcgrp.neigh_size;
     neigh_size = min(10,mcgrp.neigh_size);
 
 
@@ -518,7 +519,7 @@ void HighSpeedNeighBorSearch::threshold_exploration(const MCGRP &mcgrp)
 
                 switch (cur_operator) {
                     case SINGLE_INSERT:
-                        if (mcgrp._rng.Randint(0, 1) == 0){
+                        if (rand() % 2){
                             single_pre_insert->search(*this, mcgrp, chosen_task);
                             single_post_insert->search(*this, mcgrp,chosen_task);
                         }else{
@@ -561,7 +562,9 @@ void HighSpeedNeighBorSearch::descent_exploration(const MCGRP &mcgrp)
     DEBUG_PRINT("Downhill...");
 
     const auto original_policy = policy.get();
-    policy.set(BEST_ACCEPT | DOWNHILL | DELTA_ONLY);
+
+    if(rand() % 2) policy.set(BEST_ACCEPT | DOWNHILL | DELTA_ONLY);
+    else policy.set(FIRST_ACCEPT | DOWNHILL | DELTA_ONLY);
 
     neigh_size = mcgrp.neigh_size;
 
@@ -595,7 +598,7 @@ void HighSpeedNeighBorSearch::descent_exploration(const MCGRP &mcgrp)
 
                 switch (cur_operator) {
                     case SINGLE_INSERT:
-                        if (mcgrp._rng.Randint(0, 1) == 0){
+                        if (rand() % 2){
                             single_pre_insert->search(*this, mcgrp, chosen_task);
                             single_post_insert->search(*this, mcgrp,chosen_task);
                         }else{
