@@ -622,6 +622,7 @@ void HighSpeedNeighBorSearch::descent_exploration(const MCGRP &mcgrp)
                     default:My_Assert(false, "unknown operator!");
                 }
             }
+            viterbi_refine(mcgrp);
         }
         while (cur_solution_cost < start_val);
     }
@@ -795,11 +796,10 @@ void HighSpeedNeighBorSearch::small_step_infeasible_descent_search(const MCGRP &
         }
 
         My_Assert(equal_ratio >= 0 && equal_ratio <= 1, "Wrong ratio!");
+        viterbi_refine(mcgrp);
     }
-    while (
-        search_step_delta > significant_search_delta
-            && equal_ratio < local_ratio_threshold
-        );
+    while (search_step_delta > significant_search_delta
+            && equal_ratio < local_ratio_threshold);
 
 
     policy.set(original_policy);
@@ -1340,6 +1340,66 @@ void HighSpeedNeighBorSearch::_repair_time_window(const MCGRP &mcgrp)
     My_Assert(valid_sol(mcgrp), "Repair method doesn't work properly!");
 }
 
+void HighSpeedNeighBorSearch::_tour_splitting_repair(const MCGRP &mcgrp)
+{
+    DEBUG_PRINT("Tour splitting repair infeasible solution...");
+
+    struct Route
+    {
+        int route_id;
+        int load;
+        vector<RouteInfo::TimeTable> time_tbl;
+    };
+
+    vector<Route> satisfied_routes;
+    vector<Route> violated_routes;
+
+    for (auto route_id : routes.activated_route_id) {
+        Route tmp;
+        tmp.route_id = route_id;
+        tmp.load = routes[route_id]->load;
+        tmp.time_tbl = routes[route_id]->time_table;
+
+        if (tmp.load > mcgrp.capacity || !mcgrp.isTimeTableFeasible(tmp.time_tbl, false))
+            violated_routes.push_back(tmp);
+        else
+            satisfied_routes.push_back(tmp);
+    }
+
+    My_Assert(!violated_routes.empty(), "Wrong state");
+
+    vector<int> task_list;
+    for (auto current_route : violated_routes) {
+        vector<int> route_seq;
+        cur_solution_cost -= routes[current_route.route_id]->length;
+        total_vio_time -= mcgrp.get_vio_time(current_route.time_tbl);
+        total_vio_load -= max(routes[current_route.route_id]->load - mcgrp.capacity,0);
+
+        for (const auto &node : current_route.time_tbl)
+            route_seq.push_back(node.task);
+
+        delete_route(current_route.route_id, route_seq);
+        task_list.insert(task_list.end(),route_seq.begin(),route_seq.end());
+        My_Assert(valid_sol(mcgrp), "Wrong validation");
+    }
+
+//    Individual giant_tour = RTF(mcgrp,task_list,true);
+//    auto new_routes = tour_splitting(mcgrp,giant_tour.sequence);
+    auto new_routes = tour_splitting(mcgrp,task_list);
+
+    for (const auto& route : new_routes){
+        auto new_route_id = new_route(mcgrp, route);
+        My_Assert(new_route_id != -1, "Wrong new route");
+        cur_solution_cost += routes[new_route_id]->length;
+    }
+
+    My_Assert(missed(mcgrp), "Some Task missed!");
+    My_Assert(check_duplicated(mcgrp), "Duplicated Task!");
+    My_Assert(total_vio_time == 0, "This is not a infeasible Task!");
+
+    My_Assert(valid_sol(mcgrp), "Repair method doesn't work properly!");
+}
+
 bool HighSpeedNeighBorSearch::missed(const MCGRP &mcgrp)
 {
     for (auto task_id : task_set) {
@@ -1484,66 +1544,6 @@ int HighSpeedNeighBorSearch::new_route(const MCGRP &mcgrp, const vector<int> &ro
     return new_route;
 }
 
-void HighSpeedNeighBorSearch::_tour_splitting_repair(const MCGRP &mcgrp)
-{
-    DEBUG_PRINT("Tour splitting repair infeasible solution...");
-
-    struct Route
-    {
-        int route_id;
-        int load;
-        vector<RouteInfo::TimeTable> time_tbl;
-    };
-
-    vector<Route> satisfied_routes;
-    vector<Route> violated_routes;
-
-    for (auto route_id : routes.activated_route_id) {
-        Route tmp;
-        tmp.route_id = route_id;
-        tmp.load = routes[route_id]->load;
-        tmp.time_tbl = routes[route_id]->time_table;
-
-        if (tmp.load > mcgrp.capacity || !mcgrp.isTimeTableFeasible(tmp.time_tbl, false))
-            violated_routes.push_back(tmp);
-        else
-            satisfied_routes.push_back(tmp);
-    }
-
-    My_Assert(!violated_routes.empty(), "Wrong state");
-
-    vector<int> task_list;
-    for (auto current_route : violated_routes) {
-        vector<int> route_seq;
-        cur_solution_cost -= routes[current_route.route_id]->length;
-        total_vio_time -= mcgrp.get_vio_time(current_route.time_tbl);
-        total_vio_load -= max(routes[current_route.route_id]->load - mcgrp.capacity,0);
-
-        for (const auto &node : current_route.time_tbl)
-            route_seq.push_back(node.task);
-
-        delete_route(current_route.route_id, route_seq);
-        task_list.insert(task_list.end(),route_seq.begin(),route_seq.end());
-        My_Assert(valid_sol(mcgrp), "Wrong validation");
-    }
-
-//    Individual giant_tour = RTF(mcgrp,task_list,true);
-//    auto new_routes = tour_splitting(mcgrp,giant_tour.sequence);
-    auto new_routes = tour_splitting(mcgrp,task_list);
-
-    for (const auto& route : new_routes){
-        auto new_route_id = new_route(mcgrp, route);
-        My_Assert(new_route_id != -1, "Wrong new route");
-        cur_solution_cost += routes[new_route_id]->length;
-    }
-
-    My_Assert(missed(mcgrp), "Some Task missed!");
-    My_Assert(check_duplicated(mcgrp), "Duplicated Task!");
-    My_Assert(total_vio_time == 0, "This is not a infeasible Task!");
-
-    My_Assert(valid_sol(mcgrp), "Repair method doesn't work properly!");
-}
-
 vector<int>
 HighSpeedNeighBorSearch::get_successor_tasks(int length, const int chosen_task)
 {
@@ -1652,4 +1652,35 @@ bool HighSpeedNeighBorSearch::before(const int a,const int b){
     }
 
     My_Assert(false,"Can't reach here!");
+}
+
+void HighSpeedNeighBorSearch::viterbi_refine(const MCGRP &mcgrp)
+{
+    My_Assert(valid_sol(mcgrp), "Wrong state!");
+
+    for(int route_id : routes.activated_route_id){
+        if((double)routes[route_id]->num_edges / (double)routes[route_id]->num_customers >= 0.4){
+            vector<int> task_seq;
+            for(const auto &pair :routes[route_id]->time_table) task_seq.push_back(pair.task);
+
+            auto refine_result = viterbi_decoding(mcgrp,task_seq,policy.has_rule(FITNESS_ONLY));
+
+            if(refine_result.cost <= routes[route_id]->length){
+                cur_solution_cost -= routes[route_id]->length;
+                total_vio_load -= max(0,(routes[route_id]->load - mcgrp.capacity));
+                total_vio_time -= mcgrp.get_vio_time(routes[route_id]->time_table);
+
+
+                delete_route(route_id, task_seq);
+
+                int new_route_id = new_route(mcgrp,refine_result.sequence);
+                cur_solution_cost += routes[new_route_id]->length;
+                total_vio_load += max(0, routes[new_route_id]->load - mcgrp.capacity);
+                total_vio_time -= mcgrp.get_vio_time(routes[new_route_id]->time_table);
+                My_Assert(valid_sol(mcgrp), "Wrong state!");
+            }
+        }
+    }
+
+    My_Assert(valid_sol(mcgrp), "Wrong state!");
 }
