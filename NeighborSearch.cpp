@@ -996,6 +996,7 @@ void HighSpeedNeighBorSearch::update(const MCGRP &mcgrp,
         routes[new_route]->start = seqs[row].front();
         routes[new_route]->end = seqs[row].back();
         routes[new_route]->num_customers = seqs[row].size();
+        routes[new_route]->num_edges = mcgrp.count_edges(seqs[row]);
         vector<int> time_tbl = mcgrp.cal_arrive_time(seqs[row]);
         routes[new_route]->time_table.clear();
         for(int i = 0;i< time_tbl.size();i++){
