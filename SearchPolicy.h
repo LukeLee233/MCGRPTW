@@ -36,19 +36,22 @@ const bitset<RULES> BEST_ACCEPT("00100000");
 
 class Policy{
     bitset<RULES> current_policy;    //the policy used by improvement search
+    const int tabu_step_threshold = tabu_step;
 
 public:
-    double beta = std::numeric_limits<decltype(beta)>::max();
-    double benchmark = std::numeric_limits<decltype(benchmark)>::max();
-    double nearest_feasible_cost = std::numeric_limits<decltype(benchmark)>::max();
+    int cool_down_time;
+    double beta = DBL_MAX;
+    double benchmark = DBL_MAX;
 
-    const int tabu_step_threshold = tabu_step;
+    double nearest_feasible_cost = DBL_MAX;
 
     //infeasible search penalty coefficient
     double tolerance = 0;
 
 
-    Policy(){current_policy = UNDEFINE;};
+    Policy():current_policy(UNDEFINE),cool_down_time(tabu_step_threshold)
+    {};
+
     inline bitset<RULES> get(){return current_policy;};
 
     inline void set(bitset<RULES> _policy){current_policy = _policy;};
