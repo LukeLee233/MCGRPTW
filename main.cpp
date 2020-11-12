@@ -231,8 +231,8 @@ int main(int argc, char *argv[])
 
             /*----------------------------------------------------------*/
             cout << "Begin Optimal check..." << endl;
-            vector<vector<int>> best_sol{
-                {1,13,32,29,6,31,6,29,32,13,12,1},
+            vector<vector<int>> node_seq{
+                {1,13,32,29,6,31,6,29,32,13,1},
                 {1,13,34,7,17,40,20,4,21,5,24,25,26,23,11,1},
                 {1,14,15,6,31,30,29,32,33,32,13,1},
                 {1,11,23,26,27,28,16,15,14,13,1},
@@ -244,18 +244,47 @@ int main(int argc, char *argv[])
                 {1,11,23,26,27,26,23,22,5,24,25,26,23,11,1},
                 {1,13,34,35,34,13,1},
                 {1,12,8,40,20,4,21,10,8,12,1},
-                {1,11,23,26,16,15,14,13,1},
+                {1,11,23,26,16,15,14,13,12,1},
                 {1,12,8,40,20,8,7,2,38,36,37,33,32,13,1},
                 {1,11,23,22,24,25,26,23,11,1},
                 {1,11,23,26,27,6,15,14,13,1}
             };
             int total_length = 0;
-            for(const vector<int>& route_seq: best_sol){
+            for(const vector<int>& route_seq: node_seq){
                 for(int i = 1; i < route_seq.size();i++){
                     total_length += Mixed_Instance.min_cost[route_seq[i-1]][route_seq[i]];
                 }
             }
             cout << total_length << endl;
+
+            vector<int> task_seq{
+                -77,1,5,
+                -39,24,76,72,89,68,
+                -56,4,
+                -58,34,84,35,
+                -59,
+                -18,73,44,60,
+                -65,87,88,46,48,67,90,
+                -15,63,14,
+                -2,55,3,25,26,54,
+                -80,43,70,22,
+                -13,81,38,37,
+                -47,66,86,
+                -62,79,36,78,61,83,
+                -64,82,75,74,
+                -69,71,23,
+                -85,57,6
+            };
+
+
+            NBS.unpack_seq(get_delimiter_coding(task_seq),Mixed_Instance);
+            cout << "unpack solution: "<< NBS.get_cur_cost() << endl;
+
+            auto sorted_solution = sort_solution(task_seq);
+            for(const auto task : sorted_solution){
+                if(task < 0) cout << endl;
+                cout<< task << "->";
+            }
 
             cout << "Finish " << start_seed - random_seed << "th search, spent: "
                  << get_time_difference(phase_start_time, cur_time) << 's' << endl;
