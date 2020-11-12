@@ -392,6 +392,7 @@ void HighSpeedNeighBorSearch::create_search_neighborhood(const MCGRP &mcgrp, con
     }else if(mode == "predecessor"){
         const auto& predecessor_seq = neighbor_info.predecessor_neighbor.at(chosen_seq.front());
 
+        if(predecessor_seq.empty()) return;
         offset %= predecessor_seq.size();
         int loc = offset;
 
@@ -407,6 +408,7 @@ void HighSpeedNeighBorSearch::create_search_neighborhood(const MCGRP &mcgrp, con
     }else if(mode == "successor"){
         const auto& successor_seq = neighbor_info.successor_neighbor.at(chosen_seq.back());
 
+        if(successor_seq.empty()) return;
         offset %= successor_seq.size();
         int loc = offset;
 
