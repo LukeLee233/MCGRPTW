@@ -66,6 +66,7 @@ HighSpeedNeighBorSearch::~HighSpeedNeighBorSearch() = default;
 
 void HighSpeedNeighBorSearch::neighbor_search(const MCGRP &mcgrp)
 {
+    mcgrp._rng.change(seed[rand() % seed_size]);
     int mode;
     if (neighbor_search_mode == "IDPRTR")
         mode = IDPRTR;
