@@ -206,6 +206,7 @@ void MCGRP::load_file_info(std::string input_file, const InstanceNumInfo &instan
                 inst_tasks[i].inverse = i + req_edge_num;
 
                 inst_tasks[i + req_edge_num] = inst_tasks[i];
+                inst_tasks[i + req_edge_num].task_id = i + req_edge_num;
                 swap(inst_tasks[i + req_edge_num].head_node, inst_tasks[i + req_edge_num].tail_node);
                 inst_tasks[i + req_edge_num].inverse = i;
 
