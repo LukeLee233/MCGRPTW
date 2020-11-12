@@ -11,11 +11,6 @@ double Policy::getFitnessDelta(const MoveResult &move_result) {
 
 bool Policy::check_move(const MoveResult &move_result)
 {
-    //To control the frequency
-    static int count = 0;
-    static bool flag = true;
-
-
 
     /*----------------------------Feasible search policy------------------------------------*/
     if (has_rule(DELTA_ONLY)) {
@@ -26,16 +21,12 @@ bool Policy::check_move(const MoveResult &move_result)
                 return true;
             }
 
-            else if (flag && move_result.new_total_route_length <= (1.0 + tolerance) * benchmark) {
-                    flag = false;
+            else if (cool_down_time <= 0 && move_result.new_total_route_length <= (1.0 + tolerance) * benchmark) {
+                    cool_down_time = tabu_step_threshold;
                     return true;
                 }
             else{
-                count++;
-                if (count == tabu_step_threshold) {
-                    flag = true;
-                    count = 0;
-                }
+                cool_down_time--;
                 return false;
             }
         }
@@ -49,16 +40,12 @@ bool Policy::check_move(const MoveResult &move_result)
             return delta_fitness <= 0;
         else if (has_rule(TOLERANCE)) {
             if (tolerance != 0 && delta_fitness <= tolerance * benchmark) {
-                if (flag) {
-                    flag = false;
+                if (cool_down_time <= 0) {
+                    cool_down_time = tabu_step_threshold;
                     return true;
                 }
                 else {
-                    count++;
-                    if (count == tabu_step_threshold) {
-                        flag = true;
-                        count = 0;
-                    }
+                    cool_down_time--;
                     return false;
                 }
             }
