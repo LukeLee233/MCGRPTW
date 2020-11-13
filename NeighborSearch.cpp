@@ -14,6 +14,7 @@
 #include "config.h"
 #include "utils.h"
 #include "ConstructPolicy.h"
+#include "Similarity.h"
 
 using namespace std;
 
@@ -320,10 +321,16 @@ void HighSpeedNeighBorSearch::RTR_search(const MCGRP &mcgrp)
     double orig_val_for_downhill;
     local_minimum_likelihood = 1;
     int cnt = 1;
+    vector<int> old_seq;
+    int old_cost;
+    vector<int> new_seq;
+    int new_cost;
     do {
         struct timeb start_time;
         ftime(&start_time);
 
+        old_seq = sort_solution(get_solution("negative"));
+        old_cost = cur_solution_cost;
         threshold_exploration(mcgrp);
         orig_val_for_uphill = cur_solution_cost;
 
@@ -332,6 +339,18 @@ void HighSpeedNeighBorSearch::RTR_search(const MCGRP &mcgrp)
             descent_exploration(mcgrp);
         }
         while (cur_solution_cost < orig_val_for_downhill);
+
+        new_seq = sort_solution(get_solution("negative"));
+        new_cost = cur_solution_cost;
+        cout << "old cost: " << old_cost<<endl;
+        cout << "new cost: " << new_cost<<endl;
+        cout << "Edit similarity: " << edit_distance(old_seq,new_seq) << endl;
+        cout << "Hamming similarity: " << hamming_dist(mcgrp,old_seq,new_seq) << endl;
+        print(log_out, to_string(old_cost)
+        + "," + to_string(new_cost)
+        + "," + to_string(edit_distance(old_seq,new_seq))
+        + "," + to_string(hamming_dist(mcgrp,old_seq,new_seq)
+        ));
 
         struct timeb end_time;
         ftime(&end_time);

@@ -230,10 +230,16 @@ int main(int argc, char *argv[])
             HighSpeedNeighBorSearch NBS(Mixed_Instance);
 
             /*----------------------------------------------------------*/
-            cout << "Begin Memetic search..." << endl;
-            HighSpeedMemetic MA(NBS, pool_size, evolve_steps, QNDF_weights);
+            cout << "Begin Local Search..." << endl;
+
+            Individual buffer = nearest_scanning(Mixed_Instance, vector<int>());
+            My_Assert(Mixed_Instance.valid_sol(get_negative_coding(buffer.sequence), buffer.total_cost), "Wrong outcome!\n");
+
+            NBS.unpack_seq(buffer.sequence, Mixed_Instance);
+            NBS.trace(Mixed_Instance);
+
             ftime(&phase_start_time);
-            MA.memetic_search(Mixed_Instance);
+            NBS.neighbor_search(Mixed_Instance);
             ftime(&cur_time);
             cout << "Finish " << start_seed - random_seed << "th search, spent: "
                  << get_time_difference(phase_start_time, cur_time) << 's' << endl;
