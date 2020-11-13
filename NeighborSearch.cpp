@@ -1685,7 +1685,7 @@ void HighSpeedNeighBorSearch::viterbi_refine(const MCGRP &mcgrp)
                 int new_route_id = new_route(mcgrp,refine_result.sequence);
                 cur_solution_cost += routes[new_route_id]->length;
                 total_vio_load += max(0, routes[new_route_id]->load - mcgrp.capacity);
-                total_vio_time -= mcgrp.get_vio_time(routes[new_route_id]->time_table);
+                total_vio_time += mcgrp.get_vio_time(routes[new_route_id]->time_table);
                 My_Assert(valid_sol(mcgrp), "Wrong state!");
             }
         }
