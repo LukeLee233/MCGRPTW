@@ -5,7 +5,7 @@
 #include "Similarity.h"
 #include <algorithm>
 
-double hamming_dist(const MCGRP &mcgrp, const vector<int> &a, const vector<int> &b)
+double hamming_dist(const MCGRP &mcgrp, const vector<int> &neg_a, const vector<int> &neg_b)
 {
     vector<vector<int>> atom_link;
     //include offset 1
@@ -16,12 +16,12 @@ double hamming_dist(const MCGRP &mcgrp, const vector<int> &a, const vector<int> 
     int pre_task, cur_task, next_task;
     int source_node, target_node;
 
-    //parse solution a
-    for (int i = 0; i < a.size(); ++i) {
-        cur_task = abs(a[i]);
+    //parse solution neg_a
+    for (int i = 0; i < neg_a.size(); ++i) {
+        cur_task = abs(neg_a[i]);
 
         //Special case: start of the route
-        if (a[i] < 0) {
+        if (neg_a[i] < 0) {
             //Inside & outside will be considered meantime
             pre_task = DUMMY;
             source_node = mcgrp.inst_tasks[pre_task].head_node;
@@ -34,10 +34,10 @@ double hamming_dist(const MCGRP &mcgrp, const vector<int> &a, const vector<int> 
 
         }
 
-        if (i == a.size() - 1)
+        if (i == neg_a.size() - 1)
             next_task = DUMMY;
         else
-            next_task = max(DUMMY, a[i + 1]);
+            next_task = max(DUMMY, neg_a[i + 1]);
 
         //Inside & outside will be considered meantime
         source_node = mcgrp.inst_tasks[cur_task].head_node;
@@ -53,12 +53,12 @@ double hamming_dist(const MCGRP &mcgrp, const vector<int> &a, const vector<int> 
     int same_count = 0, num_rts = 0;
 
 
-    //parse route b
-    for (int i = 0; i < b.size(); ++i) {
-        cur_task = abs(b[i]);
+    //parse route neg_b
+    for (int i = 0; i < neg_b.size(); ++i) {
+        cur_task = abs(neg_b[i]);
 
         //Special case: start of the route
-        if (b[i] < 0) {
+        if (neg_b[i] < 0) {
             num_rts++;
             pre_task = DUMMY;
             source_node = mcgrp.inst_tasks[pre_task].head_node;
@@ -81,10 +81,10 @@ double hamming_dist(const MCGRP &mcgrp, const vector<int> &a, const vector<int> 
         }
 
 
-        if (i == b.size() - 1)
+        if (i == neg_b.size() - 1)
             next_task = DUMMY;
         else
-            next_task = max(DUMMY, b[i + 1]);
+            next_task = max(DUMMY, neg_b[i + 1]);
 
         source_node = mcgrp.inst_tasks[cur_task].head_node;
         target_node = mcgrp.inst_tasks[next_task].tail_node;
@@ -105,7 +105,7 @@ double hamming_dist(const MCGRP &mcgrp, const vector<int> &a, const vector<int> 
         }
     }
 
-    double dist = 2 * (mcgrp.req_node_num + mcgrp.req_arc_num + mcgrp.req_edge_num + num_rts) - same_count;
+    double dist = 1.0 - double(same_count) / double(2 * (mcgrp.req_node_num + mcgrp.req_arc_num + mcgrp.req_edge_num + num_rts));
 
     return dist;
 }

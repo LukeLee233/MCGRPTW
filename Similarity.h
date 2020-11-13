@@ -11,11 +11,11 @@
 /*!
      * @details get hamming distance between two solution
      * @param mcgrp
-     * @param a
-     * @param b
+     * @param neg_a
+     * @param neg_b
      * @return
      */
-double hamming_dist(const MCGRP &mcgrp, const vector<int> &a, const vector<int> &b);
+double hamming_dist(const MCGRP &mcgrp, const vector<int> &neg_a, const vector<int> &neg_b);
 
 double edit_distance(const vector<int>& neg_sol_a, const vector<int>& neg_sol_b);
 
