@@ -286,6 +286,18 @@ int main(int argc, char *argv[])
                 cout<< task << "->";
             }
 
+            auto connect_tasks = nearest_task_analyse(Mixed_Instance,sorted_solution);
+            cout << "\n\nConnect tasks:"<< endl;
+            for(const auto& route : connect_tasks){
+                for(const auto& seg : route){
+                    for(int task : seg){
+                        cout << task << "->";
+                    }
+                    cout<< "\b\b,";
+                }
+                cout<<"\b\n";
+            }
+
             cout << "Finish " << start_seed - random_seed << "th search, spent: "
                  << get_time_difference(phase_start_time, cur_time) << 's' << endl;
 

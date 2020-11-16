@@ -1165,3 +1165,45 @@ const vector<int> &MCGRP::_same_start_task(int start_node)
     }
     return start_task_lookup_tbl[start_node];
 }
+
+vector<vector<int>> split_solution(const vector<int>& negative_sol){
+    vector<vector<int>> routes;
+
+    for(const auto& task : negative_sol){
+        if(task < 0){
+            routes.push_back(vector<int>());
+            routes.back().push_back(-task);
+        }else{
+            routes.back().push_back(task);
+        }
+    }
+
+    return routes;
+}
+
+vector<vector<vector<int>>> nearest_task_analyse(const MCGRP &mcgrp, const vector<int> &negative_sol)
+{
+    vector<vector<vector<int>>> connect_tasks;
+
+    auto route_task = split_solution(negative_sol);
+
+    for(const auto& route : route_task){
+        vector<vector<int>> buf;
+        for(const auto task : route){
+            if(buf.empty()) {
+                buf.push_back({task});
+                continue;
+            }
+
+            if(mcgrp.min_cost[mcgrp.inst_tasks[buf.back().back()].tail_node][mcgrp.inst_tasks[task].head_node] == 0){
+                buf.back().push_back(task);
+            }else{
+                buf.push_back({task});
+            }
+        }
+
+        connect_tasks.push_back(buf);
+    }
+
+    return connect_tasks;
+}
