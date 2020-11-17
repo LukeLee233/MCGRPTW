@@ -25,6 +25,9 @@ extern ofstream result_out;
 
 extern ofstream log_out;
 
+extern vector<vector<int>> solution_set;
+
+
 static std::array<int, seed_size>
     seed = {12345678, 23456781, 34567812, 45678123, 56781234, 67812345, 78123456, 81234567,
             12435678, 24356781, 43567812, 35678124, 56781243, 67812435, 78124356, 81243567,
@@ -343,3 +346,7 @@ inline double get_time_difference(const timeb& start,const timeb& end){
 }
 
 vector<int> sort_solution(const vector<int>& negative_sol);
+
+vector<vector<int>> split_neg_seq(const vector<int>& neg_seq);
+
+string routeTostr(const vector<int>& route);

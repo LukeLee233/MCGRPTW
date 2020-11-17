@@ -330,6 +330,7 @@ void HighSpeedNeighBorSearch::RTR_search(const MCGRP &mcgrp)
         ftime(&start_time);
 
         old_seq = sort_solution(get_solution("negative"));
+        solution_set.push_back(old_seq);
         old_cost = cur_solution_cost;
         threshold_exploration(mcgrp);
         orig_val_for_uphill = cur_solution_cost;

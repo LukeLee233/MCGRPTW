@@ -9,6 +9,8 @@ using namespace std;
 ofstream result_out;
 ofstream log_out;
 
+vector<vector<int>> solution_set;
+
 void __My_Assert(const char *expr_str, bool expr, const char *file, int line, const char *msg)
 {
     if (!expr) {
@@ -154,6 +156,32 @@ vector<int> sort_solution(const vector<int>& negative_sol)
     }
 
     return sorted;
+}
+
+vector<vector<int>> split_neg_seq(const vector<int> &neg_seq)
+{
+    vector<vector<int>> ans;
+    for(const auto task: neg_seq){
+        if(task < 0){
+            ans.push_back({-task});
+        }else{
+            ans.back().push_back(task);
+        }
+    }
+
+    return ans;
+}
+
+string routeTostr(const vector<int>& route){
+    string buf;
+    for(const auto task : route){
+        buf += to_string(task);
+        buf += ",";
+    }
+
+    buf.pop_back();
+
+    return buf;
 }
 
 vector<RouteInfo::TimeTable>

@@ -18,6 +18,7 @@
 #include <numeric>
 #include "json.hpp"
 #include "config.h"
+#include "Similarity.h"
 
 using namespace std;
 namespace bpo = boost::program_options;
@@ -270,6 +271,51 @@ int main(int argc, char *argv[])
 #ifdef DEBUG
         log_out.close();
 #endif
+
+        log_out.open(date_folder + '/' + file_name + ".solutions", ios::out);
+        for(const auto& sol : solution_set){
+            string buf;
+            for(const auto task : sol){
+                buf += to_string(task) += ",";
+            }
+            buf.pop_back();
+            print(log_out, buf);
+        }
+        log_out.close();
+
+        vector<vector<double>> similarity_matrix(solution_set.size(),vector<double>(solution_set.size(),DBL_MAX));
+        for(int i = 0; i < similarity_matrix.size();i++){
+            for(int j = 0; j < similarity_matrix[0].size();j++){
+                similarity_matrix[i][j] = hamming_dist(Mixed_Instance, solution_set[i],solution_set[j]);
+            }
+        }
+
+        log_out.open(date_folder + '/' + file_name + ".similarity", ios::out);
+        for(const auto& row : similarity_matrix){
+            string buf;
+            for(const auto task : row){
+                buf += to_string(task) += ",";
+            }
+            buf.pop_back();
+            print(log_out, buf);
+        }
+        log_out.close();
+
+        unordered_map<string,int> common_routes;
+        for(const auto& sol : solution_set){
+            auto routes = split_neg_seq(sol);
+            for(const auto& route : routes)
+                common_routes[routeTostr(route)]++;
+        }
+
+        log_out.open(date_folder + '/' + file_name + ".common", ios::out);
+        for(const auto& item : common_routes){
+            print(log_out, item.first + ": " + to_string(item.second));
+        }
+
+        log_out.close();
+
+
 
         /***********************************output part********************************************/
         if (bestobj == numeric_limits<decltype(bestobj)>::max()) {
