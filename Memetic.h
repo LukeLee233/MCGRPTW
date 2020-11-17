@@ -118,7 +118,7 @@ private:
 
 public:
 
-    HighSpeedMemetic(HighSpeedNeighBorSearch &local_search, const int pool_size, const int evolve_steps, int _QNDF_weight);
+    HighSpeedMemetic(const int pool_size, const int evolve_steps, int _QNDF_weight);
 
     inline void reset(){
         population.clear();

@@ -167,7 +167,7 @@ int main(int argc, char *argv[])
         cout << "Result directory already exists!\n\n";
     }
 
-/*----------------------Create info recorder----------------------*/
+/*----------------------Create parameter logger----------------------*/
 //  record searching parameters
     log_out.open(date_folder + "/parameters.txt", ios::out);
     print(cout, log_out, "Parameters settings:");
@@ -224,21 +224,40 @@ int main(int argc, char *argv[])
                  << "th times search" << string(24, '-') << endl;
 
             Mixed_Instance._rng.change(seed[start_seed % seed_size]);
-            Mixed_Instance.best_total_route_length = numeric_limits<double>::max();
-            Mixed_Instance.best_sol_time = numeric_limits<double>::max();
+            Mixed_Instance.best_total_route_length = DBL_MAX;
+            Mixed_Instance.best_sol_time = DBL_MAX;
 
-            HighSpeedNeighBorSearch NBS(Mixed_Instance);
 
-            /*----------------------------------------------------------*/
-            cout << "Begin Memetic search..." << endl;
-            HighSpeedMemetic MA(NBS, pool_size, evolve_steps, QNDF_weights);
-            ftime(&phase_start_time);
-            MA.memetic_search(Mixed_Instance);
-            ftime(&cur_time);
-            cout << "Finish " << start_seed - random_seed << "th search, spent: "
-                 << get_time_difference(phase_start_time, cur_time) << 's' << endl;
+            if(pool_size == 1){
+                HighSpeedNeighBorSearch NBS(Mixed_Instance);
+                Individual initial_solution = nearest_scanning(Mixed_Instance, vector<int>());
+                NBS.unpack_seq(initial_solution.sequence, Mixed_Instance);
+                NBS.trace(Mixed_Instance);
+                cout << "Begin Local search..." << endl;
 
-            /*----------------------------------------------------------*/
+                for (auto iter = 1; iter <= evolve_steps
+                    && get_time_difference(search_start_time, cur_time) < search_time; iter++) {
+                    cout << start_seed - random_seed <<"-"<< iter << " th times local search\n";
+                    ftime(&phase_start_time);
+                    NBS.neighbor_search(Mixed_Instance);
+                    ftime(&cur_time);
+                    cout << "Finish " << start_seed - random_seed <<"-"<< iter  << "steps, spent: "
+                         << get_time_difference(phase_start_time, cur_time) << 's' << endl;
+                }
+
+                cout << start_seed - random_seed << "th search:\n";
+                cout << "Total spend " << get_time_difference(search_start_time, cur_time) << endl;
+
+            }else{
+                HighSpeedMemetic MA(pool_size, evolve_steps, QNDF_weights);
+
+                cout << "Begin Memetic search..." << endl;
+                ftime(&phase_start_time);
+                MA.memetic_search(Mixed_Instance);
+                ftime(&cur_time);
+                cout << "Finish " << start_seed - random_seed << "th search, spent: "
+                     << get_time_difference(phase_start_time, cur_time) << 's' << endl;
+            }
 
             /* solution record */
             ftime(&cur_time);

@@ -29,8 +29,7 @@ int POPOrderDescent(const POPOrder &a, const POPOrder &b)
  * High Speed Memetic
  */
 
-HighSpeedMemetic::HighSpeedMemetic(HighSpeedNeighBorSearch &local_search,
-                                   const int pool_size,
+HighSpeedMemetic::HighSpeedMemetic(const int pool_size,
                                    const int evolve_steps,
                                    int _QNDF_weight)
     : hardware_threads(thread::hardware_concurrency()), thread_pool(hardware_threads - 1)
