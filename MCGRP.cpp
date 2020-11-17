@@ -1207,3 +1207,23 @@ vector<vector<vector<int>>> nearest_task_analyse(const MCGRP &mcgrp, const vecto
 
     return connect_tasks;
 }
+
+
+void convert_to_node(const MCGRP &mcgrp, const vector<int> &neg_sol)
+{
+    int id = 1;
+    int cnt = 0;
+    for(const auto task : neg_sol){
+        cnt++;
+        if(task < 0){
+            cout<<"\b\n";
+            cout << mcgrp.inst_tasks[-task].head_node<<"->"<< mcgrp.inst_tasks[-task].tail_node<<",";
+        }
+        else {
+            cout << mcgrp.inst_tasks[task].head_node<<"->"<< mcgrp.inst_tasks[task].tail_node<<",";
+        }
+    }
+
+    cout << "\b";
+    return;
+}

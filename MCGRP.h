@@ -233,3 +233,5 @@ inline int MCGRP::get_travel_time(int source_task, int sink_task) const {
 vector<vector<int>> split_solution(const vector<int>& negative_sol);
 
 vector<vector<vector<int>>> nearest_task_analyse(const MCGRP& mcgrp, const vector<int>& negative_sol);
+
+void convert_to_node(const MCGRP &mcgrp, const vector<int> &neg_sol);
