@@ -91,9 +91,7 @@ void HighSpeedMemetic::memetic_search(const MCGRP &mcgrp)
                     auto parent2_id = parents_id.second;
 
                     if (population[parent2_id].obj < population[parent1_id].obj) {
-                        auto tmp = parent1_id;
-                        parent1_id = parent2_id;
-                        parent2_id = tmp;
+                        swap(parent1_id,parent2_id);
                     }
 
                     auto child =
