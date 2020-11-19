@@ -33,6 +33,12 @@ class HighSpeedNeighBorSearch
     friend struct RouteSegment get_segment_info(const MCGRP &mcgrp,HighSpeedNeighBorSearch &ns,const int chosen_task);
     friend struct seg_info get_seg_info(const MCGRP &mcgrp, HighSpeedNeighBorSearch &ns, const int start_task, const int end_task);
     friend void unit_test(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, MoveOperator& move_operator);
+
+public:
+    double best_solution_cost;
+    vector<int> best_solution_neg;
+
+
 private:
 
     struct TASK_NODE{
@@ -261,7 +267,6 @@ private:
 
     Policy policy;
 
-    double best_solution_cost;
 
     const int significant_search_delta = significant_search;
     const double local_ratio_threshold = local_ratio;
@@ -305,7 +310,7 @@ public:
     ~HighSpeedNeighBorSearch();
 
 
-    vector<int> get_solution(string mode="dummy");
+    vector<int> get_current_sol(string mode= "dummy");
 
     void delete_route(int route_id,const vector<int>& route_seq);
     int new_route(const MCGRP& mcgrp, const vector<int>& route_seq);

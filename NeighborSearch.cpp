@@ -55,9 +55,11 @@ HighSpeedNeighBorSearch::HighSpeedNeighBorSearch(const MCGRP &mcgrp)
     search_step = 0;
     equal_step = 0;
     cur_solution_cost = numeric_limits<decltype(best_solution_cost)>::max();
+    best_solution_neg.clear();
     total_vio_load = 0;
     total_vio_time = 0;
     best_solution_cost = numeric_limits<decltype(best_solution_cost)>::max();
+    best_solution_neg.clear();
     std::generate(task_set.begin(), task_set.end(), Generator());
     solution.print();
 }
@@ -248,7 +250,7 @@ void HighSpeedNeighBorSearch::unpack_seq(const std::vector<int> &dummy_seq, cons
     My_Assert(valid_sol(mcgrp), "Wrong state");
 }
 
-vector<int> HighSpeedNeighBorSearch::get_solution(string mode)
+vector<int> HighSpeedNeighBorSearch::get_current_sol(string mode)
 {
     My_Assert(solution.very_start != nullptr, "Empty solution");
     vector<int> buffer;
@@ -293,6 +295,7 @@ void HighSpeedNeighBorSearch::clear()
 {
     total_vio_load = 0;
     best_solution_cost = numeric_limits<decltype(best_solution_cost)>::max();
+    best_solution_neg.clear();
     cur_solution_cost = 0;
     solution.clear();
     routes.clear();
@@ -300,7 +303,7 @@ void HighSpeedNeighBorSearch::clear()
 
 void HighSpeedNeighBorSearch::create_individual(const MCGRP &mcgrp, Individual &p)
 {
-    p.sequence = get_solution();
+    p.sequence = get_current_sol();
 
     My_Assert(!routes.activated_route_id.empty(), "Routes info is empty!");
     p.route_seg_load.clear();
@@ -645,12 +648,12 @@ void HighSpeedNeighBorSearch::infeasible_exploration(const MCGRP &mcgrp)
     policy.nearest_feasible_cost = cur_solution_cost;
     policy.beta = cur_solution_cost / double(mcgrp.capacity * 15);
 
-    small_step_infeasible_descent_search(mcgrp);
-
-    DEBUG_PRINT("Trigger Infeasible Tabu Search");
-    small_step_infeasible_tabu_search(mcgrp);
-
-    small_step_infeasible_descent_search(mcgrp);
+//    small_step_infeasible_descent_search(mcgrp);
+//
+//    DEBUG_PRINT("Trigger Infeasible Tabu Search");
+//    small_step_infeasible_tabu_search(mcgrp);
+//
+//    small_step_infeasible_descent_search(mcgrp);
 
 
     //Here used to break the local minimum with merge-split operator
@@ -663,7 +666,7 @@ void HighSpeedNeighBorSearch::infeasible_exploration(const MCGRP &mcgrp)
 
     policy.nearest_feasible_cost = 0;
     policy.beta = 0;
-    this->best_solution_cost = cur_solution_cost;
+//    this->best_solution_cost = cur_solution_cost;
 }
 
 void HighSpeedNeighBorSearch::trace(const MCGRP &mcgrp)
@@ -675,11 +678,12 @@ void HighSpeedNeighBorSearch::trace(const MCGRP &mcgrp)
     if (total_vio_load == 0 && total_vio_time == 0) {
         if (cur_solution_cost < this->best_solution_cost) {
             this->best_solution_cost = cur_solution_cost;
+            this->best_solution_neg = get_current_sol("negative");
         }
 
         vector<int> negative_coding_sol;
         if (cur_solution_cost < mcgrp.best_total_route_length) {
-            negative_coding_sol = get_solution("negative");
+            negative_coding_sol = get_current_sol("negative");
         }
 
         mcgrp.check_best_solution(cur_solution_cost, negative_coding_sol);
@@ -1427,7 +1431,7 @@ bool HighSpeedNeighBorSearch::check_duplicated(const MCGRP &mcgrp)
     //offset one
     vector<int> tasks(mcgrp.actual_task_num + 1, 0);
 
-    vector<int> delimiter_coding_sol = get_solution();
+    vector<int> delimiter_coding_sol = get_current_sol();
     for (auto task : delimiter_coding_sol) {
         if (task == DUMMY) {
             continue;

@@ -61,7 +61,7 @@ void HighSpeedMemetic::memetic_search(const MCGRP &mcgrp)
 
             ns.neighbor_search(mcgrp);
 
-            population.front().solution = get_negative_coding(ns.get_solution());
+            population.front().solution = get_negative_coding(ns.get_current_sol());
             population.front().obj = ns.get_cur_cost();
         }
     }
@@ -890,8 +890,8 @@ void HighSpeedMemetic::create_citizen(const MCGRP &mcgrp)
 //    ns_.infeasible_exploration(mcgrp);
     ns_.neighbor_search(mcgrp);
     UNIT tmp;
-    tmp.obj = ns_.get_cur_cost();
-    tmp.solution = get_negative_coding(ns_.get_solution());
+    tmp.obj = ns_.best_solution_cost;
+    tmp.solution = ns_.best_solution_neg;
 
     lock_guard<mutex> thread_pool_lock(buffer_lock);
     citizen_buffer.push(tmp);
@@ -909,11 +909,10 @@ void HighSpeedMemetic::educate(const MCGRP &mcgrp, vector<int> child)
     ns_.unpack_seq(get_delimiter_coding(child), mcgrp);
     ns_.trace(mcgrp);
 
-//    ns_.infeasible_exploration(mcgrp);
     ns_.neighbor_search(mcgrp);
     UNIT tmp;
-    tmp.obj = ns_.get_cur_cost();
-    tmp.solution = get_negative_coding(ns_.get_solution());
+    tmp.obj = ns_.best_solution_cost;
+    tmp.solution = ns_.best_solution_neg;
 
 
     lock_guard<mutex> thread_pool_lock(buffer_lock);
@@ -984,7 +983,7 @@ void HighSpeedMemetic::init_population(const MCGRP &mcgrp)
 //        ns.trace(mcgrp);
 //        ns.infeasible_exploration(mcgrp);
 //        ns.neighbor_search(mcgrp);
-//        auto immigrant = get_negative_coding(ns.get_solution());
+//        auto immigrant = get_negative_coding(ns.get_current_sol());
         /*------------------------------------*/
     }
 
@@ -1008,7 +1007,7 @@ HighSpeedMemetic::repeated(const MCGRP &mcgrp, const double tested_value, const 
             return false;
         case HAMMING_DISTANCE:
             for (auto citizen : population) {
-                if (hamming_dist(mcgrp, neg_solution, citizen.solution) < 10) return true;
+                if (hamming_dist(mcgrp, sort_solution(neg_solution), sort_solution(citizen.solution)) < 0.2) return true;
             }
 
             return false;
