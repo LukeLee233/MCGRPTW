@@ -17,7 +17,7 @@ MCGRP::MCGRP(const InstanceNumInfo &instance_info, RNG &rng)
     //the first node id is 1, add an offset.
     int offset_node_num = instance_info.node_num + 1;  //The number of the whole node
 
-    best_sol_buff.clear();
+    best_sol_neg.clear();
 
     trav_cost.resize(offset_node_num);
     for (int i = 1; i < offset_node_num; i++) {
@@ -64,17 +64,14 @@ MCGRP::MCGRP(const InstanceNumInfo &instance_info, RNG &rng)
 
     best_total_route_length = DBL_MAX;
     best_sol_time = DBL_MAX;
-
-    global_best_total_route_length = DBL_MAX;
-    global_best_sol_time = DBL_MAX;
 }
 
 void MCGRP::create_individual(Individual &p) const
 {
-    My_Assert(!best_sol_buff.empty(), "Best solution cannot be empty!");
+    My_Assert(!best_sol_neg.empty(), "Best solution cannot be empty!");
 
     p.sequence.clear();
-    p.sequence = get_delimiter_coding(best_sol_buff);
+    p.sequence = get_delimiter_coding(best_sol_neg);
 
     p.route_seg_load.clear();
     p.total_vio_load = 0;
@@ -106,7 +103,7 @@ void MCGRP::create_individual(Individual &p) const
 void MCGRP::reset(RNG &rng)
 {
     _rng = rng;
-    best_sol_buff.clear();
+    best_sol_neg.clear();
     best_total_route_length = DBL_MAX;
     best_sol_time = DBL_MAX;
 }
@@ -172,6 +169,7 @@ void MCGRP::load_file_info(std::string input_file, const InstanceNumInfo &instan
             getline(fin, dummy_string);
             for (int i = 1; i <= req_edge_num; i++) {
                 fin >> dummy_string;
+                inst_tasks[i].task_name = dummy_string;
 
                 fin >> dummy_string;
                 inst_tasks[i].head_node = stoi(dummy_string);
@@ -245,6 +243,7 @@ void MCGRP::load_file_info(std::string input_file, const InstanceNumInfo &instan
 
             for (int i = 2 * req_edge_num + 1; i <= 2 * req_edge_num + req_arc_num; i++) {
                 fin >> dummy_string;
+                inst_tasks[i].task_name = dummy_string;
 
                 fin >> dummy_string;
                 inst_tasks[i].head_node = stoi(dummy_string);
@@ -311,6 +310,8 @@ void MCGRP::load_file_info(std::string input_file, const InstanceNumInfo &instan
 
             for (int i = 2 * req_edge_num + req_arc_num + 1; i <= 2 * req_edge_num + req_arc_num + req_node_num; i++) {
                 fin >> dummy_string;
+                inst_tasks[i].task_name = dummy_string;
+
                 dummy_string = dummy_string.substr(1);
                 int node = stoi(dummy_string);
 
@@ -344,6 +345,7 @@ void MCGRP::load_file_info(std::string input_file, const InstanceNumInfo &instan
     fin.close();
 
     /* dummy Task information */
+    inst_tasks[DUMMY].task_name = "DUMMY";
     inst_tasks[DUMMY].tail_node = DEPOT;
     inst_tasks[DUMMY].head_node = DEPOT;
     inst_tasks[DUMMY].trave_cost = 0;
@@ -354,6 +356,7 @@ void MCGRP::load_file_info(std::string input_file, const InstanceNumInfo &instan
 
     /* sentinel Task info */
     sentinel = inst_tasks.size() - 1;
+    inst_tasks[sentinel].task_name = "DUMMY";
     inst_tasks[sentinel].head_node = DEPOT;
     inst_tasks[sentinel].tail_node = DEPOT;
     inst_tasks[sentinel].trave_cost = 0;
@@ -559,13 +562,13 @@ int MCGRP::get_total_vio_load(const std::vector<int> &route_seg_load) const
 
 bool MCGRP::check_best_solution(const double total_route_length, const vector<int> &sol_seq) const
 {
-    lock_guard<mutex> lk(global_mut);
+    lock_guard<mutex> lk(instance_mutex);
     // Determines if the current solution is the best found so far.
     if ((total_route_length < best_total_route_length)) {
         My_Assert(valid_sol(sol_seq, total_route_length), "Wrong solution!");
 
         best_total_route_length = total_route_length;
-        best_sol_buff = sol_seq;
+        best_sol_neg = sol_seq;
         struct timeb cur_time;
         ftime(&cur_time);
         best_sol_time =

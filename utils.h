@@ -138,6 +138,7 @@ public:
 struct Task
 {
     typedef pair<int,int> Window;
+    string task_name;
     int task_id;
     int head_node;
     int tail_node;

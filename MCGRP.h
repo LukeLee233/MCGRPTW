@@ -68,15 +68,11 @@ public:
 
 
     /* stage global sol information */
-    mutable std::vector<int> best_sol_buff;     //negative coding format
+    mutable std::vector<int> best_sol_neg;
     mutable double best_total_route_length;
     mutable double best_sol_time;
 
-    /* global sol information */
-    mutable std::vector<int> global_best_sol_buff;     //negative coding format
-    mutable double global_best_total_route_length;
-    mutable double global_best_sol_time;
-    mutable mutex global_mut;
+    mutable mutex instance_mutex;
 
 
     MCGRP(const InstanceNumInfo &instance_info, RNG &rng);
@@ -128,6 +124,8 @@ public:
     void get_trave_matrix();
 
     void create_neighbor_lists(int neighbor_size);
+
+private:
     void _build_neighbor_task(const Task& task, NeighborInfo& neighbor_info);
     void _build_neighbor_node(int start, int end, NeighborInfo& neighbor_info);
     unordered_map<int, vector<int>> end_task_lookup_tbl;
@@ -135,6 +133,7 @@ public:
     const vector<int>& _same_end_task(int end_node);
     const vector<int>& _same_start_task(int start_node);
 
+public:
     /*!
      * 获得任务序列的总成本
      * @param delimiter_seq

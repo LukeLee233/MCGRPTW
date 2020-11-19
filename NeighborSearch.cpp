@@ -642,7 +642,7 @@ void HighSpeedNeighBorSearch::infeasible_exploration(const MCGRP &mcgrp)
     // Based on the best solution find so far, experiment shows this is better than the policy
     // which start from current solution.
     this->clear();
-    unpack_seq(get_delimiter_coding(mcgrp.best_sol_buff), mcgrp);
+    unpack_seq(get_delimiter_coding(mcgrp.best_sol_neg), mcgrp);
 
     My_Assert(total_vio_load == 0, "Cannot start from an infeasible point!");
     policy.nearest_feasible_cost = cur_solution_cost;

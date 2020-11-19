@@ -266,7 +266,7 @@ int main(int argc, char *argv[])
             /* record the best info of each epoch */
             FitnessVec.push_back(Mixed_Instance.best_total_route_length);
             BestTimeVec.push_back(Mixed_Instance.best_sol_time);
-            SolutionVec.push_back(Mixed_Instance.best_sol_buff);
+            SolutionVec.push_back(Mixed_Instance.best_sol_neg);
 
             cout << "Finish " << start_seed - random_seed + 1 << "th times\n";
 
@@ -274,7 +274,7 @@ int main(int argc, char *argv[])
             if (Mixed_Instance.best_total_route_length < bestobj) {
                 best_solution_time = Mixed_Instance.best_sol_time;
                 bestobj = Mixed_Instance.best_total_route_length;
-                best_buffer = Mixed_Instance.best_sol_buff;
+                best_buffer = Mixed_Instance.best_sol_neg;
                 best_phase = start_seed - random_seed + 1;
             }
 
