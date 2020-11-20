@@ -1213,6 +1213,53 @@ void convert_to_node(const MCGRP &mcgrp, const vector<int> &neg_sol)
 {
     int id = 1;
     int cnt = 0;
+
+    vector<vector<int>> routes;
+    vector<int> buffer;
+    for(const auto task : neg_sol){
+        if(task < 0){
+            if(!buffer.empty()){
+                routes.push_back(buffer);
+                routes.back().push_back(DUMMY);
+                buffer.clear();
+            }
+
+            buffer.push_back(DUMMY);
+            buffer.push_back(-task);
+        }else{
+            buffer.push_back(task);
+        }
+    }
+
+    if(!buffer.empty()){
+        routes.push_back(buffer);
+        routes.back().push_back(DUMMY);
+    }
+
+    int vehicle = 0;
+    for(const auto route : routes){
+        cout<<"vehicle "<< vehicle++<<":\ntravel: [";
+        for(int i = 0;i< (int)route.size() - 1; i++){
+            cout << mcgrp.inst_tasks[route[i]].tail_node<<",";
+            vector<int> shortest_path = mcgrp.shortest_path[mcgrp.inst_tasks[route[i]].tail_node][mcgrp.inst_tasks[route[i+1]].head_node];
+            if(shortest_path.empty()) continue;
+            shortest_path.pop_back();
+            shortest_path.erase(shortest_path.begin());
+            for(auto tmp : shortest_path){
+                cout << tmp << ",";
+            }
+            cout << mcgrp.inst_tasks[route[i + 1]].head_node << ",";
+        }
+        cout << "\b]"<<endl;
+
+        cout << "services: [";
+        for(int i = 1; i < (int)route.size() - 1;i++){
+            cout << "[" << mcgrp.inst_tasks[route[i]].head_node<<","<< mcgrp.inst_tasks[route[i]].tail_node<<"],";
+        }
+        cout << "\b]"<<endl<< endl<<endl;
+    }
+
+
     for(const auto task : neg_sol){
         cnt++;
         if(task < 0){
