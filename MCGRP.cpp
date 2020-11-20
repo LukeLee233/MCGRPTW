@@ -2,7 +2,9 @@
 #include "utils.h"
 #include "json.hpp"
 
+
 using namespace std;
+
 using json = nlohmann::json;
 
 extern timeb phase_start_time;
@@ -414,6 +416,7 @@ void MCGRP::load_file_info(std::string input_file, const InstanceNumInfo &instan
         total_service_cost += inst_tasks[i].serv_cost;
     for (int i = 2 * req_edge_num + 1; i <= 2 * req_edge_num + req_arc_num + req_node_num; i++)
         total_service_cost += inst_tasks[i].serv_cost;
+
 }
 
 void MCGRP::dijkstra()

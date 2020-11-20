@@ -230,7 +230,10 @@ int main(int argc, char *argv[])
 
             if(pool_size == 1){
                 HighSpeedNeighBorSearch NBS(Mixed_Instance);
-                Individual initial_solution = nearest_scanning(Mixed_Instance, vector<int>());
+                shared_ptr<Distance> distance(new CostDistance(Mixed_Instance));
+                Individual initial_solution = NearestScanner(Mixed_Instance,*distance)(Mixed_Instance);
+
+//                Individual initial_solution = nearest_scanning(Mixed_Instance, vector<int>());
                 NBS.unpack_seq(initial_solution.sequence, Mixed_Instance);
                 NBS.trace(Mixed_Instance);
                 cout << "Begin Local search..." << endl;

@@ -2,12 +2,16 @@
 // Created by luke on 2019/11/29.
 //
 
-
 #include "ConstructPolicy.h"
 #include "RNG.h"
 #include <bits/stdc++.h>
+#include <boost/accumulators/accumulators.hpp>
+#include <boost/accumulators/statistics/variance.hpp>
+#include <boost/accumulators/statistics/stats.hpp>
+#include <boost/qvm/quat_operations.hpp>
 
 using namespace std;
+namespace bacc = boost::accumulators;
 
 Individual nearest_scanning(const MCGRP &mcgrp, vector<int> unserved_task_set)
 {
@@ -111,6 +115,9 @@ Individual nearest_scanning(const MCGRP &mcgrp, vector<int> unserved_task_set)
         solution.push_back(DUMMY);
     }
 
+
+    for(auto i : solution) cout << i <<"->";
+    cout << endl;
     return mcgrp.parse_delimiter_seq(solution);
 }
 
@@ -985,12 +992,12 @@ double CostDistance::operator()(const MCGRP& mcgrp, const int task_a, const int 
     else if(mcgrp.is_edge(task_a) && mcgrp.inst_tasks[task_a].inverse == task_b){
         distance_matrix[task_a][task_b] = DBL_MAX;
     }
+
     else if(task_a == task_b)
         distance_matrix[task_a][task_b] = 0.0;
+
     else{
-        distance_matrix[task_a][task_b] = double(
-            mcgrp.min_cost[mcgrp.inst_tasks[task_a].tail_node][mcgrp.inst_tasks[task_b].head_node] +
-                mcgrp.min_cost[mcgrp.inst_tasks[task_b].tail_node][mcgrp.inst_tasks[task_a].head_node]) / 2.0;
+        distance_matrix[task_a][task_b] = (double)mcgrp.min_cost[mcgrp.inst_tasks[task_a].tail_node][mcgrp.inst_tasks[task_b].head_node];
     }
 
     return distance_matrix[task_a][task_b];
@@ -1003,7 +1010,7 @@ NearestScanner::NearestScanner(const MCGRP &mcgrp, Distance& distance_)
 Individual NearestScanner::operator()(const MCGRP& mcgrp,const vector<int> &taskList, const string& mode)
 {
     int load;
-    int min_dist;
+    double min_dist;
     int drive_time; // the earliest time of a vehicle begins to serve the Task
 
     std::vector<int> candidate_task_set;
@@ -1082,8 +1089,7 @@ Individual NearestScanner::operator()(const MCGRP& mcgrp,const vector<int> &task
 
         unserved_task_id_set.erase(chosen_task);
 
-        if (mcgrp.inst_tasks[chosen_task].inverse != ARC_NO_INVERSE
-            && mcgrp.inst_tasks[chosen_task].inverse != NODE_NO_INVERSE) {
+        if (mcgrp.is_edge(chosen_task)) {
             int inverse_task = mcgrp.inst_tasks[chosen_task].inverse;
             if(unserved_task_id_set.find(inverse_task) != unserved_task_id_set.end())
                 unserved_task_id_set.erase(inverse_task);
@@ -1094,8 +1100,100 @@ Individual NearestScanner::operator()(const MCGRP& mcgrp,const vector<int> &task
         solution.push_back(DUMMY);
     }
 
+    for(auto i : solution) cout << i <<"->";
+    cout << endl;
+
     return mcgrp.parse_delimiter_seq(solution);
 
 }
 
 
+HybridDistance::HybridDistance(const MCGRP &mcgrp, double beta_)
+    : Distance(mcgrp, "hybrid distance") , beta(beta_)
+{
+    bacc::accumulator_set<double, bacc::stats<bacc::tag::variance(bacc::lazy)> > cost_acc;
+    bacc::accumulator_set<double, bacc::stats<bacc::tag::variance(bacc::lazy)> > waiting_time_acc;
+
+    cost_matrix = vector<vector<double>>(mcgrp.actual_task_num + 1, vector<double>(mcgrp.actual_task_num + 1, -1));
+    waiting_time_matrix = vector<vector<double>>(mcgrp.actual_task_num + 1, vector<double>(mcgrp.actual_task_num + 1, -1));
+
+    for(int i = 0; i<=mcgrp.actual_task_num;i++){
+        for(int j = 0; j <= mcgrp.actual_task_num; j++){
+
+            // two special cases
+            if(i == j){
+                cost_matrix[i][j] == DBL_MAX;
+                waiting_time_matrix[i][j] = DBL_MAX;
+            }
+
+            else if(mcgrp.is_edge(i) && mcgrp.inst_tasks[i].inverse == j){
+                cost_matrix[i][j] == DBL_MAX;
+                waiting_time_matrix[i][j] = DBL_MAX;
+            }
+
+            // normal case
+            else{
+                cost_matrix[i][j] = (double)mcgrp.min_cost[mcgrp.inst_tasks[i].tail_node][mcgrp.inst_tasks[j].head_node];
+                cost_acc(cost_matrix[i][j]);
+
+                if(mcgrp.inst_tasks[i].time_window.first == INT32_MAX){
+                    My_Assert(false, "A task which can never be served!");
+                }
+
+                int earliest_finish_time = mcgrp.inst_tasks[i].time_window.first
+                    + mcgrp.inst_tasks[i].serve_time
+                    + mcgrp.min_time[mcgrp.inst_tasks[i].tail_node][mcgrp.inst_tasks[j].head_node];
+
+                int latest_finish_time;
+                if(mcgrp.inst_tasks[i].time_window.second == INT32_MAX){
+                    latest_finish_time = INT32_MAX;
+                }else{
+                    latest_finish_time = mcgrp.inst_tasks[i].time_window.second
+                        + mcgrp.inst_tasks[i].serve_time
+                        + mcgrp.min_time[mcgrp.inst_tasks[i].tail_node][mcgrp.inst_tasks[j].head_node];
+                }
+
+                if(earliest_finish_time > mcgrp.inst_tasks[j].time_window.second){
+                    waiting_time_matrix[i][j] = DBL_MAX;
+                }else if(latest_finish_time < mcgrp.inst_tasks[j].time_window.first){
+                    waiting_time_matrix[i][j] = mcgrp.inst_tasks[j].time_window.first - latest_finish_time;
+                    waiting_time_acc(waiting_time_matrix[i][j]);
+                }else{
+                    waiting_time_matrix[i][j] = 0.0;
+                    waiting_time_acc(waiting_time_matrix[i][j]);
+                }
+            }
+        }
+    }
+
+    mean_cost = bacc::mean(cost_acc);
+    deviation_cost = sqrt(bacc::variance(cost_acc));
+
+    mean_waiting_time = bacc::mean(waiting_time_acc);
+    deviation_waiting_time = sqrt(bacc::variance(waiting_time_acc));
+}
+
+double HybridDistance::operator()(const MCGRP &mcgrp, const int task_a, const int task_b)
+{
+    if(distance_matrix[task_a][task_b] != -1) return distance_matrix[task_a][task_b];
+
+    else if(mcgrp.is_edge(task_a) && mcgrp.inst_tasks[task_a].inverse == task_b){
+        distance_matrix[task_a][task_b] = DBL_MAX;
+    }
+
+    else{
+        if(waiting_time_matrix[task_a][task_b] == DBL_MAX){
+            distance_matrix[task_a][task_b] = DBL_MAX;
+        }else{
+            // z-score normalization
+            double normalized_cost = (cost_matrix[task_a][task_b] - mean_cost) / deviation_cost;
+            double normalized_waiting_time = (waiting_time_matrix[task_a][task_b] - mean_waiting_time) / deviation_waiting_time;
+            distance_matrix[task_a][task_b] =
+                (1-beta) * normalized_cost
+                + beta * normalized_waiting_time;
+        }
+    }
+
+
+    return distance_matrix[task_a][task_b];
+}

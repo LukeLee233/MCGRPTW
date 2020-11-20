@@ -30,6 +30,24 @@ public:
     double operator()(const MCGRP& mcgrp, const int task_a, const int task_b) override;
 };
 
+class HybridDistance: public Distance{
+private:
+    double mean_cost;
+    double deviation_cost;
+    double mean_waiting_time;
+    double deviation_waiting_time;
+
+    vector<vector<double>> cost_matrix;
+    vector<vector<double>> waiting_time_matrix;
+
+    double beta;
+
+public:
+    HybridDistance(const MCGRP &mcgrp,double beta_);
+
+    double operator()(const MCGRP& mcgrp, const int task_a, const int task_b) override;
+};
+
 
 class PathConstructor{
 protected:
