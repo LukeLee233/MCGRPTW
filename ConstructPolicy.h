@@ -10,6 +10,50 @@
 #include "utils.h"
 #include "NeighborSearch.h"
 
+// different Distance metric between tasks
+class Distance{
+protected:
+    string name;
+
+    vector<vector<double>> distance_matrix;
+public:
+    Distance(const MCGRP& mcgrp, const string &name);
+
+    virtual double operator()(const MCGRP& mcgrp, const int task_a, const int task_b) = 0;
+};
+
+class CostDistance: public Distance{
+
+public:
+    CostDistance(const MCGRP& mcgrp);
+
+    double operator()(const MCGRP& mcgrp, const int task_a, const int task_b) override;
+};
+
+
+class PathConstructor{
+protected:
+    string name;
+
+public:
+    PathConstructor(const MCGRP& mcgrp,const string& name_);
+
+    // mode : [allow_infeasible, feasible]
+    virtual Individual
+    operator()(const MCGRP& ns,const vector<int> &taskList = vector<int>(), const string& mode="feasible") = 0;
+};
+
+class NearestScanner: public PathConstructor{
+private:
+    Distance& distance;
+public:
+    NearestScanner(const MCGRP &mcgrp, Distance& distance_);
+
+    Individual
+    operator()(const MCGRP& mcgrp,const vector<int> &taskList = vector<int>(), const string& mode="feasible") override;
+};
+
+
 /*!
  *
  * @param mcgrp
