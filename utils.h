@@ -40,8 +40,6 @@ static std::array<int, seed_size>
             36428175, 64281753, 42817536, 28175364, 81753642, 17536428, 75364281, 53642817,
             36528174, 65281743, 52817436, 28174365};
 
-const static int inf = std::numeric_limits<int>::max();
-
 /*!
  * @details a more powerful assert function:)
  * @param expr_str

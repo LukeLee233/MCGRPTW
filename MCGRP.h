@@ -66,6 +66,7 @@ public:
     double total_service_cost;
     RNG &_rng;
 
+    mutable unordered_map<string, unique_ptr<class Distance>> distance_look_tbl;
 
     /* stage global sol information */
     mutable std::vector<int> best_sol_neg;
@@ -134,6 +135,9 @@ private:
     const vector<int>& _same_start_task(int start_node);
 
 public:
+    void register_distance(string name, unique_ptr<Distance> distance_);
+
+
     /*!
      * 获得任务序列的总成本
      * @param delimiter_seq
@@ -230,3 +234,40 @@ inline int MCGRP::get_travel_time(int source_task, int sink_task) const {
 }
 
 
+// different Distance metric between tasks
+class Distance{
+protected:
+    string name;
+
+    vector<vector<double>> distance_matrix;
+public:
+    Distance(const MCGRP& mcgrp, const string &name);
+
+    virtual double operator()(const MCGRP& mcgrp, const int task_a, const int task_b) = 0;
+};
+
+class CostDistance: public Distance{
+
+public:
+    CostDistance(const MCGRP& mcgrp);
+
+    double operator()(const MCGRP& mcgrp, const int task_a, const int task_b) override;
+};
+
+class HybridDistance: public Distance{
+private:
+    double mean_cost;
+    double deviation_cost;
+    double mean_waiting_time;
+    double deviation_waiting_time;
+
+    vector<vector<double>> cost_matrix;
+    vector<vector<double>> waiting_time_matrix;
+
+    double beta;
+
+public:
+    HybridDistance(const MCGRP &mcgrp,double beta_);
+
+    double operator()(const MCGRP& mcgrp, const int task_a, const int task_b) override;
+};

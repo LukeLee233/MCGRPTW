@@ -10,43 +10,8 @@
 #include "utils.h"
 #include "NeighborSearch.h"
 
-// different Distance metric between tasks
-class Distance{
-protected:
-    string name;
 
-    vector<vector<double>> distance_matrix;
-public:
-    Distance(const MCGRP& mcgrp, const string &name);
 
-    virtual double operator()(const MCGRP& mcgrp, const int task_a, const int task_b) = 0;
-};
-
-class CostDistance: public Distance{
-
-public:
-    CostDistance(const MCGRP& mcgrp);
-
-    double operator()(const MCGRP& mcgrp, const int task_a, const int task_b) override;
-};
-
-class HybridDistance: public Distance{
-private:
-    double mean_cost;
-    double deviation_cost;
-    double mean_waiting_time;
-    double deviation_waiting_time;
-
-    vector<vector<double>> cost_matrix;
-    vector<vector<double>> waiting_time_matrix;
-
-    double beta;
-
-public:
-    HybridDistance(const MCGRP &mcgrp,double beta_);
-
-    double operator()(const MCGRP& mcgrp, const int task_a, const int task_b) override;
-};
 
 
 class PathConstructor{
