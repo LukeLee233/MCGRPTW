@@ -648,16 +648,19 @@ void HighSpeedNeighBorSearch::infeasible_exploration(const MCGRP &mcgrp)
     policy.nearest_feasible_cost = cur_solution_cost;
     policy.beta = cur_solution_cost / double(mcgrp.capacity * 15);
 
-//    small_step_infeasible_descent_search(mcgrp);
-//
-//    DEBUG_PRINT("Trigger Infeasible Tabu Search");
-//    small_step_infeasible_tabu_search(mcgrp);
-//
-//    small_step_infeasible_descent_search(mcgrp);
+    if(mcgrp._rng.Randfloat(0,1) <= 0.25){
+        small_step_infeasible_descent_search(mcgrp);
 
+        DEBUG_PRINT("Trigger Infeasible Tabu Search");
+        small_step_infeasible_tabu_search(mcgrp);
 
-    //Here used to break the local minimum with merge-split operator
-    large_step_infeasible_search(mcgrp);
+        small_step_infeasible_descent_search(mcgrp);
+    }
+
+    if(mcgrp._rng.Randfloat(0,1) <= 0.75){
+        //Here used to break the local minimum with merge-split operator
+        large_step_infeasible_search(mcgrp);
+    }
 
     My_Assert(total_vio_load >= 0, "Wrong total violated load!");
     if (total_vio_load > 0 || total_vio_time > 0) {
