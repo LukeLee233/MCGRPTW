@@ -879,7 +879,9 @@ void HighSpeedMemetic::create_citizen(const MCGRP &mcgrp)
     DEBUG_PRINT("A new thread has been created!\n");
     cout << this_thread::get_id() << endl;
 
-    Individual buffer = nearest_scanning(mcgrp, vector<int>());
+    shared_ptr<Distance> distance(new CostDistance(mcgrp));
+
+    Individual buffer = NearestScanner(mcgrp,*distance)();
     My_Assert(mcgrp.valid_sol(get_negative_coding(buffer.sequence), buffer.total_cost), "Wrong outcome!\n");
 
 

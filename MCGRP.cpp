@@ -595,7 +595,7 @@ bool MCGRP::check_best_solution(const double total_route_length, const vector<in
 
 Individual MCGRP::parse_delimiter_seq(const vector<int> &seq) const
 {
-    My_Assert(!seq.empty() && seq.front() == DUMMY && seq.back() == DUMMY, "invalid seq");
+    My_Assert(!seq.empty() && seq.front() == DUMMY && seq.back() == DUMMY, "error! invalid seq");
 
     Individual buffer;
 

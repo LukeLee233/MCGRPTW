@@ -52,13 +52,14 @@ public:
 class PathConstructor{
 protected:
     string name;
+    const MCGRP& mcgrp;
 
 public:
-    PathConstructor(const MCGRP& mcgrp,const string& name_);
+    PathConstructor(const MCGRP& mcgrp_,const string& name_);
 
     // mode : [allow_infeasible, feasible]
     virtual Individual
-    operator()(const MCGRP& ns,const vector<int> &taskList = vector<int>(), const string& mode="feasible") = 0;
+    operator()(const vector<int> &taskList = vector<int>(), const string& mode="feasible") = 0;
 };
 
 class NearestScanner: public PathConstructor{
@@ -68,26 +69,19 @@ public:
     NearestScanner(const MCGRP &mcgrp, Distance& distance_);
 
     Individual
-    operator()(const MCGRP& mcgrp,const vector<int> &taskList = vector<int>(), const string& mode="feasible") override;
+    operator()(const vector<int> &taskList = vector<int>(), const string& mode="feasible") override;
 };
 
+class RTFScanner: public PathConstructor{
+private:
+    Distance& distance;
+public:
+    RTFScanner(const MCGRP &mcgrp, Distance &distance_);
 
-/*!
- *
- * @param mcgrp
- * @param unserved_task_set if not empty, means execute a partial construction
- * @return
- */
-Individual nearest_scanning(const MCGRP &mcgrp, vector<int> unserved_task_set);
+    Individual
+    operator()(const vector<int> &taskList = vector<int>(), const string& mode="feasible") override;
+};
 
-/*!
- * Random Task Flower construction policy
- * @param mcgrp
- * @param task_list
- * @param giant if true, a giant tour is going to be built
- * @return
- */
-Individual RTF(const MCGRP &mcgrp, const vector<int>& task_list, bool giant);
 
 /*!
  * execute merge and split to the current solution

@@ -166,7 +166,6 @@ struct Arc
  */
 struct Individual
 {
-    bool giant_tour = false;
     std::vector<int> sequence;
     std::vector<int> route_seg_load;
     std::vector<vector<RouteInfo::TimeTable>> time_tbl;

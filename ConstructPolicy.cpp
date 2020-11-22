@@ -13,57 +13,182 @@
 using namespace std;
 namespace bacc = boost::accumulators;
 
-Individual nearest_scanning(const MCGRP &mcgrp, vector<int> unserved_task_set)
+const int max_merge_set_num = 20;
+
+
+Distance::Distance(const MCGRP& mcgrp, const string &name)
+    : name(name)
+{
+    distance_matrix = vector<vector<double>>
+        (mcgrp.actual_task_num+1,vector<double>(mcgrp.actual_task_num + 1, -1));
+}
+
+CostDistance::CostDistance(const MCGRP& mcgrp)
+    : Distance(mcgrp, "cost distance")
+{}
+
+double CostDistance::operator()(const MCGRP& mcgrp, const int task_a, const int task_b)
+{
+    if(distance_matrix[task_a][task_b] != -1) return distance_matrix[task_a][task_b];
+
+    else if(mcgrp.is_edge(task_a) && mcgrp.inst_tasks[task_a].inverse == task_b){
+        distance_matrix[task_a][task_b] = DBL_MAX;
+    }
+
+    else if(task_a == task_b)
+        distance_matrix[task_a][task_b] = 0.0;
+
+    else{
+        distance_matrix[task_a][task_b] = (double)mcgrp.min_cost[mcgrp.inst_tasks[task_a].tail_node][mcgrp.inst_tasks[task_b].head_node];
+    }
+
+    return distance_matrix[task_a][task_b];
+}
+
+HybridDistance::HybridDistance(const MCGRP &mcgrp, double beta_)
+    : Distance(mcgrp, "hybrid distance") , beta(beta_)
+{
+    bacc::accumulator_set<double, bacc::stats<bacc::tag::variance(bacc::lazy)> > cost_acc;
+    bacc::accumulator_set<double, bacc::stats<bacc::tag::variance(bacc::lazy)> > waiting_time_acc;
+
+    cost_matrix = vector<vector<double>>(mcgrp.actual_task_num + 1, vector<double>(mcgrp.actual_task_num + 1, -1));
+    waiting_time_matrix = vector<vector<double>>(mcgrp.actual_task_num + 1, vector<double>(mcgrp.actual_task_num + 1, -1));
+
+    for(int i = 0; i<=mcgrp.actual_task_num;i++){
+        for(int j = 0; j <= mcgrp.actual_task_num; j++){
+
+            // two special cases
+            if(i == j){
+                cost_matrix[i][j] == DBL_MAX;
+                waiting_time_matrix[i][j] = DBL_MAX;
+            }
+
+            else if(mcgrp.is_edge(i) && mcgrp.inst_tasks[i].inverse == j){
+                cost_matrix[i][j] == DBL_MAX;
+                waiting_time_matrix[i][j] = DBL_MAX;
+            }
+
+                // normal case
+            else{
+                cost_matrix[i][j] = (double)mcgrp.min_cost[mcgrp.inst_tasks[i].tail_node][mcgrp.inst_tasks[j].head_node];
+                cost_acc(cost_matrix[i][j]);
+
+                if(mcgrp.inst_tasks[i].time_window.first == INT32_MAX){
+                    My_Assert(false, "A task which can never be served!");
+                }
+
+                int earliest_finish_time = mcgrp.inst_tasks[i].time_window.first
+                    + mcgrp.inst_tasks[i].serve_time
+                    + mcgrp.min_time[mcgrp.inst_tasks[i].tail_node][mcgrp.inst_tasks[j].head_node];
+
+                int latest_finish_time;
+                if(mcgrp.inst_tasks[i].time_window.second == INT32_MAX){
+                    latest_finish_time = INT32_MAX;
+                }else{
+                    latest_finish_time = mcgrp.inst_tasks[i].time_window.second
+                        + mcgrp.inst_tasks[i].serve_time
+                        + mcgrp.min_time[mcgrp.inst_tasks[i].tail_node][mcgrp.inst_tasks[j].head_node];
+                }
+
+                if(earliest_finish_time > mcgrp.inst_tasks[j].time_window.second){
+                    waiting_time_matrix[i][j] = DBL_MAX;
+                }else if(latest_finish_time < mcgrp.inst_tasks[j].time_window.first){
+                    waiting_time_matrix[i][j] = mcgrp.inst_tasks[j].time_window.first - latest_finish_time;
+                    waiting_time_acc(waiting_time_matrix[i][j]);
+                }else{
+                    waiting_time_matrix[i][j] = 0.0;
+                    waiting_time_acc(waiting_time_matrix[i][j]);
+                }
+            }
+        }
+    }
+
+    mean_cost = bacc::mean(cost_acc);
+    deviation_cost = sqrt(bacc::variance(cost_acc));
+
+    mean_waiting_time = bacc::mean(waiting_time_acc);
+    deviation_waiting_time = sqrt(bacc::variance(waiting_time_acc));
+}
+
+double HybridDistance::operator()(const MCGRP &mcgrp, const int task_a, const int task_b)
+{
+    if(distance_matrix[task_a][task_b] != -1) return distance_matrix[task_a][task_b];
+
+    else if(mcgrp.is_edge(task_a) && mcgrp.inst_tasks[task_a].inverse == task_b){
+        distance_matrix[task_a][task_b] = DBL_MAX;
+    }
+
+    else{
+        if(waiting_time_matrix[task_a][task_b] == DBL_MAX){
+            distance_matrix[task_a][task_b] = DBL_MAX;
+        }else{
+            // z-score normalization
+            double normalized_cost = (cost_matrix[task_a][task_b] - mean_cost) / deviation_cost;
+            double normalized_waiting_time = (waiting_time_matrix[task_a][task_b] - mean_waiting_time) / deviation_waiting_time;
+            distance_matrix[task_a][task_b] =
+                (1-beta) * normalized_cost
+                    + beta * normalized_waiting_time;
+        }
+    }
+
+
+    return distance_matrix[task_a][task_b];
+}
+
+NearestScanner::NearestScanner(const MCGRP &mcgrp, Distance& distance_)
+    : PathConstructor(mcgrp,"nearest scanning"), distance(distance_)
+{}
+
+Individual NearestScanner::operator()(const vector<int> &taskList, const string& mode)
 {
     int load;
-    int trial;
-    int min_dist;
+    double min_dist;
     int drive_time; // the earliest time of a vehicle begins to serve the Task
 
-    unordered_set<int> unserved_task_id_set;
-
-    std::vector<int> candidate_task_set;
-
+    std::vector<int> FCL; // feasible candidate list
     std::vector<int> nearest_task_set;
 
     int current_tail_task;
     int chosen_task;
 
-    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    unordered_set<int> unserved_task_id_set;
 
-    // 统计未服务任务
-    int serve_task_num = 0;
-    if(!unserved_task_set.empty()){
-        serve_task_num = unserved_task_set.size();
-        unserved_task_id_set = unordered_set<int>(unserved_task_set.begin(),unserved_task_set.end());
-    }
-    else{
-        serve_task_num = mcgrp.req_arc_num + mcgrp.req_node_num + mcgrp.req_edge_num;
+    if(taskList.empty()){
         for (int i = 1; i <= mcgrp.actual_task_num; i++)
             unserved_task_id_set.insert(i);
+    }else{
+        unserved_task_id_set = unordered_set<int>(taskList.begin(), taskList.end());
     }
 
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
     load = 0;
-    trial = 0;
     drive_time = 0;
 
     vector<int> solution;
     solution.push_back(DUMMY);
 
-    while (trial < serve_task_num) {
+    while (!unserved_task_id_set.empty()) {
         current_tail_task = solution.back();
 
         //Find all the tasks that satisfy the capacity constraint
-        candidate_task_set.clear();
-        for (auto unserved_task : unserved_task_id_set) {
-            if (mcgrp.inst_tasks[unserved_task].demand <= mcgrp.capacity - load
-                && mcgrp.cal_arrive_time(current_tail_task, unserved_task, drive_time, true)
-                    <= mcgrp.inst_tasks[unserved_task].time_window.second) {
-                candidate_task_set.push_back(unserved_task);
+        if(mode == "feasible"){
+            FCL.clear();
+            for (auto unserved_task : unserved_task_id_set) {
+                if (mcgrp.inst_tasks[unserved_task].demand <= mcgrp.capacity - load
+                    && mcgrp.cal_arrive_time(current_tail_task, unserved_task, drive_time, true)
+                        <= mcgrp.inst_tasks[unserved_task].time_window.second) {
+                    FCL.push_back(unserved_task);
+                }
             }
+        }else if(mode == "allow_infeasible"){
+            FCL = vector<int>(unserved_task_id_set.begin(), unserved_task_id_set.end());
+        }else{
+            My_Assert(false,"error! unknown mode!");
         }
 
-        if (candidate_task_set.empty()) {
+
+        if (FCL.empty()) {
             solution.push_back(DUMMY);
             load = 0;
             drive_time = 0;
@@ -73,20 +198,14 @@ Individual nearest_scanning(const MCGRP &mcgrp, vector<int> unserved_task_set)
         min_dist = MAX(min_dist);
 
         //Find the nearest Task from the current candidate Task set
-        for (auto candidate_task : candidate_task_set) {
-            if (mcgrp.min_cost[mcgrp.inst_tasks[current_tail_task].tail_node][mcgrp.inst_tasks[candidate_task]
-                .head_node]
-                < min_dist) {
-                min_dist =
-                    mcgrp.min_cost[mcgrp.inst_tasks[current_tail_task].tail_node][mcgrp.inst_tasks[candidate_task]
-                        .head_node];
+        for (auto candidate_task : FCL) {
+            if (distance(mcgrp,current_tail_task,candidate_task) < min_dist) {
+                min_dist = distance(mcgrp,current_tail_task,candidate_task);
                 nearest_task_set.clear();
                 nearest_task_set.push_back(candidate_task);
             }
             else if (
-                mcgrp.min_cost[mcgrp.inst_tasks[current_tail_task].tail_node][mcgrp.inst_tasks[candidate_task]
-                    .head_node]
-                    == min_dist) {
+                distance(mcgrp,current_tail_task,candidate_task) == min_dist) {
                 nearest_task_set.push_back(candidate_task);
             }
         }
@@ -98,13 +217,11 @@ Individual nearest_scanning(const MCGRP &mcgrp, vector<int> unserved_task_set)
         load += mcgrp.inst_tasks[chosen_task].demand;
         drive_time = mcgrp.cal_arrive_time(current_tail_task, chosen_task, drive_time, true);
 
-        trial++;
         solution.push_back(chosen_task);
 
         unserved_task_id_set.erase(chosen_task);
 
-        if (mcgrp.inst_tasks[chosen_task].inverse != ARC_NO_INVERSE
-            && mcgrp.inst_tasks[chosen_task].inverse != NODE_NO_INVERSE) {
+        if (mcgrp.is_edge(chosen_task)) {
             int inverse_task = mcgrp.inst_tasks[chosen_task].inverse;
             if(unserved_task_id_set.find(inverse_task) != unserved_task_id_set.end())
                 unserved_task_id_set.erase(inverse_task);
@@ -115,14 +232,9 @@ Individual nearest_scanning(const MCGRP &mcgrp, vector<int> unserved_task_set)
         solution.push_back(DUMMY);
     }
 
-
-    for(auto i : solution) cout << i <<"->";
-    cout << endl;
     return mcgrp.parse_delimiter_seq(solution);
+
 }
-
-
-const int max_merge_set_num = 20;
 
 void merge_split(class HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, const int merge_size, const int pseudo_capacity)
 {
@@ -677,128 +789,6 @@ vector<int> mixture_growing(const MCGRP &mcgrp, vector<int> tasks, const int con
     return sequence;
 }
 
-Individual RTF(const MCGRP &mcgrp, const vector<int> &task_list, bool giant)
-{
-    int capacity = giant ? mcgrp.total_demand : mcgrp.capacity;
-
-    int load;
-    int min_dist;
-    int arrival_time;
-
-    unordered_set<int> unserved_task_set;
-
-    std::vector<int> FCL; // feasible candidate list
-
-    std::vector<int> RCL1; // restricted candidate list which drive away from the depot
-    std::vector<int> RCL2; // restricted candidate list which drive towards the depot
-
-    if(!task_list.empty())
-        unserved_task_set = unordered_set<int>(task_list.begin(), task_list.end());
-    else{
-        for (int i = 1; i <= mcgrp.actual_task_num; i++)
-            unserved_task_set.insert(i);
-    }
-
-    load = 0;
-    arrival_time = 0;
-
-    vector<int> solution;
-    solution.push_back(DUMMY);
-
-    while (!unserved_task_set.empty()){
-        int tail_task = solution.back();
-
-        FCL.clear();
-        if(giant){
-            FCL = vector<int>(unserved_task_set.begin(),unserved_task_set.end());
-        }
-        else{
-            for (auto unserved_task : unserved_task_set) {
-                if (mcgrp.inst_tasks[unserved_task].demand <= capacity - load
-                    && mcgrp.cal_arrive_time(tail_task, unserved_task, arrival_time, true)
-                        <= mcgrp.inst_tasks[unserved_task].time_window.second) {
-                    FCL.push_back(unserved_task);
-                }
-            }
-        }
-
-
-        if (FCL.empty()) {
-            solution.push_back(DUMMY);
-            load = 0;
-            arrival_time = 0;
-            continue;
-        }
-
-        min_dist = MAX(min_dist);
-        for (const auto& task : FCL) {
-            int d_uz = mcgrp.min_cost[mcgrp.inst_tasks[tail_task].tail_node][mcgrp.inst_tasks[task].head_node];
-            int d_udummy = mcgrp.min_cost[mcgrp.inst_tasks[tail_task].tail_node][mcgrp.inst_tasks[DUMMY].head_node];
-            int d_zdummy = mcgrp.min_cost[mcgrp.inst_tasks[task].tail_node][mcgrp.inst_tasks[DUMMY].head_node];
-
-            if (d_uz > min_dist) continue;
-
-            if (d_uz < min_dist) {
-                min_dist = d_uz;
-                RCL1.clear();
-                RCL2.clear();
-            }
-
-            if(d_udummy < d_zdummy) RCL1.push_back(task);
-            else RCL2.push_back(task);
-        }
-
-        int chosen_task = -1;
-        if(RCL1.empty()){
-            int seed = (int) mcgrp._rng.Randint(0, RCL2.size() - 1);
-            chosen_task = RCL2[seed];
-        }
-        else if(RCL2.empty()){
-            int seed = (int) mcgrp._rng.Randint(0, RCL1.size() - 1);
-            chosen_task = RCL1.front();
-        }else{
-            if((load % capacity) < (capacity / 2)){
-                int seed = (int) mcgrp._rng.Randint(0, RCL1.size() - 1);
-                chosen_task = RCL1.front();
-            }else{
-                int seed = (int) mcgrp._rng.Randint(0, RCL2.size() - 1);
-                chosen_task = RCL2[seed];
-            }
-        }
-
-        My_Assert(chosen_task != -1,"cannot find a Task");
-
-        load += mcgrp.inst_tasks[chosen_task].demand;
-        arrival_time = mcgrp.cal_arrive_time(tail_task, chosen_task, arrival_time, true);
-
-        solution.push_back(chosen_task);
-
-        unserved_task_set.erase(chosen_task);
-
-        if (mcgrp.inst_tasks[chosen_task].inverse != ARC_NO_INVERSE
-            && mcgrp.inst_tasks[chosen_task].inverse != NODE_NO_INVERSE) {
-            int inverse_task = mcgrp.inst_tasks[chosen_task].inverse;
-            if(unserved_task_set.find(inverse_task) != unserved_task_set.end())
-                unserved_task_set.erase(inverse_task);
-        }
-
-    }
-
-
-    if(!giant){
-        if (solution.back() != DUMMY) solution.push_back(DUMMY);
-        return mcgrp.parse_delimiter_seq(solution);
-    }else{
-        Individual res;
-        res.giant_tour = true;
-        solution.erase(solution.begin());
-        My_Assert(find(solution.begin(),solution.end(),DUMMY) == solution.end(),"Wrong giant tour");
-        My_Assert(solution.size() == mcgrp.req_arc_num + mcgrp.req_node_num + mcgrp.req_edge_num, "Wrong giant tour");
-        res.sequence = solution;
-        return res;
-    }
-
-}
 
 vector<vector<int>> tour_splitting(const MCGRP &mcgrp,vector<int>& task_list)
 {
@@ -968,232 +958,124 @@ BestServeSeq viterbi_decoding(const MCGRP &mcgrp, const vector<int>& task_list, 
     return ans;
 }
 
-PathConstructor::PathConstructor(const MCGRP &mcgrp,const string& name_)
+PathConstructor::PathConstructor(const MCGRP &mcgrp_,const string& name_) : mcgrp(mcgrp_)
 {
     name = name_;
 }
 
-Distance::Distance(const MCGRP& mcgrp, const string &name)
-    : name(name)
-{
-    distance_matrix = vector<vector<double>>
-        (mcgrp.actual_task_num+1,vector<double>(mcgrp.actual_task_num + 1, -1));
-}
 
-CostDistance::CostDistance(const MCGRP& mcgrp)
-    : Distance(mcgrp, "cost distance")
-{}
-
-
-double CostDistance::operator()(const MCGRP& mcgrp, const int task_a, const int task_b)
-{
-    if(distance_matrix[task_a][task_b] != -1) return distance_matrix[task_a][task_b];
-
-    else if(mcgrp.is_edge(task_a) && mcgrp.inst_tasks[task_a].inverse == task_b){
-        distance_matrix[task_a][task_b] = DBL_MAX;
-    }
-
-    else if(task_a == task_b)
-        distance_matrix[task_a][task_b] = 0.0;
-
-    else{
-        distance_matrix[task_a][task_b] = (double)mcgrp.min_cost[mcgrp.inst_tasks[task_a].tail_node][mcgrp.inst_tasks[task_b].head_node];
-    }
-
-    return distance_matrix[task_a][task_b];
-}
-
-NearestScanner::NearestScanner(const MCGRP &mcgrp, Distance& distance_)
-    : PathConstructor(mcgrp,"nearest scanning"), distance(distance_)
-{}
-
-Individual NearestScanner::operator()(const MCGRP& mcgrp,const vector<int> &taskList, const string& mode)
+Individual RTFScanner::operator()(const vector<int> &taskList, const string &mode)
 {
     int load;
     double min_dist;
-    int drive_time; // the earliest time of a vehicle begins to serve the Task
+    int arrival_time;
 
-    std::vector<int> candidate_task_set;
-    std::vector<int> nearest_task_set;
+    unordered_set<int> unserved_task_id;
 
-    int current_tail_task;
-    int chosen_task;
+    std::vector<int> FCL; // feasible candidate list
 
-    unordered_set<int> unserved_task_id_set;
+    std::vector<int> RCL1; // restricted candidate list which drive away from the depot
+    std::vector<int> RCL2; // restricted candidate list which drive towards the depot
 
-    if(taskList.empty()){
+    if(!taskList.empty())
+        unserved_task_id = unordered_set<int>(taskList.begin(), taskList.end());
+    else{
         for (int i = 1; i <= mcgrp.actual_task_num; i++)
-            unserved_task_id_set.insert(i);
-    }else{
-        unserved_task_id_set = unordered_set<int>(taskList.begin(), taskList.end());
+            unserved_task_id.insert(i);
     }
 
-    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
     load = 0;
-    drive_time = 0;
+    arrival_time = 0;
 
     vector<int> solution;
     solution.push_back(DUMMY);
 
-    while (!unserved_task_id_set.empty()) {
-        current_tail_task = solution.back();
+    while (!unserved_task_id.empty()){
+        int tail_task = solution.back();
 
-        //Find all the tasks that satisfy the capacity constraint
-        if(mode == "feasible"){
-            candidate_task_set.clear();
-            for (auto unserved_task : unserved_task_id_set) {
+        FCL.clear();
+        if(mode == "allow_infeasible"){
+            FCL = vector<int>(unserved_task_id.begin(), unserved_task_id.end());
+        }
+        else if(mode == "feasible"){
+            for (auto unserved_task : unserved_task_id) {
                 if (mcgrp.inst_tasks[unserved_task].demand <= mcgrp.capacity - load
-                    && mcgrp.cal_arrive_time(current_tail_task, unserved_task, drive_time, true)
+                    && mcgrp.cal_arrive_time(tail_task, unserved_task, arrival_time, true)
                         <= mcgrp.inst_tasks[unserved_task].time_window.second) {
-                    candidate_task_set.push_back(unserved_task);
+                    FCL.push_back(unserved_task);
                 }
             }
-        }else if(mode == "allow_infeasible"){
-            candidate_task_set = vector<int>(unserved_task_id_set.begin(),unserved_task_id_set.end());
         }else{
-            My_Assert(false,"Unknown mode!");
+            My_Assert(false,"error! unknown mode!");
         }
 
 
-        if (candidate_task_set.empty()) {
+        if (FCL.empty()) {
             solution.push_back(DUMMY);
             load = 0;
-            drive_time = 0;
+            arrival_time = 0;
             continue;
         }
 
         min_dist = MAX(min_dist);
+        for (const auto& task : FCL) {
+            double d_uz = distance(mcgrp,tail_task,task);
+            double d_udummy = distance(mcgrp,tail_task,DUMMY);
+            double d_zdummy = distance(mcgrp,task,DUMMY);
 
-        //Find the nearest Task from the current candidate Task set
-        for (auto candidate_task : candidate_task_set) {
-            if (distance(mcgrp,current_tail_task,candidate_task) < min_dist) {
-                min_dist = distance(mcgrp,current_tail_task,candidate_task);
-                nearest_task_set.clear();
-                nearest_task_set.push_back(candidate_task);
+            if (d_uz > min_dist) continue;
+
+            if (d_uz < min_dist) {
+                min_dist = d_uz;
+                RCL1.clear();
+                RCL2.clear();
             }
-            else if (
-                distance(mcgrp,current_tail_task,candidate_task) == min_dist) {
-                nearest_task_set.push_back(candidate_task);
+
+            if(d_udummy < d_zdummy) RCL1.push_back(task);
+            else RCL2.push_back(task);
+        }
+
+        int chosen_task = -1;
+        if(RCL1.empty()){
+            int seed = (int) mcgrp._rng.Randint(0, RCL2.size() - 1);
+            chosen_task = RCL2[seed];
+        }
+        else if(RCL2.empty()){
+            int seed = (int) mcgrp._rng.Randint(0, RCL1.size() - 1);
+            chosen_task = RCL1.front();
+        }else{
+            if((load % mcgrp.capacity) < (mcgrp.capacity / 2)){
+                int seed = (int) mcgrp._rng.Randint(0, RCL1.size() - 1);
+                chosen_task = RCL1.front();
+            }else{
+                int seed = (int) mcgrp._rng.Randint(0, RCL2.size() - 1);
+                chosen_task = RCL2[seed];
             }
         }
 
-        //If multiple tasks both satisfy the capacity constraint and are closest, randomly choose one
-        int k = (int) mcgrp._rng.Randint(0, nearest_task_set.size() - 1);
-        chosen_task = nearest_task_set[k];
+        My_Assert(chosen_task != -1,"error! cannot find a Task");
 
         load += mcgrp.inst_tasks[chosen_task].demand;
-        drive_time = mcgrp.cal_arrive_time(current_tail_task, chosen_task, drive_time, true);
+        arrival_time = mcgrp.cal_arrive_time(tail_task, chosen_task, arrival_time, true);
 
         solution.push_back(chosen_task);
 
-        unserved_task_id_set.erase(chosen_task);
+        unserved_task_id.erase(chosen_task);
 
         if (mcgrp.is_edge(chosen_task)) {
             int inverse_task = mcgrp.inst_tasks[chosen_task].inverse;
-            if(unserved_task_id_set.find(inverse_task) != unserved_task_id_set.end())
-                unserved_task_id_set.erase(inverse_task);
+            if(unserved_task_id.find(inverse_task) != unserved_task_id.end())
+                unserved_task_id.erase(inverse_task);
         }
+
     }
 
-    if (solution.back() != DUMMY) {
-        solution.push_back(DUMMY);
-    }
 
-    for(auto i : solution) cout << i <<"->";
-    cout << endl;
+    if (solution.back() != DUMMY) solution.push_back(DUMMY);
 
     return mcgrp.parse_delimiter_seq(solution);
-
 }
 
-
-HybridDistance::HybridDistance(const MCGRP &mcgrp, double beta_)
-    : Distance(mcgrp, "hybrid distance") , beta(beta_)
-{
-    bacc::accumulator_set<double, bacc::stats<bacc::tag::variance(bacc::lazy)> > cost_acc;
-    bacc::accumulator_set<double, bacc::stats<bacc::tag::variance(bacc::lazy)> > waiting_time_acc;
-
-    cost_matrix = vector<vector<double>>(mcgrp.actual_task_num + 1, vector<double>(mcgrp.actual_task_num + 1, -1));
-    waiting_time_matrix = vector<vector<double>>(mcgrp.actual_task_num + 1, vector<double>(mcgrp.actual_task_num + 1, -1));
-
-    for(int i = 0; i<=mcgrp.actual_task_num;i++){
-        for(int j = 0; j <= mcgrp.actual_task_num; j++){
-
-            // two special cases
-            if(i == j){
-                cost_matrix[i][j] == DBL_MAX;
-                waiting_time_matrix[i][j] = DBL_MAX;
-            }
-
-            else if(mcgrp.is_edge(i) && mcgrp.inst_tasks[i].inverse == j){
-                cost_matrix[i][j] == DBL_MAX;
-                waiting_time_matrix[i][j] = DBL_MAX;
-            }
-
-            // normal case
-            else{
-                cost_matrix[i][j] = (double)mcgrp.min_cost[mcgrp.inst_tasks[i].tail_node][mcgrp.inst_tasks[j].head_node];
-                cost_acc(cost_matrix[i][j]);
-
-                if(mcgrp.inst_tasks[i].time_window.first == INT32_MAX){
-                    My_Assert(false, "A task which can never be served!");
-                }
-
-                int earliest_finish_time = mcgrp.inst_tasks[i].time_window.first
-                    + mcgrp.inst_tasks[i].serve_time
-                    + mcgrp.min_time[mcgrp.inst_tasks[i].tail_node][mcgrp.inst_tasks[j].head_node];
-
-                int latest_finish_time;
-                if(mcgrp.inst_tasks[i].time_window.second == INT32_MAX){
-                    latest_finish_time = INT32_MAX;
-                }else{
-                    latest_finish_time = mcgrp.inst_tasks[i].time_window.second
-                        + mcgrp.inst_tasks[i].serve_time
-                        + mcgrp.min_time[mcgrp.inst_tasks[i].tail_node][mcgrp.inst_tasks[j].head_node];
-                }
-
-                if(earliest_finish_time > mcgrp.inst_tasks[j].time_window.second){
-                    waiting_time_matrix[i][j] = DBL_MAX;
-                }else if(latest_finish_time < mcgrp.inst_tasks[j].time_window.first){
-                    waiting_time_matrix[i][j] = mcgrp.inst_tasks[j].time_window.first - latest_finish_time;
-                    waiting_time_acc(waiting_time_matrix[i][j]);
-                }else{
-                    waiting_time_matrix[i][j] = 0.0;
-                    waiting_time_acc(waiting_time_matrix[i][j]);
-                }
-            }
-        }
-    }
-
-    mean_cost = bacc::mean(cost_acc);
-    deviation_cost = sqrt(bacc::variance(cost_acc));
-
-    mean_waiting_time = bacc::mean(waiting_time_acc);
-    deviation_waiting_time = sqrt(bacc::variance(waiting_time_acc));
-}
-
-double HybridDistance::operator()(const MCGRP &mcgrp, const int task_a, const int task_b)
-{
-    if(distance_matrix[task_a][task_b] != -1) return distance_matrix[task_a][task_b];
-
-    else if(mcgrp.is_edge(task_a) && mcgrp.inst_tasks[task_a].inverse == task_b){
-        distance_matrix[task_a][task_b] = DBL_MAX;
-    }
-
-    else{
-        if(waiting_time_matrix[task_a][task_b] == DBL_MAX){
-            distance_matrix[task_a][task_b] = DBL_MAX;
-        }else{
-            // z-score normalization
-            double normalized_cost = (cost_matrix[task_a][task_b] - mean_cost) / deviation_cost;
-            double normalized_waiting_time = (waiting_time_matrix[task_a][task_b] - mean_waiting_time) / deviation_waiting_time;
-            distance_matrix[task_a][task_b] =
-                (1-beta) * normalized_cost
-                + beta * normalized_waiting_time;
-        }
-    }
-
-
-    return distance_matrix[task_a][task_b];
-}
+RTFScanner::RTFScanner(const MCGRP &mcgrp, Distance &distance_)
+    : PathConstructor(mcgrp, "RTF scanner"), distance(distance_)
+{}

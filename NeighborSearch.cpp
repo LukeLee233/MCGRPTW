@@ -1329,7 +1329,8 @@ void HighSpeedNeighBorSearch::_repair_time_window(const MCGRP &mcgrp)
 
         My_Assert(valid_sol(mcgrp), "Wrong validation");
 
-        Individual individual =  nearest_scanning(mcgrp, candidate_tasks);
+        shared_ptr<Distance> distance(new CostDistance(mcgrp));
+        Individual individual = NearestScanner(mcgrp,*distance)(candidate_tasks);
 
         for (const auto& cur_route : individual.time_tbl){
             vector<int> tasks_id;
