@@ -392,6 +392,7 @@ void XPostInsert::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
         ns.equal_step++;
     }
 
+    ns.trace(mcgrp);
     move_result.reset();
     ns.search_step++;
 }
@@ -934,6 +935,7 @@ void XPreInsert::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
         ns.equal_step++;
     }
 
+    ns.trace(mcgrp);
     move_result.reset();
     ns.search_step++;
 }
