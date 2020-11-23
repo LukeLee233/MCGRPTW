@@ -254,6 +254,7 @@ void Extraction::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
         ns.equal_step++;
     }
 
+    update_score(ns);
     ns.trace(mcgrp);
 
     move_result.reset();
@@ -303,4 +304,10 @@ Extraction::expected_time_table(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
     res.emplace_back(intermediate_right);
 
     return res;
+}
+
+bool Extraction::update_score(HighSpeedNeighBorSearch &ns)
+{
+    My_Assert(move_result.delta >= 0, "error, wrong outcome!");
+    return false;
 }

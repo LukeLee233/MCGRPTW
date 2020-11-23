@@ -44,6 +44,8 @@ public:
                                                              const int b);
 
     bool search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_task) override;
+
+    bool update_score(HighSpeedNeighBorSearch &ns) override;
 };
 
 //low level operator
@@ -72,6 +74,8 @@ public:
                                                              const int b);
 
     bool search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_task) override;
+
+    bool update_score(HighSpeedNeighBorSearch &ns) override;
 };
 
 
@@ -106,6 +110,7 @@ public:
 
     void move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp);
 
+    bool update_score(HighSpeedNeighBorSearch &ns) override;
 };
 
 

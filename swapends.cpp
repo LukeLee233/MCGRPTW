@@ -642,6 +642,7 @@ void NewSwapEnds::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
         ns.equal_step++;
     }
 
+    update_score(ns);
     move_result.reset();
     ns.search_step++;
 }
@@ -741,5 +742,22 @@ NewSwapEnds::expected_time_table(HighSpeedNeighBorSearch &ns,
 bool NewSwapEnds::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_task)
 {
     // stub block
+    return false;
+}
+
+bool NewSwapEnds::update_score(HighSpeedNeighBorSearch &ns)
+{
+    if(move_result.delta > 0) return false;
+
+    // ...a-(seq_v)...
+    // ...v-(seq_a)...
+    const int actual_a = move_result.task1;
+    const int actual_v = move_result.task2;
+
+    double penalty = (ns.best_solution_cost / ns.cur_solution_cost) * (-move_result.delta);
+
+    ns.score_matrix[max(0,actual_a)][ns.solution[actual_a]->next->ID] += penalty;
+    ns.score_matrix[max(0,actual_v)][ns.solution[actual_v]->next->ID] += penalty;
+
     return false;
 }

@@ -332,13 +332,16 @@ void NewTwoOpt::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp){
         swap_ends.move(ns,mcgrp);
     }
     else{
-        My_Assert(false,"Unknown operator");
+        My_Assert(false,"error, unknown operator");
     }
 
+
     ns.trace(mcgrp);
-
-    //    mcgrp.check_best_infeasible_solution(ns.cur_solution_cost,ns.policy.beta,ns.total_vio_load,ns.negative_coding_sol);
-
     move_result.reset();
     move_result.move_type = NeighborOperator::TWO_OPT;
+}
+
+bool NewTwoOpt::update_score(HighSpeedNeighBorSearch &ns)
+{
+    return false;
 }
