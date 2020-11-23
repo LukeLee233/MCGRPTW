@@ -50,7 +50,7 @@ bool XPostInsert::considerable_move(HighSpeedNeighBorSearch &ns,
                                     const int u)
 {
     // Task u cannot be dummy Task
-    My_Assert(u>=1 && u<=mcgrp.actual_task_num,"Wrong Task");
+    My_Assert(u >= 1 && u <= mcgrp.actual_task_num,"Wrong Task");
     My_Assert(all_of(disturbance_seq.begin(),disturbance_seq.end(),
                      [&](int i){return i>=1 && i<=mcgrp.actual_task_num;}),"Wrong Task");
 
@@ -392,6 +392,9 @@ void XPostInsert::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
         ns.equal_step++;
     }
 
+    update_score(ns);
+
+    ns.trace(mcgrp);
     move_result.reset();
     ns.search_step++;
 }
@@ -537,8 +540,21 @@ bool XPostInsert::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int ch
 
 }
 
+bool XPostInsert::update_score(HighSpeedNeighBorSearch &ns)
+{
+    if(move_result.delta > 0) return false;
 
+    const int u = move_result.move_arguments.back();
+    const int seq_front = *(move_result.move_arguments.begin());
+    const int seq_back = *(move_result.move_arguments.end()-2);
+    double penalty = (ns.best_solution_cost / ns.cur_solution_cost) * (-move_result.delta);
 
+    // ...u-seq()...
+    ns.score_matrix[u][seq_front] += penalty;
+    ns.score_matrix[seq_back][max(0,ns.solution[seq_back]->next->ID)] += penalty;
+
+    return true;
+}
 
 /*------------------------------------------------------------------------*/
 
@@ -934,6 +950,10 @@ void XPreInsert::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
         ns.equal_step++;
     }
 
+
+    update_score(ns);
+
+    ns.trace(mcgrp);
     move_result.reset();
     ns.search_step++;
 }
@@ -1079,4 +1099,19 @@ bool XPreInsert::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int cho
 
 }
 
+bool XPreInsert::update_score(HighSpeedNeighBorSearch &ns)
+{
+    if(move_result.delta > 0) return false;
 
+    double penalty = (ns.best_solution_cost / ns.cur_solution_cost) * (-move_result.delta);
+
+    const int u = move_result.move_arguments.back();
+    const int seq_front = move_result.move_arguments.front();
+    const int seq_back = *(move_result.move_arguments.end() - 2);
+
+    // ...seq()-u...
+    ns.score_matrix[seq_back][u] += penalty;
+    ns.score_matrix[max(0,ns.solution[seq_front]->pre->ID)][seq_front] += penalty;
+
+    return true;
+}

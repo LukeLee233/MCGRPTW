@@ -145,6 +145,8 @@ void Invert::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
         ns.equal_step++;
     }
 
+    update_score(ns);
+
     ns.trace(mcgrp);
 
     move_result.reset();
@@ -178,4 +180,17 @@ Invert::expected_time_table(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int
 
     res = intermediate;
     return res;
+}
+
+bool Invert::update_score(HighSpeedNeighBorSearch &ns)
+{
+    if(move_result.delta > 0) return false;
+
+    const int actual_u = move_result.move_arguments[1];
+    double penalty = (ns.best_solution_cost / ns.cur_solution_cost) * (-move_result.delta);
+
+    ns.score_matrix[actual_u][max(0,ns.solution[actual_u]->next->ID)] += penalty;
+    ns.score_matrix[max(0,ns.solution[actual_u]->pre->ID)][actual_u] += penalty;
+
+    return true;
 }

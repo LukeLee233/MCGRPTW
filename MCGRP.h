@@ -271,3 +271,16 @@ public:
 
     double operator()(const MCGRP& mcgrp, const int task_a, const int task_b) override;
 };
+
+
+class LearningDistance: public Distance{
+private:
+    vector<vector<double>> prob_matrix;
+
+public:
+    LearningDistance(const MCGRP &mcgrp, const vector<vector<double>> &probMatrix);
+
+    double operator()(const MCGRP& mcgrp, const int task_a, const int task_b) override;
+
+    const vector<double>& get_prob_vector(int task);
+};

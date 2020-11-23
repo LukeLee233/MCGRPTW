@@ -129,6 +129,7 @@ void NewFlip::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp){
         ns.equal_step++;
     }
 
+    update_score(ns);
     move_result.reset();
     ns.search_step++;
 }
@@ -186,5 +187,25 @@ NewFlip::expected_time_table(HighSpeedNeighBorSearch &ns,
 bool NewFlip::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_task)
 {
     // stub block
+    return false;
+}
+
+bool NewFlip::update_score(HighSpeedNeighBorSearch &ns)
+{
+    if(move_result.delta > 0) return false;
+
+    // ...start-(actual flip seq)-end...
+    const int start_task = move_result.task1;
+    const int end_task = move_result.task2;
+
+    double penalty = (ns.best_solution_cost / ns.cur_solution_cost) * (-move_result.delta);
+
+    int cur = start_task;
+
+    while(cur != end_task){
+        ns.score_matrix[max(0,cur)][max(0,ns.solution[cur]->next->ID)] += penalty;
+        cur = ns.solution[cur]->next->ID;
+    }
+
     return false;
 }

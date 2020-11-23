@@ -14,6 +14,8 @@
 #include "config.h"
 #include "utils.h"
 #include "ConstructPolicy.h"
+#include "insert.h"
+#include "attraction.h"
 
 using namespace std;
 
@@ -51,7 +53,7 @@ HighSpeedNeighBorSearch::HighSpeedNeighBorSearch(const MCGRP &mcgrp)
     task_set(mcgrp.actual_task_num), single_pre_insert(new XPreInsert(1)),
     single_post_insert(new XPostInsert(1)), double_pre_insert(new XPreInsert(2)),
     double_post_insert(new XPostInsert(2)),two_opt(new NewTwoOpt),
-    invert(new Invert), swap(new NewSwap), extraction(new Extraction), slice(new Slice) {
+    invert(new Invert), swap(new NewSwap), extraction(new Extraction), slice(new Slice),attraction(new Attraction) {
     search_step = 0;
     equal_step = 0;
     cur_solution_cost = numeric_limits<decltype(best_solution_cost)>::max();
@@ -498,7 +500,8 @@ void HighSpeedNeighBorSearch::threshold_exploration(const MCGRP &mcgrp)
         NeighborOperator::INVERT,
         NeighborOperator::SLICE,
         NeighborOperator::EXTRACTION,
-        NeighborOperator::TWO_OPT
+        NeighborOperator::TWO_OPT,
+        NeighborOperator::ATTRACTION
     };
 
     int L = mcgrp._rng.Randint(28, 33);
@@ -550,6 +553,8 @@ void HighSpeedNeighBorSearch::threshold_exploration(const MCGRP &mcgrp)
                         break;
                     case EXTRACTION:extraction->search(*this, mcgrp, chosen_task);
                         break;
+                    case ATTRACTION:attraction->search(*this,mcgrp,chosen_task);
+                        break;
                     default:My_Assert(false, "unknown operator!");
                 }
 
@@ -580,6 +585,7 @@ void HighSpeedNeighBorSearch::descent_exploration(const MCGRP &mcgrp)
         NeighborOperator::INVERT,
         NeighborOperator::SWAP,
         NeighborOperator::TWO_OPT,
+        NeighborOperator::ATTRACTION
     };
 
     int chosen_task = -1;
@@ -624,6 +630,8 @@ void HighSpeedNeighBorSearch::descent_exploration(const MCGRP &mcgrp)
                         }
                         break;
                     case TWO_OPT:two_opt->search(*this, mcgrp, chosen_task);
+                        break;
+                    case ATTRACTION:attraction->search(*this, mcgrp, chosen_task);
                         break;
                     default:My_Assert(false, "unknown operator!");
                 }
@@ -1696,4 +1704,69 @@ void HighSpeedNeighBorSearch::viterbi_refine(const MCGRP &mcgrp)
     }
 
     My_Assert(valid_sol(mcgrp), "Wrong state!");
+}
+
+void HighSpeedNeighBorSearch::initialize_score_matrix(const MCGRP &mcgrp)
+{
+    score_matrix = vector<vector<double>>(mcgrp.actual_task_num + 1, vector<double>(mcgrp.actual_task_num + 1, 0));
+    prob_matrix = vector<vector<double>>(mcgrp.actual_task_num + 1, vector<double>(mcgrp.actual_task_num + 1, 0));
+}
+
+void HighSpeedNeighBorSearch::update_prob_matrix(vector<double>(*pf)(const vector<double>&))
+{
+    for(int row = 0; row < prob_matrix.size(); row++)
+        prob_matrix[row] = pf(score_matrix[row]);
+}
+
+void HighSpeedNeighBorSearch::print_prob_matrix(const string &filename)
+{
+    for(const auto & row : prob_matrix){
+        for(const auto item : row){
+            cout << item << ",";
+        }
+        cout << "\b\n";
+    }
+
+    if(!filename.empty()){
+        ofstream FILE;
+        FILE.open(filename, ios::out);
+        for(const auto& row : prob_matrix){
+            string buffer;
+
+            for(const auto item : row){
+                buffer += to_string(item) += " ";
+            }
+            buffer.pop_back();
+            print( FILE, buffer);
+        }
+
+        FILE.close();
+    }
+
+}
+
+void HighSpeedNeighBorSearch::print_score_matrix(const string &filename)
+{
+    for(const auto & row : score_matrix){
+        for(const auto item : row){
+            cout << item << ",";
+        }
+        cout << "\b\n";
+    }
+
+    if(!filename.empty()){
+        ofstream FILE;
+        FILE.open(filename, ios::out);
+        for(const auto& row : score_matrix){
+            string buffer;
+
+            for(const auto item : row){
+                buffer += to_string(item) += " ";
+            }
+            buffer.pop_back();
+            print( FILE, buffer);
+        }
+
+        FILE.close();
+    }
 }

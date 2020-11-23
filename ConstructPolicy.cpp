@@ -956,3 +956,114 @@ Individual RTFScanner::operator()(const vector<int> &taskList, const string &mod
 RTFScanner::RTFScanner(const MCGRP &mcgrp, Distance &distance_)
     : PathConstructor(mcgrp, "RTF scanner"), distance(distance_)
 {}
+
+SampleScanner::SampleScanner(const MCGRP &mcgrp, LearningDistance &distance_, int sample_times_)
+    : PathConstructor(mcgrp, "sample scanner"), distance(distance_), sample_times(sample_times_)
+{}
+
+Individual SampleScanner::operator()(const vector<int> &taskList, const string &mode)
+{
+    int load;
+    double min_dist;
+    int drive_time; // the earliest time of a vehicle begins to serve the Task
+
+    std::unordered_set<int> FCL; // feasible candidate list
+    std::vector<int> nearest_task_set;
+
+    int current_tail_task;
+    int chosen_task;
+
+    unordered_set<int> unserved_task_id_set;
+
+    if(taskList.empty()){
+        for (int i = 1; i <= mcgrp.actual_task_num; i++)
+            unserved_task_id_set.insert(i);
+    }else{
+        unserved_task_id_set = unordered_set<int>(taskList.begin(), taskList.end());
+    }
+
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    load = 0;
+    drive_time = 0;
+
+    vector<int> solution;
+    solution.push_back(DUMMY);
+
+    while (!unserved_task_id_set.empty()) {
+        current_tail_task = solution.back();
+
+        const vector<double>& prob_vector = distance.get_prob_vector(current_tail_task);
+
+        FCL.clear();
+        for(int sample_cnt = 0; sample_cnt < sample_times; sample_cnt++){
+            //Find all the tasks that satisfy the capacity constraint
+            int sample_task = sample::uniform_sample(prob_vector);
+
+            if(unserved_task_id_set.find(sample_task) == unserved_task_id_set.end())
+                continue;
+
+            if(mode == "feasible"){
+                if (mcgrp.inst_tasks[sample_task].demand <= mcgrp.capacity - load
+                    && mcgrp.cal_arrive_time(current_tail_task, sample_task, drive_time, true)
+                        <= mcgrp.inst_tasks[sample_task].time_window.second) {
+                    FCL.insert(sample_task);
+                }
+            }else if(mode == "allow_infeasible"){
+                FCL.insert(sample_task);
+            }else{
+                My_Assert(false,"error! unknown mode!");
+            }
+        }
+
+
+        if (FCL.empty()) {
+            if(solution.back() == DUMMY){
+                FCL = unserved_task_id_set;
+            }else{
+                solution.push_back(DUMMY);
+                load = 0;
+                drive_time = 0;
+                continue;
+            }
+        }
+
+        min_dist = MAX(min_dist);
+
+        //Find the nearest Task from the current candidate Task set
+        for (auto candidate_task : FCL) {
+            if (distance(mcgrp,current_tail_task,candidate_task) < min_dist) {
+                min_dist = distance(mcgrp,current_tail_task,candidate_task);
+                nearest_task_set.clear();
+                nearest_task_set.push_back(candidate_task);
+            }
+            else if (
+                distance(mcgrp,current_tail_task,candidate_task) == min_dist) {
+                nearest_task_set.push_back(candidate_task);
+            }
+        }
+
+        //If multiple tasks both satisfy the capacity constraint and are closest, randomly choose one
+        int k = (int) mcgrp._rng.Randint(0, nearest_task_set.size() - 1);
+        chosen_task = nearest_task_set[k];
+
+        load += mcgrp.inst_tasks[chosen_task].demand;
+        drive_time = mcgrp.cal_arrive_time(current_tail_task, chosen_task, drive_time, true);
+
+        solution.push_back(chosen_task);
+
+        unserved_task_id_set.erase(chosen_task);
+
+        if (mcgrp.is_edge(chosen_task)) {
+            int inverse_task = mcgrp.inst_tasks[chosen_task].inverse;
+            if(unserved_task_id_set.find(inverse_task) != unserved_task_id_set.end())
+                unserved_task_id_set.erase(inverse_task);
+        }
+    }
+
+    if (solution.back() != DUMMY) {
+        solution.push_back(DUMMY);
+    }
+
+    return mcgrp.parse_delimiter_seq(solution);
+}

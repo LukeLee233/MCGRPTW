@@ -52,6 +52,8 @@ public:
     void move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp);
 
     bool search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_task) override;
+
+    bool update_score(HighSpeedNeighBorSearch &ns) override;
 };
 
 class XPostInsert : public MoveOperator
@@ -98,6 +100,8 @@ public:
     void move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp);
 
     bool search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_task) override;
+
+    bool update_score(HighSpeedNeighBorSearch &ns) override;
 };
 
 

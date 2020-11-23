@@ -8,7 +8,6 @@
 #include "ConstructPolicy.h"
 #include "config.h"
 #include "operator.h"
-#include "insert.h"
 
 extern vector<double> ratios;
 extern vector<double> prob;
@@ -28,6 +27,7 @@ class HighSpeedNeighBorSearch
     friend class Extraction;
     friend class XPreInsert;
     friend class XPostInsert;
+    friend class Attraction;
 
     friend void merge_split(class HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, const int merge_size, const int pseudo_capacity);
     friend struct RouteSegment get_segment_info(const MCGRP &mcgrp,HighSpeedNeighBorSearch &ns,const int chosen_task);
@@ -303,12 +303,19 @@ private:
     unique_ptr<class NewTwoOpt> two_opt;
     unique_ptr<class Extraction> extraction;
     unique_ptr<class Slice> slice;
+    unique_ptr<class Attraction> attraction;
 
 public:
 
     HighSpeedNeighBorSearch(const MCGRP &mcgrp);
     ~HighSpeedNeighBorSearch();
 
+    vector<vector<double>> score_matrix;
+    vector<vector<double>> prob_matrix;
+    void initialize_score_matrix(const MCGRP &mcgrp);
+    void update_prob_matrix(vector<double>(*pf)(const vector<double>&));
+    void print_prob_matrix(const string& filename="");
+    void print_score_matrix(const string& filename="");
 
     vector<int> get_current_sol(string mode= "dummy");
 

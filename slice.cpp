@@ -162,12 +162,16 @@ void Slice::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
         My_Assert(false, "Unknown operator");
     }
 
-    ns.trace(mcgrp);
+    update_score(ns);
 
+    ns.trace(mcgrp);
     move_result.reset();
     move_result.move_type = NeighborOperator::SLICE;
 }
 
+bool Slice::update_score(HighSpeedNeighBorSearch &ns){
+    return false;
+}
 
 /*
  * Pre Slice
@@ -365,6 +369,7 @@ void Preslice::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
         ns.equal_step++;
     }
 
+    update_score(ns);
     move_result.reset();
     ns.search_step++;
 }
@@ -427,6 +432,12 @@ bool Preslice::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chose
         move_result.reset();
         return false;
     }
+}
+
+bool Preslice::update_score(HighSpeedNeighBorSearch &ns)
+{
+    My_Assert(move_result.delta >= 0, "error, wrong outcome!");
+    return false;
 }
 
 /*
@@ -563,6 +574,7 @@ void Postslice::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
         ns.equal_step++;
     }
 
+    update_score(ns);
     move_result.reset();
     ns.search_step++;
 }
@@ -627,4 +639,10 @@ bool Postslice::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chos
         move_result.reset();
         return false;
     }
+}
+
+bool Postslice::update_score(HighSpeedNeighBorSearch &ns)
+{
+    My_Assert(move_result.delta >= 0, "error, wrong outcome!");
+    return false;
 }

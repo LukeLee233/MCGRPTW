@@ -1304,4 +1304,31 @@ double HybridDistance::operator()(const MCGRP &mcgrp, const int task_a, const in
     return distance_matrix[task_a][task_b];
 }
 
+LearningDistance::LearningDistance(const MCGRP &mcgrp, const vector<vector<double>> &probMatrix)
+    : Distance(mcgrp, "Learning Distance"), prob_matrix(probMatrix)
+{
+    distance_matrix = vector<vector<double>>
+        (mcgrp.actual_task_num+1,vector<double>(mcgrp.actual_task_num + 1, -1));
+}
 
+double LearningDistance::operator()(const MCGRP &mcgrp, const int task_a, const int task_b)
+{
+    if(distance_matrix[task_a][task_b] != -1) return distance_matrix[task_a][task_b];
+
+    else if(mcgrp.is_edge(task_a) && mcgrp.inst_tasks[task_a].inverse == task_b){
+        distance_matrix[task_a][task_b] = DBL_MAX;
+    }
+
+    else if(task_a == task_b)
+        distance_matrix[task_a][task_b] = 0.0;
+
+    else{
+        distance_matrix[task_a][task_b] = (double)mcgrp.min_cost[mcgrp.inst_tasks[task_a].tail_node][mcgrp.inst_tasks[task_b].head_node];
+    }
+
+    return distance_matrix[task_a][task_b];
+}
+
+const vector<double> &LearningDistance::get_prob_vector(int task){
+    return prob_matrix[task];
+}

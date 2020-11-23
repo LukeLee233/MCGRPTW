@@ -232,6 +232,7 @@ int main(int argc, char *argv[])
 
             if(pool_size == 1){
                 HighSpeedNeighBorSearch NBS(Mixed_Instance);
+                NBS.initialize_score_matrix(Mixed_Instance);
                 Individual initial_solution = NearestScanner(Mixed_Instance, *Mixed_Instance.distance_look_tbl["cost"])();
 
 //                Individual initial_solution = nearest_scanning(Mixed_Instance, vector<int>());

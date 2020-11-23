@@ -3,6 +3,15 @@
 #include "MCGRP.h"
 #include "NeighborSearch.h"
 
+struct RouteSegment
+{
+    // Contains information about a particular segment of a route.
+    int segment_start;
+    int segment_end;
+    int num_custs;
+    int load;
+    double len;
+};
 
 class NewSwapEnds : public MoveOperator
 {
@@ -27,4 +36,8 @@ public:
                         bool allow_infeasible);
 
     bool search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_task) override;
+
+    bool update_score(HighSpeedNeighBorSearch &ns) override;
 };
+
+RouteSegment get_segment_info(const MCGRP &mcgrp, HighSpeedNeighBorSearch &ns, const int chosen_task);

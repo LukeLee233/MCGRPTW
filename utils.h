@@ -72,7 +72,8 @@ enum NeighborOperator
     PRE_INSERT, POST_INSERT,
     SWAP, TWO_OPT, INVERT,
     SLICE, PRE_SLICE, POST_SLICE,
-    EXTRACTION, FLIP, SWAP_ENDS
+    EXTRACTION, FLIP, SWAP_ENDS,
+    ATTRACTION
 };
 
 
@@ -341,3 +342,7 @@ inline double get_time_difference(const timeb& start,const timeb& end){
 }
 
 vector<int> sort_solution(const vector<int>& negative_sol);
+
+vector<double> stable_softmax(const vector<double>&);
+
+vector<double> stable_uniform(const vector<double>&);
