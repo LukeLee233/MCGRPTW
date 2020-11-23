@@ -209,9 +209,10 @@ int main(int argc, char *argv[])
         MCGRP Mixed_Instance(instance_info, rng);
 
         Mixed_Instance.load_file_info(instance_directory + '/' + file_name, instance_info);
-        Mixed_Instance.create_neighbor_lists(neighbor_size);
         Mixed_Instance.register_distance("cost",unique_ptr<Distance>(new CostDistance(Mixed_Instance)));
+        Mixed_Instance.register_distance("bi-cost", unique_ptr<Distance>(new BiCostDistance(Mixed_Instance)));
         Mixed_Instance.register_distance("hybrid", unique_ptr<Distance>(new HybridDistance(Mixed_Instance,0.3)));
+        Mixed_Instance.create_neighbor_lists(neighbor_size);
 
 #ifdef DEBUG
         log_out.open(date_folder + '/' + file_name + ".log", ios::out);

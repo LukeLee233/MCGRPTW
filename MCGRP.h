@@ -60,7 +60,6 @@ public:
     int sentinel;
 
 
-    vector<vector<double> > task_dist;
     vector<vector<NeighborInfo>> neighbor;
 
     double total_service_cost;
@@ -268,6 +267,15 @@ private:
 
 public:
     HybridDistance(const MCGRP &mcgrp,double beta_);
+
+    double operator()(const MCGRP& mcgrp, const int task_a, const int task_b) override;
+};
+
+
+class BiCostDistance: public Distance{
+
+public:
+    BiCostDistance(const MCGRP& mcgrp);
 
     double operator()(const MCGRP& mcgrp, const int task_a, const int task_b) override;
 };

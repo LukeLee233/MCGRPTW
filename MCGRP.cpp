@@ -58,11 +58,6 @@ MCGRP::MCGRP(const InstanceNumInfo &instance_info, RNG &rng)
 
     My_Assert(serve_cost[0].empty() && min_cost[0].empty() && trav_cost[0].empty(), "Dummy row should be null!");
 
-    task_dist.resize(task_num);
-    for (int i = 0; i < task_num; i++) {
-        task_dist[i].resize(task_num);
-    }
-
     shortest_path.resize(offset_node_num);
     for (int i = 1; i < offset_node_num; ++i) {
         shortest_path[i].resize(offset_node_num);
@@ -403,18 +398,6 @@ void MCGRP::load_file_info(std::string input_file, const InstanceNumInfo &instan
 
     dijkstra();
     get_trave_matrix();
-
-    // pairwise distance matrix between tasks
-    // dist(i,j) is the average distance between the vertices of the tasks
-    for (int i = 0; i <= actual_task_num; i++) {
-        for (int j = 0; j <= actual_task_num; j++) {
-            if (i == j)
-                task_dist[i][j] = 0.0;
-            else
-                task_dist[i][j] = double(min_cost[inst_tasks[i].tail_node][inst_tasks[j].head_node] +
-                    min_cost[inst_tasks[j].tail_node][inst_tasks[i].head_node]) / 2.0;
-        }
-    }
 
     total_service_cost = 0;
     for (int i = 1; i <= req_edge_num; ++i)
@@ -1010,8 +993,12 @@ void MCGRP::_build_neighbor_task(const Task &task, NeighborInfo &neighbor_info)
     neighbor_info.end = task.tail_node;
 
 
-    std::vector<TaskNeighborInfo> predecessor_NList;   //tmp neighborhood list
-    std::vector<TaskNeighborInfo> successor_NList;   //tmp neighborhood list
+    vector<TaskNeighborInfo> predecessor_NList;   //tmp neighborhood list
+    vector<TaskNeighborInfo> predecessor_node_NList;
+    vector<TaskNeighborInfo> successor_NList;   //tmp neighborhood list
+    vector<TaskNeighborInfo> successor_node_NList;
+
+
 
     for(int neighbor_id = 0; neighbor_id <= actual_task_num; neighbor_id++){
         if(neighbor_id == task.task_id)
@@ -1021,21 +1008,28 @@ void MCGRP::_build_neighbor_task(const Task &task, NeighborInfo &neighbor_info)
             continue;
 
         neighbor_info.basic_neighbor.push_back(TaskNeighborInfo(
-                neighbor_id, task_dist[task.task_id][neighbor_id]));
+                neighbor_id, distance_look_tbl["bi-cost"]->operator()(*this,task.task_id,neighbor_id)));
+
+        successor_node_NList.push_back(TaskNeighborInfo(neighbor_id,distance_look_tbl["cost"]->operator()(*this,task.task_id,neighbor_id)));
+        predecessor_node_NList.push_back(TaskNeighborInfo(neighbor_id,distance_look_tbl["cost"]->operator()(*this,neighbor_id,task.task_id)));
     }
 
     sort(neighbor_info.basic_neighbor.begin(), neighbor_info.basic_neighbor.end(), TaskNeighborInfo::cmp);
+    sort(successor_node_NList.begin(), successor_node_NList.end(), TaskNeighborInfo::cmp);
+    sort(predecessor_node_NList.begin(), predecessor_node_NList.end(), TaskNeighborInfo::cmp);
 
     // TODO(luke): maybe I should only keep one of the edge task?
 
-    for(const auto& neighbor: neighbor_info.basic_neighbor){
+    for(const auto& neighbor: successor_node_NList){
         if(inst_tasks[task.task_id].time_window.first
             + inst_tasks[task.task_id].serve_time
             + get_travel_time(task.task_id, neighbor.task_id)
             <= inst_tasks[neighbor.task_id].time_window.second){
             successor_NList.push_back(neighbor);
         }
+    }
 
+    for(const auto& neighbor: predecessor_node_NList){
         if(inst_tasks[neighbor.task_id].time_window.first
             + inst_tasks[neighbor.task_id].serve_time
             + get_travel_time(neighbor.task_id, task.task_id)
@@ -1047,7 +1041,7 @@ void MCGRP::_build_neighbor_task(const Task &task, NeighborInfo &neighbor_info)
     neighbor_info.predecessor_neighbor.insert({task.task_id,predecessor_NList});
     neighbor_info.successor_neighbor.insert({task.task_id,successor_NList});
 
-//    show_neighbor(neighbor_info.start,neighbor_info.end);
+    show_neighbor(neighbor_info.start,neighbor_info.end);
 }
 
 
@@ -1061,19 +1055,30 @@ void MCGRP::_build_neighbor_node(int start, int end, NeighborInfo &neighbor_info
             double distance = double(min_cost[end][inst_tasks[neighbor_id].head_node]
                                          + min_cost[inst_tasks[neighbor_id].tail_node][start]) / 2.0;
 
-            neighbor_info.basic_neighbor.push_back(TaskNeighborInfo(
-                neighbor_id, distance));
+            neighbor_info.basic_neighbor.push_back(TaskNeighborInfo(neighbor_id, distance));
         }
 
         sort(neighbor_info.basic_neighbor.begin(), neighbor_info.basic_neighbor.end(), TaskNeighborInfo::cmp);
     }
 
 
+    vector<TaskNeighborInfo> predecessor_node_NList;
+    vector<TaskNeighborInfo> successor_node_NList;
+    for(int neighbor_id = 0; neighbor_id <= actual_task_num; neighbor_id++) {
+        double pre_distance = double(min_cost[inst_tasks[neighbor_id].tail_node][start]);
+        double success_distance = double(min_cost[end][inst_tasks[neighbor_id].head_node]);
+        successor_node_NList.push_back(TaskNeighborInfo(neighbor_id,success_distance));
+        predecessor_node_NList.push_back(TaskNeighborInfo(neighbor_id,pre_distance));
+    }
+
+    sort(successor_node_NList.begin(), successor_node_NList.end(), TaskNeighborInfo::cmp);
+    sort(predecessor_node_NList.begin(), predecessor_node_NList.end(), TaskNeighborInfo::cmp);
+
     const vector<int> & candidate_end_tasks = _same_end_task(end);
     for(const auto task : candidate_end_tasks){
         vector<TaskNeighborInfo> successor_NList;
 
-        for(const auto& neighbor: neighbor_info.basic_neighbor){
+        for(const auto& neighbor: successor_node_NList){
             if(task == neighbor.task_id) continue;
 
             if(is_edge(task) && inst_tasks[task].inverse == neighbor.task_id) continue;
@@ -1093,7 +1098,7 @@ void MCGRP::_build_neighbor_node(int start, int end, NeighborInfo &neighbor_info
     for(const auto task : candidate_start_tasks){
         vector<TaskNeighborInfo> predecessor_NList;
 
-        for(const auto& neighbor: neighbor_info.basic_neighbor){
+        for(const auto& neighbor: predecessor_node_NList){
             if(task == neighbor.task_id) continue;
 
             if(is_edge(task) && inst_tasks[task].inverse == neighbor.task_id) continue;
@@ -1110,7 +1115,7 @@ void MCGRP::_build_neighbor_node(int start, int end, NeighborInfo &neighbor_info
     }
 
 
-//    show_neighbor(start,end);
+    show_neighbor(start,end);
 }
 
 
@@ -1305,3 +1310,25 @@ double HybridDistance::operator()(const MCGRP &mcgrp, const int task_a, const in
 }
 
 
+BiCostDistance::BiCostDistance(const MCGRP &mcgrp)
+    : Distance(mcgrp, "bi-cost distance")
+{}
+
+double BiCostDistance::operator()(const MCGRP &mcgrp, const int task_a, const int task_b)
+{
+    if(distance_matrix[task_a][task_b] != -1) return distance_matrix[task_a][task_b];
+
+    else if(mcgrp.is_edge(task_a) && mcgrp.inst_tasks[task_a].inverse == task_b){
+        distance_matrix[task_a][task_b] = DBL_MAX;
+    }
+
+    else if(task_a == task_b)
+        distance_matrix[task_a][task_b] = 0.0;
+
+    else{
+        distance_matrix[task_a][task_b] = double(mcgrp.min_cost[mcgrp.inst_tasks[task_a].tail_node][mcgrp.inst_tasks[task_b].head_node] +
+            mcgrp.min_cost[mcgrp.inst_tasks[task_b].tail_node][mcgrp.inst_tasks[task_a].head_node]) / 2.0;
+    }
+
+    return distance_matrix[task_a][task_b];
+}
