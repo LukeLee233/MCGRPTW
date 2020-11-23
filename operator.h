@@ -20,6 +20,7 @@ public:
     MoveOperator();
 
     virtual bool search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_task) = 0;
+    virtual bool update_score(HighSpeedNeighBorSearch &ns) = 0;
 
     vector<int> getHitInfo();
 };

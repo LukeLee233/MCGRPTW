@@ -1697,3 +1697,9 @@ void HighSpeedNeighBorSearch::viterbi_refine(const MCGRP &mcgrp)
 
     My_Assert(valid_sol(mcgrp), "Wrong state!");
 }
+
+void HighSpeedNeighBorSearch::initialize_score_matrix(const MCGRP &mcgrp)
+{
+    if(!score_matrix.empty()) score_matrix.clear();
+    score_matrix = vector<vector<double>>(mcgrp.actual_task_num + 1, vector<double>(mcgrp.actual_task_num + 1, 0));
+}

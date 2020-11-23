@@ -392,6 +392,8 @@ void XPostInsert::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
         ns.equal_step++;
     }
 
+    update_score(ns);
+
     ns.trace(mcgrp);
     move_result.reset();
     ns.search_step++;
@@ -538,8 +540,18 @@ bool XPostInsert::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int ch
 
 }
 
+bool XPostInsert::update_score(HighSpeedNeighBorSearch &ns)
+{
+    if(move_result.delta > 0) return false;
 
+    const int u = move_result.move_arguments.back();
+    const int v = *(move_result.move_arguments.end()-2);
+    double penalty = (ns.cur_solution_cost / ns.best_solution_cost) * (-move_result.delta);
+    ns.score_matrix[u][max(0, ns.solution[u]->next->ID)] += penalty;
+    ns.score_matrix[v][max(0,ns.solution[v]->next->ID)] += penalty;
 
+    return true;
+}
 
 /*------------------------------------------------------------------------*/
 
@@ -935,6 +947,9 @@ void XPreInsert::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
         ns.equal_step++;
     }
 
+
+    update_score(ns);
+
     ns.trace(mcgrp);
     move_result.reset();
     ns.search_step++;
@@ -1079,6 +1094,19 @@ bool XPreInsert::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int cho
         My_Assert(false, "Unknown accept rule");
     }
 
+}
+
+bool XPreInsert::update_score(HighSpeedNeighBorSearch &ns)
+{
+    if(move_result.delta > 0) return false;
+
+    const int u = move_result.move_arguments.back();
+    const int v = move_result.move_arguments.front();
+    double penalty = (ns.cur_solution_cost / ns.best_solution_cost) * (-move_result.delta);
+    ns.score_matrix[max(0,ns.solution[u]->pre->ID)][u] += penalty;
+    ns.score_matrix[max(0,ns.solution[v]->pre->ID)][v] += penalty;
+
+    return true;
 }
 
 

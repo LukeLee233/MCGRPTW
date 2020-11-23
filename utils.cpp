@@ -156,6 +156,24 @@ vector<int> sort_solution(const vector<int>& negative_sol)
     return sorted;
 }
 
+vector<double> stable_softmax(const vector<double> &x)
+{
+    double max_item = *max_element(x.begin(),x.end());
+    vector<double> numerator = x;
+    for(auto &item: numerator) {
+        item -= max_item;
+        item = exp(item);
+    }
+
+    double denominator = accumulate(numerator.begin(),numerator.end(),0);
+
+    for(auto &item: numerator) {
+        item /= denominator;
+    }
+
+    return numerator;
+}
+
 vector<RouteInfo::TimeTable>
 RouteInfo::TimeTable::zip(const vector<int> &task_list, const vector<int> &ArriveTime)
 {

@@ -309,6 +309,9 @@ public:
     HighSpeedNeighBorSearch(const MCGRP &mcgrp);
     ~HighSpeedNeighBorSearch();
 
+    vector<vector<double>> score_matrix;
+    void initialize_score_matrix(const MCGRP &mcgrp);
+
 
     vector<int> get_current_sol(string mode= "dummy");
 
