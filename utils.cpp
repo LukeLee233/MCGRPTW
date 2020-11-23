@@ -175,10 +175,10 @@ vector<double> stable_softmax(const vector<double> &x)
 }
 vector<double> stable_uniform(const vector<double> &x)
 {
-    double max_item = *max_element(x.begin(),x.end());
     vector<double> numerator = x;
 
-    double denominator = accumulate(numerator.begin(),numerator.end(),0);
+    double denominator = accumulate(numerator.begin(),numerator.end(),0.0);
+    if(denominator == 0) return numerator;
 
     for(auto &item: numerator) {
         item /= denominator;

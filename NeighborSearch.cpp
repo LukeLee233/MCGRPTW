@@ -1700,6 +1700,12 @@ void HighSpeedNeighBorSearch::viterbi_refine(const MCGRP &mcgrp)
 
 void HighSpeedNeighBorSearch::initialize_score_matrix(const MCGRP &mcgrp)
 {
-    if(!score_matrix.empty()) score_matrix.clear();
     score_matrix = vector<vector<double>>(mcgrp.actual_task_num + 1, vector<double>(mcgrp.actual_task_num + 1, 0));
+    prob_matrix = vector<vector<double>>(mcgrp.actual_task_num + 1, vector<double>(mcgrp.actual_task_num + 1, 0));
+}
+
+void HighSpeedNeighBorSearch::update_prob_matrix(vector<double>(*pf)(const vector<double>&))
+{
+    for(int row = 0; row < prob_matrix.size(); row++)
+        prob_matrix[row] = pf(score_matrix[row]);
 }

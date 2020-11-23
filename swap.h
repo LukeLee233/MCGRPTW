@@ -30,4 +30,5 @@ public:
     vector<vector<RouteInfo::TimeTable>> expected_time_table(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
                                                              int u, int u_tilde, int i, int i_tilde, bool allow_infeasible);
 
+    bool update_score(HighSpeedNeighBorSearch &ns) override;
 };

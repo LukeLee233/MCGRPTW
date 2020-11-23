@@ -545,10 +545,13 @@ bool XPostInsert::update_score(HighSpeedNeighBorSearch &ns)
     if(move_result.delta > 0) return false;
 
     const int u = move_result.move_arguments.back();
-    const int v = *(move_result.move_arguments.end()-2);
+    const int seq_front = *(move_result.move_arguments.begin());
+    const int seq_back = *(move_result.move_arguments.end()-2);
     double penalty = (ns.best_solution_cost / ns.cur_solution_cost) * (-move_result.delta);
-    ns.score_matrix[u][max(0, ns.solution[u]->next->ID)] += penalty;
-    ns.score_matrix[v][max(0,ns.solution[v]->next->ID)] += penalty;
+
+    // ...u-seq()...
+    ns.score_matrix[u][seq_front] += penalty;
+    ns.score_matrix[seq_back][max(0,ns.solution[seq_back]->next->ID)] += penalty;
 
     return true;
 }
@@ -1100,13 +1103,15 @@ bool XPreInsert::update_score(HighSpeedNeighBorSearch &ns)
 {
     if(move_result.delta > 0) return false;
 
-    const int u = move_result.move_arguments.back();
-    const int v = move_result.move_arguments.front();
     double penalty = (ns.best_solution_cost / ns.cur_solution_cost) * (-move_result.delta);
-    ns.score_matrix[max(0,ns.solution[u]->pre->ID)][u] += penalty;
-    ns.score_matrix[max(0,ns.solution[v]->pre->ID)][v] += penalty;
+
+    const int u = move_result.move_arguments.back();
+    const int seq_front = move_result.move_arguments.front();
+    const int seq_back = *(move_result.move_arguments.end() - 2);
+
+    // ...seq()-u...
+    ns.score_matrix[seq_back][u] += penalty;
+    ns.score_matrix[max(0,ns.solution[seq_front]->pre->ID)][seq_front] += penalty;
 
     return true;
 }
-
-

@@ -1542,3 +1542,33 @@ vector<vector<RouteInfo::TimeTable>> NewSwap::expected_time_table(HighSpeedNeigh
 
 
 }
+
+
+bool NewSwap::update_score(HighSpeedNeighBorSearch &ns)
+{
+    if(move_result.delta > 0) return false;
+
+    const int actual_u = move_result.move_arguments[2];
+    const int actual_i = move_result.move_arguments[3];
+
+    double penalty = (ns.best_solution_cost / ns.cur_solution_cost) * (-move_result.delta);
+
+    if(ns.solution[actual_u]->next->ID == actual_i){
+        // two tasks are neighbor
+        ns.score_matrix[actual_u][actual_i] += penalty;
+        ns.score_matrix[max(0,ns.solution[actual_u]->pre->ID)][actual_u] += penalty;
+        ns.score_matrix[actual_i][max(0,ns.solution[actual_i]->next->ID)] += penalty;
+    }else if(ns.solution[actual_i]->next->ID == actual_u){
+        ns.score_matrix[actual_i][actual_u] += penalty;
+        ns.score_matrix[max(0,ns.solution[actual_i]->pre->ID)][actual_i] += penalty;
+        ns.score_matrix[actual_u][max(0,ns.solution[actual_u]->next->ID)] += penalty;
+    }else{
+        ns.score_matrix[max(0,ns.solution[actual_u]->pre->ID)][actual_u] += penalty;
+        ns.score_matrix[actual_u][max(0,ns.solution[actual_u]->next->ID)] += penalty;
+
+        ns.score_matrix[actual_i][max(0,ns.solution[actual_i]->next->ID)] += penalty;
+        ns.score_matrix[max(0,ns.solution[actual_i]->pre->ID)][actual_i] += penalty;
+    }
+
+    return true;
+}

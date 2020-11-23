@@ -310,7 +310,9 @@ public:
     ~HighSpeedNeighBorSearch();
 
     vector<vector<double>> score_matrix;
+    vector<vector<double>> prob_matrix;
     void initialize_score_matrix(const MCGRP &mcgrp);
+    void update_prob_matrix(vector<double>(*pf)(const vector<double>&));
 
 
     vector<int> get_current_sol(string mode= "dummy");
