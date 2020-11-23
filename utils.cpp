@@ -173,6 +173,19 @@ vector<double> stable_softmax(const vector<double> &x)
 
     return numerator;
 }
+vector<double> stable_uniform(const vector<double> &x)
+{
+    double max_item = *max_element(x.begin(),x.end());
+    vector<double> numerator = x;
+
+    double denominator = accumulate(numerator.begin(),numerator.end(),0);
+
+    for(auto &item: numerator) {
+        item /= denominator;
+    }
+
+    return numerator;
+}
 
 vector<RouteInfo::TimeTable>
 RouteInfo::TimeTable::zip(const vector<int> &task_list, const vector<int> &ArriveTime)

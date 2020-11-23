@@ -16,3 +16,20 @@ void RNG::change(long int seed)
     gsl_rng_set(gr, seed);
     _seed = seed;
 }
+
+namespace sample{
+
+random_device rd_;
+mt19937 gen_(rd_());
+uniform_real_distribution<double> dis_(0.0, 1.0);
+
+
+int sample(const vector<double>& probs, mt19937& gen, uniform_real_distribution<double>& dis){
+    double p = dis(gen);
+    int i = 0;
+    while( i < probs.size() && (p -= probs[i]) > 0)
+        ++i;
+    return i;
+}
+
+}

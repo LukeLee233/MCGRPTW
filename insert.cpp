@@ -546,7 +546,7 @@ bool XPostInsert::update_score(HighSpeedNeighBorSearch &ns)
 
     const int u = move_result.move_arguments.back();
     const int v = *(move_result.move_arguments.end()-2);
-    double penalty = (ns.cur_solution_cost / ns.best_solution_cost) * (-move_result.delta);
+    double penalty = (ns.best_solution_cost / ns.cur_solution_cost) * (-move_result.delta);
     ns.score_matrix[u][max(0, ns.solution[u]->next->ID)] += penalty;
     ns.score_matrix[v][max(0,ns.solution[v]->next->ID)] += penalty;
 
@@ -1102,7 +1102,7 @@ bool XPreInsert::update_score(HighSpeedNeighBorSearch &ns)
 
     const int u = move_result.move_arguments.back();
     const int v = move_result.move_arguments.front();
-    double penalty = (ns.cur_solution_cost / ns.best_solution_cost) * (-move_result.delta);
+    double penalty = (ns.best_solution_cost / ns.cur_solution_cost) * (-move_result.delta);
     ns.score_matrix[max(0,ns.solution[u]->pre->ID)][u] += penalty;
     ns.score_matrix[max(0,ns.solution[v]->pre->ID)][v] += penalty;
 
