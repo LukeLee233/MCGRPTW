@@ -24,7 +24,7 @@ mt19937 gen_(rd_());
 uniform_real_distribution<double> dis_(0.0, 1.0);
 
 
-int sample(const vector<double>& probs, mt19937& gen, uniform_real_distribution<double>& dis){
+int uniform_sample(const vector<double>& probs, mt19937& gen, uniform_real_distribution<double>& dis){
     double p = dis(gen);
     int i = 0;
     while( i < probs.size() && (p -= probs[i]) > 0)

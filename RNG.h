@@ -15,7 +15,8 @@ extern random_device rd_;
 extern mt19937 gen_;
 extern uniform_real_distribution<double> dis_;
 
-int sample(const vector<double>& probs, mt19937& gen = gen_, uniform_real_distribution<double>& dis = dis_);
+int uniform_sample(const vector<double>& probs, mt19937& gen = gen_, uniform_real_distribution<double>& dis = dis_);
+
 }
 
 class RNG
