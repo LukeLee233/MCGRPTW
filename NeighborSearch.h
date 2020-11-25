@@ -313,7 +313,8 @@ public:
     vector<vector<double>> prob_matrix;
     void initialize_score_matrix(const MCGRP &mcgrp);
     void update_prob_matrix(vector<double>(*pf)(const vector<double>&));
-
+    void print_prob_matrix(const string& filename="");
+    void print_score_matrix(const string& filename="");
 
     vector<int> get_current_sol(string mode= "dummy");
 

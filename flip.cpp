@@ -201,6 +201,8 @@ bool NewFlip::update_score(HighSpeedNeighBorSearch &ns)
     double penalty = (ns.best_solution_cost / ns.cur_solution_cost) * (-move_result.delta);
 
     int cur = start_task;
+
+    ns.score_matrix[max(0,ns.solution[cur]->pre->ID)][cur] += penalty;
     while(cur != end_task){
         ns.score_matrix[cur][max(0,ns.solution[cur]->next->ID)] += penalty;
         cur = ns.solution[cur]->next->ID;

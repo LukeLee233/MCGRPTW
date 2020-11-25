@@ -1709,3 +1709,52 @@ void HighSpeedNeighBorSearch::update_prob_matrix(vector<double>(*pf)(const vecto
     for(int row = 0; row < prob_matrix.size(); row++)
         prob_matrix[row] = pf(score_matrix[row]);
 }
+
+void HighSpeedNeighBorSearch::print_prob_matrix(const string &filename)
+{
+    for(const auto & row : prob_matrix){
+        for(const auto item : row){
+            cout << item << ",";
+        }
+        cout << "\b\n";
+    }
+
+    if(!filename.empty()){
+        ofstream FILE;
+        FILE.open(filename, ios::out);
+        for(const auto& row : prob_matrix){
+            string buffer;
+
+            for(const auto item : row){
+                buffer += to_string(item) += " ";
+            }
+            buffer.pop_back();
+            print( FILE, buffer);
+        }
+    }
+
+}
+
+void HighSpeedNeighBorSearch::print_score_matrix(const string &filename)
+{
+    for(const auto & row : prob_matrix){
+        for(const auto item : row){
+            cout << item << ",";
+        }
+        cout << "\b\n";
+    }
+
+    if(!filename.empty()){
+        ofstream FILE;
+        FILE.open(filename, ios::out);
+        for(const auto& row : prob_matrix){
+            string buffer;
+
+            for(const auto item : row){
+                buffer += to_string(item) += " ";
+            }
+            buffer.pop_back();
+            print( FILE, buffer);
+        }
+    }
+}
