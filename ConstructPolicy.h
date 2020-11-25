@@ -11,9 +11,6 @@
 #include "NeighborSearch.h"
 
 
-
-
-
 class PathConstructor{
 protected:
     string name;
@@ -42,6 +39,17 @@ private:
     Distance& distance;
 public:
     RTFScanner(const MCGRP &mcgrp, Distance &distance_);
+
+    Individual
+    operator()(const vector<int> &taskList = vector<int>(), const string& mode="feasible") override;
+};
+
+class SampleScanner: public PathConstructor{
+private:
+    LearningDistance& distance;
+    int sample_times;
+public:
+    SampleScanner(const MCGRP &mcgrp,LearningDistance &distance_, int sample_times_ = 50);
 
     Individual
     operator()(const vector<int> &taskList = vector<int>(), const string& mode="feasible") override;
