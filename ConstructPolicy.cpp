@@ -1016,11 +1016,16 @@ Individual SampleScanner::operator()(const vector<int> &taskList, const string &
             }
         }
 
+
         if (FCL.empty()) {
-            solution.push_back(DUMMY);
-            load = 0;
-            drive_time = 0;
-            continue;
+            if(solution.back() == DUMMY){
+                FCL = unserved_task_id_set;
+            }else{
+                solution.push_back(DUMMY);
+                load = 0;
+                drive_time = 0;
+                continue;
+            }
         }
 
         min_dist = MAX(min_dist);
