@@ -751,13 +751,32 @@ bool NewSwapEnds::update_score(HighSpeedNeighBorSearch &ns)
 
     // ...a-(seq_v)...
     // ...v-(seq_a)...
-    const int actual_a = move_result.task1;
-    const int actual_v = move_result.task2;
+    const int a = move_result.task1;
+    const int v = move_result.task2;
+
+    //Extract the seq which needs swapped
+    vector<int> a_seq;
+    vector<int> v_seq;
+
+    My_Assert(a == move_result.move_arguments.front(), "Incorrect arguments");
+    int i;
+    for (i = 1; move_result.move_arguments[i] != v; i++) {
+        a_seq.push_back(move_result.move_arguments[i]);
+    }
+
+    My_Assert(v == move_result.move_arguments[i], "Incorrect arguments");
+    i++;
+    for (; i < move_result.move_arguments.size(); i++) {
+        v_seq.push_back(move_result.move_arguments[i]);
+    }
 
     double penalty = (ns.best_solution_cost / ns.cur_solution_cost) * (-move_result.delta);
 
-    ns.score_matrix[max(0,actual_a)][ns.solution[actual_a]->next->ID] += penalty;
-    ns.score_matrix[max(0,actual_v)][ns.solution[actual_v]->next->ID] += penalty;
+    if(!a_seq.empty())
+        ns.score_matrix[max(0,ns.solution[a_seq.front()]->pre->ID)][max(0,a_seq.front())] += penalty;
 
-    return false;
+    if(!v_seq.empty())
+        ns.score_matrix[max(0,ns.solution[v_seq.front()]->pre->ID)][max(0,v_seq.front())] += penalty;
+
+    return true;
 }
