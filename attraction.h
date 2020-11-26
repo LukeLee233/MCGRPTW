@@ -18,7 +18,7 @@ private:
 
     inline bool prob_valid(HighSpeedNeighBorSearch& ns){
         return !ns.prob_matrix.empty()
-        && all_of(ns.prob_matrix[0].begin(),ns.prob_matrix[0].end(),[](double i){ return i == 0;});
+        && all_of(ns.prob_matrix[0].begin(),ns.prob_matrix[0].end(),[](double i){ return i != 0;});
     }
 
 public:
