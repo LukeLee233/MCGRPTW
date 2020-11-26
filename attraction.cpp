@@ -18,8 +18,11 @@ bool Attraction::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int cho
     MoveResult BestM;
     unordered_set<int> sample_set;
 
-    for(int sample_count = 0; sample_count < sample_times;sample_count++)
-        sample_set.insert(sample::uniform_sample(ns.prob_matrix[chosen_task]));
+    for(int sample_count = 0; sample_count < sample_times;sample_count++){
+        int task = sample::uniform_sample(ns.prob_matrix[chosen_task]);
+        if(task == DUMMY || ns.solution[task]->next != nullptr)
+            sample_set.insert(task);
+    }
 
     ns.search_space = vector<int>(sample_set.begin(), sample_set.end());
 
