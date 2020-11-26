@@ -8,16 +8,18 @@
 
 bool Attraction::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_task)
 {
-    if(!prob_valid(ns)){
-        DEBUG_PRINT("warning, probability matrix is not available currently.");
-        return false;
-    }
     My_Assert(chosen_task >= 1 && chosen_task <= mcgrp.actual_task_num,"Wrong Task");
 
 #ifdef DEBUG
     attempt_count = 0;
     hit_count = 0;
 #endif
+
+    if(!prob_valid(ns.prob_matrix[chosen_task])){
+        DEBUG_PRINT("warning, probability is not available currently.");
+        return false;
+    }
+
 
     MoveResult BestM;
     unordered_set<int> sample_set;
