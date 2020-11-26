@@ -28,6 +28,7 @@ class HighSpeedNeighBorSearch
     friend class Extraction;
     friend class XPreInsert;
     friend class XPostInsert;
+    friend class Attraction;
 
     friend void merge_split(class HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, const int merge_size, const int pseudo_capacity);
     friend struct RouteSegment get_segment_info(const MCGRP &mcgrp,HighSpeedNeighBorSearch &ns,const int chosen_task);

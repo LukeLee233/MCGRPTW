@@ -3,16 +3,6 @@
 
 using namespace std;
 
-struct RouteSegment
-{
-    // Contains information about a particular segment of a route.
-    int segment_start;
-    int segment_end;
-    int num_custs;
-    int load;
-    double len;
-};
-
 
 /*
  * High Speed

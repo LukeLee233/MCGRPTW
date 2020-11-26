@@ -50,7 +50,7 @@ bool XPostInsert::considerable_move(HighSpeedNeighBorSearch &ns,
                                     const int u)
 {
     // Task u cannot be dummy Task
-    My_Assert(u>=1 && u<=mcgrp.actual_task_num,"Wrong Task");
+    My_Assert(u >= 1 && u <= mcgrp.actual_task_num,"Wrong Task");
     My_Assert(all_of(disturbance_seq.begin(),disturbance_seq.end(),
                      [&](int i){return i>=1 && i<=mcgrp.actual_task_num;}),"Wrong Task");
 
