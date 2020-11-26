@@ -8,7 +8,6 @@
 #include "ConstructPolicy.h"
 #include "config.h"
 #include "operator.h"
-#include "insert.h"
 
 extern vector<double> ratios;
 extern vector<double> prob;
@@ -304,6 +303,7 @@ private:
     unique_ptr<class NewTwoOpt> two_opt;
     unique_ptr<class Extraction> extraction;
     unique_ptr<class Slice> slice;
+    unique_ptr<class Attraction> attraction;
 
 public:
 
