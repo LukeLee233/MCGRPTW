@@ -1,6 +1,6 @@
 {
     "pool_size": 1,
-    "evolve_steps": 2,
+    "evolve_steps": 5,
     "phase_number": 1,
     "random_seed": 0,
     "neighbor_size": 25,

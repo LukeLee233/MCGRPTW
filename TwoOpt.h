@@ -32,7 +32,6 @@ public:
 
     void move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp);
 
-
     bool update_score(HighSpeedNeighBorSearch &ns) override;
 };
 

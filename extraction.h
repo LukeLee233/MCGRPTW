@@ -47,7 +47,6 @@ public:
                         const int b);
 
     bool update_score(HighSpeedNeighBorSearch &ns) override;
-
 };
 
 #endif //EXTRACTION_H

@@ -13,6 +13,7 @@
 #include "swap.h"
 #include "invert.h"
 #include "TwoOpt.h"
+#include "insert.h"
 #include <boost/program_options.hpp>
 #include <algorithm>
 #include <numeric>
@@ -229,11 +230,20 @@ int main(int argc, char *argv[])
             Mixed_Instance.best_total_route_length = DBL_MAX;
             Mixed_Instance.best_sol_time = DBL_MAX;
 
-
+            double average = 0;
             if(pool_size == 1){
+
                 HighSpeedNeighBorSearch NBS(Mixed_Instance);
                 NBS.initialize_score_matrix(Mixed_Instance);
                 Individual initial_solution = NearestScanner(Mixed_Instance, *Mixed_Instance.distance_look_tbl["cost"])();
+
+                for(int i = 0; i < 100;i++){
+                    initial_solution = NearestScanner(Mixed_Instance, *Mixed_Instance.distance_look_tbl["cost"])();
+                    average += initial_solution.total_cost;
+                }
+
+                cout << average / 100.0 << endl;
+                average = 0;
 
 //                Individual initial_solution = nearest_scanning(Mixed_Instance, vector<int>());
                 NBS.unpack_seq(initial_solution.sequence, Mixed_Instance);
@@ -245,9 +255,34 @@ int main(int argc, char *argv[])
                     cout << start_seed - random_seed <<"-"<< iter << " th times local search\n";
                     ftime(&phase_start_time);
                     NBS.neighbor_search(Mixed_Instance);
+
+
+                    {
+                        NBS.update_prob_matrix(stable_uniform);
+                        NBS.print_score_matrix(date_folder + '/' + file_name + ".score");
+                        NBS.print_prob_matrix(date_folder + '/' + file_name + ".prob");
+
+                        LearningDistance prob_distance(Mixed_Instance,NBS.prob_matrix);
+
+                        for(int i =0; i < 100; i++){
+                            Individual sol = SampleScanner(Mixed_Instance, prob_distance)();
+                            average += sol.total_cost;
+                        }
+
+                        cout << average / 100.0 << endl;
+                        average = 0;
+
+                        Individual sol = SampleScanner(Mixed_Instance, prob_distance)();
+                        NBS.clear();
+                        NBS.unpack_seq(sol.sequence, Mixed_Instance);
+                        NBS.trace(Mixed_Instance);
+                    }
+
+
                     ftime(&cur_time);
                     cout << "Finish " << start_seed - random_seed <<"-"<< iter  << "steps, spent: "
                          << get_time_difference(phase_start_time, cur_time) << 's' << endl;
+
                 }
 
                 cout << start_seed - random_seed << "th search:\n";
