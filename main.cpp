@@ -48,9 +48,6 @@ int main(int argc, char *argv[])
         ("local_ratio",
          bpo::value<double>(&local_ratio)->default_value(0.8),
          "if the percentage of equal move larger than this number, descent search will be terminated")
-        ("max_RTR_search_cycle",
-         bpo::value<int>(&max_RTR_search_cycle)->default_value(50),
-         "max allowed search time within a RTR search")
         ("local_minimum_threshold",
          bpo::value<int>(&local_minimum_threshold)->default_value(40),
          "determine whether we arrived at a local optimal")
@@ -93,7 +90,6 @@ int main(int argc, char *argv[])
         j.at("neighbor_search_mode").get_to(neighbor_search_mode);
         j.at("significant_search").get_to(significant_search);
         j.at("local_ratio").get_to(local_ratio);
-        j.at("max_RTR_search_cycle").get_to(max_RTR_search_cycle);
         j.at("local_minimum_threshold").get_to(local_minimum_threshold);
         j.at("tabu_step").get_to(tabu_step);
         j.at("infeasible_distance").get_to(infeasible_distance);

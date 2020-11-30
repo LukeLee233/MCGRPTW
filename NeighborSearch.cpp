@@ -322,17 +322,21 @@ void HighSpeedNeighBorSearch::create_individual(const MCGRP &mcgrp, Individual &
 void HighSpeedNeighBorSearch::feasible_search(const MCGRP &mcgrp)
 {
     _stage = "feasible search";
-    double oscillation_end;
+    int local_minimum_likelihood = 1;
     double descent_start;
 
+    // initialize the region best
     _region_best = cur_solution_cost;
+    _region_best_solution_neg = get_current_sol("negative");
 
-    local_minimum_likelihood = 1;
     do {
         struct timeb start_time;
         ftime(&start_time);
 
         _search_route_start = cur_solution_cost;
+        _search_route_best = _search_route_start;
+        _search_route_best_solution_neg = get_current_sol("negative");
+
         threshold_exploration(mcgrp);
         double oscillation_end = cur_solution_cost;
 
@@ -345,22 +349,27 @@ void HighSpeedNeighBorSearch::feasible_search(const MCGRP &mcgrp)
         struct timeb end_time;
         ftime(&end_time);
 
-        _search_route_end = cur_solution_cost;
-
         cout << "Finish a feasible search process, spent: "
              << fixed << get_time_difference(start_time, end_time) << 's' << endl;
 
         DEBUG_PRINT("search route start: " + to_string(_search_route_start));
-        DEBUG_PRINT("search route end: " + to_string(_search_route_end));
+        DEBUG_PRINT("search route best: " + to_string(_search_route_best));
+        DEBUG_PRINT("search route end: " + to_string(cur_solution_cost));
+        DEBUG_PRINT("region best: " + to_string(_region_best));
 
-        if (_search_route_end < _search_route_start) {
+        if (_search_route_best < _region_best) {
             DEBUG_PRINT("reset local likelihood");
             local_minimum_likelihood = 1;
+            _region_best = _search_route_best;
+            _region_best_solution_neg = _search_route_best_solution_neg;
         }
         else {
             DEBUG_PRINT("increment local likelihood");
             local_minimum_likelihood++;
         }
+
+        this->clear();
+        this->unpack_seq(get_delimiter_coding(_region_best_solution_neg),mcgrp);
     }
     while (local_minimum_likelihood < local_threshold);
 
@@ -486,7 +495,8 @@ void HighSpeedNeighBorSearch::threshold_exploration(const MCGRP &mcgrp)
 
     // Based on the best solution find so far, experiment shows this is better than the policy,especially on big instance
     // which start from current solution.
-    policy.benchmark = this->best_solution_cost;
+//    policy.benchmark = this->best_solution_cost;
+    policy.benchmark = this->cur_solution_cost;
 
 
     policy.tolerance = sel_ratio(prob, ratios, mcgrp._rng);
@@ -496,7 +506,8 @@ void HighSpeedNeighBorSearch::threshold_exploration(const MCGRP &mcgrp)
     else policy.set(FIRST_ACCEPT | TOLERANCE | DELTA_ONLY);;
 
     //you need to decide the dynamic neighbor size when you search based on different policy
-    neigh_size = min(10,mcgrp.neigh_size);
+//    neigh_size = min(10,mcgrp.neigh_size);
+    neigh_size = mcgrp.neigh_size;
 
 
     vector<NeighborOperator> neighbor_operator{
@@ -691,7 +702,10 @@ void HighSpeedNeighBorSearch::trace(const MCGRP &mcgrp)
         My_Assert(routes[i]->time_table.size() == routes[i]->num_customers, "Wrong size");
     }
 
-    _region_best = min(cur_solution_cost,_region_best);
+    if(this->cur_solution_cost < _search_route_best){
+        _search_route_best = this->cur_solution_cost;
+        _search_route_best_solution_neg = get_current_sol("negative");
+    }
 
     if (total_vio_load == 0 && total_vio_time == 0) {
         if (this->cur_solution_cost < this->best_solution_cost) {

@@ -21,7 +21,6 @@ std::string neighbor_search_mode;
 int significant_search;
 double local_ratio;
 
-int max_RTR_search_cycle;
 int local_minimum_threshold;
 
 int tabu_step;

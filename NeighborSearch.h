@@ -276,7 +276,6 @@ private:
 
     int equal_step;
 
-    int local_minimum_likelihood = 0;
     const int local_threshold = local_minimum_threshold;
 
 
@@ -308,8 +307,12 @@ private:
     // These variables are used to trace the search procedure
     string _stage;
     double _region_best;
+    vector<int> _region_best_solution_neg;
     double _search_route_start;
-    double _search_route_end;
+    double _search_route_best;
+    vector<int> _search_route_best_solution_neg;
+
+
 
 public:
 

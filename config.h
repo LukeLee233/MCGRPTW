@@ -26,7 +26,6 @@ extern int significant_search;
 extern double local_ratio;
 
 // Determine whether we arrive at a local minimum
-extern int max_RTR_search_cycle;
 extern int local_minimum_threshold;
 
 extern int tabu_step;
