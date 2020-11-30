@@ -305,6 +305,12 @@ private:
     unique_ptr<class Slice> slice;
     unique_ptr<class Attraction> attraction;
 
+    // These variables are used to trace the search procedure
+    string _stage;
+    double _region_best;
+    double _search_route_start;
+    double _search_route_end;
+
 public:
 
     HighSpeedNeighBorSearch(const MCGRP &mcgrp);
@@ -377,7 +383,7 @@ public:
      * @details random threshold search
      * @param mcgrp
      */
-    void RTR_search(const MCGRP &mcgrp);
+    void feasible_search(const MCGRP &mcgrp);
 
     /*!
      *  @details threshold exploration
@@ -396,12 +402,12 @@ public:
      * @param mcgrp
      * @param start_point
      */
-    void infeasible_exploration(const MCGRP &mcgrp);
+    void infeasible_search(const MCGRP &mcgrp);
 
-    void small_step_infeasible_descent_search(const MCGRP &mcgrp);
-    void small_step_infeasible_tabu_search(const MCGRP &mcgrp);
+    void small_step_infeasible_descent_exploration(const MCGRP &mcgrp);
+    void small_step_infeasible_tabu_exploration(const MCGRP &mcgrp);
 
-    void large_step_infeasible_search(const MCGRP &mcgrp);
+    void large_step_infeasible_exploration(const MCGRP &mcgrp);
 
     void update(const MCGRP &mcgrp, const vector<int>& best_buffer,const vector<int>& best_routes);
 

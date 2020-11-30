@@ -90,14 +90,14 @@ void HighSpeedNeighBorSearch::_neigh_search(const MCGRP &mcgrp, int mode)
         cout << "RTTR -> IDP\n";
         DEBUG_PRINT("RTTP Procedure started...");
 
-        RTR_search(mcgrp);
+        feasible_search(mcgrp);
 
         DEBUG_PRINT("RTTP Procedure done!");
 
         //Second Infeasible solve
         DEBUG_PRINT("IDP Procedure started...");
 
-        infeasible_exploration(mcgrp);
+        infeasible_search(mcgrp);
 
         DEBUG_PRINT("IDP Procedure done!");
 
@@ -105,7 +105,7 @@ void HighSpeedNeighBorSearch::_neigh_search(const MCGRP &mcgrp, int mode)
 
         DEBUG_PRINT("RTTP Procedure started...");
 
-        RTR_search(mcgrp);
+        feasible_search(mcgrp);
 
         DEBUG_PRINT("RTTP Procedure done!");
 
@@ -114,7 +114,7 @@ void HighSpeedNeighBorSearch::_neigh_search(const MCGRP &mcgrp, int mode)
         cout << "IDP -> RTTP\n";
         DEBUG_PRINT("IDP Procedure started...");
 
-        infeasible_exploration(mcgrp);
+        infeasible_search(mcgrp);
 
         DEBUG_PRINT("IDP Procedure done!");
 
@@ -122,7 +122,7 @@ void HighSpeedNeighBorSearch::_neigh_search(const MCGRP &mcgrp, int mode)
 
         DEBUG_PRINT("RTTP Procedure started...");
 
-        RTR_search(mcgrp);
+        feasible_search(mcgrp);
 
         DEBUG_PRINT("RTTP Procedure done!");
     }
@@ -319,46 +319,52 @@ void HighSpeedNeighBorSearch::create_individual(const MCGRP &mcgrp, Individual &
     p.total_cost = cur_solution_cost;
 }
 
-void HighSpeedNeighBorSearch::RTR_search(const MCGRP &mcgrp)
+void HighSpeedNeighBorSearch::feasible_search(const MCGRP &mcgrp)
 {
-    double orig_val_for_uphill;
-    double orig_val_for_downhill;
+    _stage = "feasible search";
+    double oscillation_end;
+    double descent_start;
+
+    _region_best = cur_solution_cost;
+
     local_minimum_likelihood = 1;
-    int cnt = 1;
     do {
         struct timeb start_time;
         ftime(&start_time);
 
+        _search_route_start = cur_solution_cost;
         threshold_exploration(mcgrp);
-        orig_val_for_uphill = cur_solution_cost;
+        double oscillation_end = cur_solution_cost;
 
         do {
-            orig_val_for_downhill = cur_solution_cost;
+            descent_start = cur_solution_cost;
             descent_exploration(mcgrp);
         }
-        while (cur_solution_cost < orig_val_for_downhill);
+        while (cur_solution_cost < descent_start);
 
         struct timeb end_time;
         ftime(&end_time);
 
+        _search_route_end = cur_solution_cost;
+
         cout << "Finish a feasible search process, spent: "
              << fixed << get_time_difference(start_time, end_time) << 's' << endl;
 
-        if (cur_solution_cost < orig_val_for_uphill) {
-            DEBUG_PRINT("total_route_length " + to_string(orig_val_for_uphill));
+        DEBUG_PRINT("search route start: " + to_string(_search_route_start));
+        DEBUG_PRINT("search route end: " + to_string(_search_route_end));
+
+        if (_search_route_end < _search_route_start) {
             DEBUG_PRINT("reset local likelihood");
             local_minimum_likelihood = 1;
-            cnt++;
-            if (cnt == max_RTR_search_cycle) {
-                DEBUG_PRINT("maybe a local optimal");
-                local_minimum_likelihood = local_threshold;
-            }
         }
         else {
+            DEBUG_PRINT("increment local likelihood");
             local_minimum_likelihood++;
         }
     }
     while (local_minimum_likelihood < local_threshold);
+
+    _stage = "unknown";
 }
 
 void HighSpeedNeighBorSearch::descent_search(const MCGRP &mcgrp)
@@ -645,8 +651,9 @@ void HighSpeedNeighBorSearch::descent_exploration(const MCGRP &mcgrp)
     neigh_size = 0;
 }
 
-void HighSpeedNeighBorSearch::infeasible_exploration(const MCGRP &mcgrp)
+void HighSpeedNeighBorSearch::infeasible_search(const MCGRP &mcgrp)
 {
+    _stage = "infeasible search";
     // Based on the best solution find so far, experiment shows this is better than the policy
     // which start from current solution.
     this->clear();
@@ -656,16 +663,16 @@ void HighSpeedNeighBorSearch::infeasible_exploration(const MCGRP &mcgrp)
     policy.nearest_feasible_cost = cur_solution_cost;
     policy.beta = cur_solution_cost / double(mcgrp.capacity * 15);
 
-//    small_step_infeasible_descent_search(mcgrp);
+//    small_step_infeasible_descent_exploration(mcgrp);
 //
 //    DEBUG_PRINT("Trigger Infeasible Tabu Search");
-//    small_step_infeasible_tabu_search(mcgrp);
+//    small_step_infeasible_tabu_exploration(mcgrp);
 //
-//    small_step_infeasible_descent_search(mcgrp);
+//    small_step_infeasible_descent_exploration(mcgrp);
 
 
     //Here used to break the local minimum with merge-split operator
-    large_step_infeasible_search(mcgrp);
+    large_step_infeasible_exploration(mcgrp);
 
     My_Assert(total_vio_load >= 0, "Wrong total violated load!");
     if (total_vio_load > 0 || total_vio_time > 0) {
@@ -675,6 +682,7 @@ void HighSpeedNeighBorSearch::infeasible_exploration(const MCGRP &mcgrp)
     policy.nearest_feasible_cost = 0;
     policy.beta = 0;
 //    this->best_solution_cost = cur_solution_cost;
+    _stage = "unknown";
 }
 
 void HighSpeedNeighBorSearch::trace(const MCGRP &mcgrp)
@@ -683,22 +691,21 @@ void HighSpeedNeighBorSearch::trace(const MCGRP &mcgrp)
         My_Assert(routes[i]->time_table.size() == routes[i]->num_customers, "Wrong size");
     }
 
+    _region_best = min(cur_solution_cost,_region_best);
+
     if (total_vio_load == 0 && total_vio_time == 0) {
-        if (cur_solution_cost < this->best_solution_cost) {
+        if (this->cur_solution_cost < this->best_solution_cost) {
             this->best_solution_cost = cur_solution_cost;
             this->best_solution_neg = get_current_sol("negative");
         }
 
-        vector<int> negative_coding_sol;
-        if (cur_solution_cost < mcgrp.best_total_route_length) {
-            negative_coding_sol = get_current_sol("negative");
+        if (this->cur_solution_cost < mcgrp.best_total_route_length) {
+            mcgrp.check_best_solution(this->cur_solution_cost, this->best_solution_neg);
         }
-
-        mcgrp.check_best_solution(cur_solution_cost, negative_coding_sol);
     }
 }
 
-void HighSpeedNeighBorSearch::small_step_infeasible_descent_search(const MCGRP &mcgrp)
+void HighSpeedNeighBorSearch::small_step_infeasible_descent_exploration(const MCGRP &mcgrp)
 {
     auto original_policy = policy.get();
     policy.set(BEST_ACCEPT | DOWNHILL | FITNESS_ONLY);
@@ -821,7 +828,7 @@ void HighSpeedNeighBorSearch::small_step_infeasible_descent_search(const MCGRP &
     neigh_size = 0;
 }
 
-void HighSpeedNeighBorSearch::small_step_infeasible_tabu_search(const MCGRP &mcgrp)
+void HighSpeedNeighBorSearch::small_step_infeasible_tabu_exploration(const MCGRP &mcgrp)
 {
     policy.benchmark = this->best_solution_cost;
     policy.tolerance = sel_ratio(prob, ratios, mcgrp._rng);
@@ -890,7 +897,7 @@ void HighSpeedNeighBorSearch::small_step_infeasible_tabu_search(const MCGRP &mcg
     neigh_size = 0;
 }
 
-void HighSpeedNeighBorSearch::large_step_infeasible_search(const MCGRP &mcgrp)
+void HighSpeedNeighBorSearch::large_step_infeasible_exploration(const MCGRP &mcgrp)
 {
     DEBUG_PRINT("Trigger large step break movement");
     // decide how many routes need to be merged, self-adaptive

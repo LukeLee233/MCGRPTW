@@ -887,7 +887,7 @@ void HighSpeedMemetic::create_citizen(const MCGRP &mcgrp)
     ns_.unpack_seq(buffer.sequence, mcgrp);
     ns_.trace(mcgrp);
 
-//    ns_.infeasible_exploration(mcgrp);
+//    ns_.infeasible_search(mcgrp);
     ns_.neighbor_search(mcgrp);
     UNIT tmp;
     tmp.obj = ns_.best_solution_cost;
@@ -981,7 +981,7 @@ void HighSpeedMemetic::init_population(const MCGRP &mcgrp)
 //        ns.clear();
 //        ns.unpack_seq(buffer.sequence, mcgrp);
 //        ns.trace(mcgrp);
-//        ns.infeasible_exploration(mcgrp);
+//        ns.infeasible_search(mcgrp);
 //        ns.neighbor_search(mcgrp);
 //        auto immigrant = get_negative_coding(ns.get_current_sol());
         /*------------------------------------*/
