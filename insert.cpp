@@ -444,7 +444,7 @@ bool XPostInsert::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int ch
 
     int offset = 0;
     if(ns.policy.has_rule(TOLERANCE)){
-        offset = rand() % mcgrp.actual_task_num;
+        offset = mcgrp._rng.Randint(0,mcgrp.actual_task_num);
     }
     ns.create_search_neighborhood(mcgrp, chosen_seq,"predecessor", offset);
 
