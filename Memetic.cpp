@@ -51,7 +51,7 @@ void HighSpeedMemetic::memetic_search(const MCGRP &mcgrp)
 
     if (population.size() == 1) {
         DEBUG_PRINT("Pop Size is 1\nToggle to Local Search...");
-        HighSpeedNeighBorSearch ns(mcgrp);
+        HighSpeedNeighBorSearch ns(mcgrp, tabu_step);
         for (auto iter = 1; iter <= evolve_num
             && get_time_difference(search_start_time, cur_time) < search_time; iter++) {
             ftime(&cur_time);
@@ -237,9 +237,11 @@ void HighSpeedMemetic::merge_split_repair(const MCGRP &mcgrp, SOLUTION &solution
     double fitness;
     double buffer;
 
-
+    Policy stub_policy = Policy(0);
+    stub_policy.setCapacity_multiplier(1.0);
+    stub_policy.setTime_window_multiplier(1.0);
     /*-----------------Nearest L2 distance merge policy--------------------------*/
-    merge_sequence = nearest_growing(mcgrp, task_set, mcgrp.capacity);
+    merge_sequence = nearest_growing(mcgrp, task_set, stub_policy);
     Individual nearest_L2_indi;
     nearest_L2_indi = mcgrp.parse_delimiter_seq(merge_sequence);
     res = nearest_L2_indi;
@@ -247,7 +249,7 @@ void HighSpeedMemetic::merge_split_repair(const MCGRP &mcgrp, SOLUTION &solution
     /*-----------------Nearest L2 distance merge policy--------------------------*/
 
     /*-----------------Furthest L2 distance merge policy--------------------------*/
-    merge_sequence = nearest_depot_growing(mcgrp, task_set, mcgrp.capacity);
+    merge_sequence = nearest_depot_growing(mcgrp, task_set, stub_policy);
     Individual nearest_depot_indi;
     nearest_depot_indi = mcgrp.parse_delimiter_seq(merge_sequence);
     buffer = nearest_depot_indi.total_cost;
@@ -258,7 +260,7 @@ void HighSpeedMemetic::merge_split_repair(const MCGRP &mcgrp, SOLUTION &solution
     /*-----------------Furthest L2 distance merge policy--------------------------*/
 
     /*-----------------Max yield merge policy--------------------------*/
-    merge_sequence = maximum_yield_growing(mcgrp, task_set, mcgrp.capacity);
+    merge_sequence = maximum_yield_growing(mcgrp, task_set, stub_policy);
     Individual maximum_yield_indi;
     maximum_yield_indi = mcgrp.parse_delimiter_seq(merge_sequence);
     buffer = maximum_yield_indi.total_cost;
@@ -269,7 +271,7 @@ void HighSpeedMemetic::merge_split_repair(const MCGRP &mcgrp, SOLUTION &solution
     /*-----------------Max yield merge policy--------------------------*/
 
     /*-----------------Min yield merge policy--------------------------*/
-    merge_sequence = minimum_yield_growing(mcgrp, task_set, mcgrp.capacity);
+    merge_sequence = minimum_yield_growing(mcgrp, task_set, stub_policy);
     Individual minimum_yield_indi;
     minimum_yield_indi = mcgrp.parse_delimiter_seq(merge_sequence);
     buffer = minimum_yield_indi.total_cost;
@@ -280,7 +282,7 @@ void HighSpeedMemetic::merge_split_repair(const MCGRP &mcgrp, SOLUTION &solution
     /*-----------------Max yield merge policy--------------------------*/
 
     /*-----------------mixture merge policy--------------------------*/
-    merge_sequence = mixture_growing(mcgrp, task_set, mcgrp.capacity);
+    merge_sequence = mixture_growing(mcgrp, task_set, stub_policy);
     Individual mixture;
     mixture = mcgrp.parse_delimiter_seq(merge_sequence);
     buffer = mixture.total_cost;
@@ -558,7 +560,7 @@ bool HighSpeedMemetic::valid(const MCGRP &mcgrp, const SOLUTION &solution)
             return false;
         if (cost != route.length)
             return false;
-        if(mcgrp.get_vio_time(route.ToTimeTbl()) > 0){
+        if(mcgrp.get_vio_time(route.ToTimeTbl()).second > 0){
             return false;
         }
 
@@ -883,7 +885,7 @@ void HighSpeedMemetic::create_citizen(const MCGRP &mcgrp)
     My_Assert(mcgrp.valid_sol(get_negative_coding(buffer.sequence), buffer.total_cost), "Wrong outcome!\n");
 
 
-    HighSpeedNeighBorSearch ns_(mcgrp);
+    HighSpeedNeighBorSearch ns_(mcgrp,tabu_step);
     ns_.unpack_seq(buffer.sequence, mcgrp);
     ns_.trace(mcgrp);
 
@@ -905,7 +907,7 @@ void HighSpeedMemetic::educate(const MCGRP &mcgrp, vector<int> child)
     DEBUG_PRINT("A new thread has been created!\n");
     cout << this_thread::get_id() << endl;
 
-    HighSpeedNeighBorSearch ns_(mcgrp);
+    HighSpeedNeighBorSearch ns_(mcgrp,tabu_step);
     ns_.unpack_seq(get_delimiter_coding(child), mcgrp);
     ns_.trace(mcgrp);
 

@@ -21,13 +21,22 @@ bool NewFlip::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
     My_Assert(ns.solution[candidate_seq.front()]->route_id == ns.solution[candidate_seq.back()]->route_id,"Flip attempted using different routes!");
 
     vector<RouteInfo::TimeTable> new_time_tbl{{{-1, -1}}};
-    bool allow_infeasible = ns.policy.has_rule(FITNESS_ONLY) ? true : false;
+    bool allow_infeasible = ns.policy.has_rule(INFEASIBLE) ? true : false;
 
     new_time_tbl = expected_time_table(ns,mcgrp,candidate_seq,allow_infeasible);
 
     if(!mcgrp.isTimeTableFeasible(new_time_tbl)){
         move_result.reset();
         return false;
+    }
+
+    if(allow_infeasible){
+        vector<vector<RouteInfo::TimeTable>> pack_new_time_tbl;
+        pack_new_time_tbl.push_back(new_time_tbl);
+        if(ns.policy.check_time_window(mcgrp,pack_new_time_tbl)){
+            move_result.reset();
+            return false;
+        }
     }
 
     move_result.choose_tasks(start_task, end_task);
@@ -72,8 +81,20 @@ bool NewFlip::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
     move_result.considerable = true;
 
     move_result.route_time_tbl.emplace_back(new_time_tbl);
-    move_result.vio_time_delta = mcgrp.get_vio_time(move_result.route_time_tbl[0])
-                                - mcgrp.get_vio_time(ns.routes[route_id]->time_table);
+
+    if(ns.policy.has_rule(INFEASIBLE)){
+        auto old_time_info_i = mcgrp.get_vio_time(ns.routes[route_id]->time_table);
+        auto new_time_info_i = mcgrp.get_vio_time(move_result.route_time_tbl[0]);
+
+        move_result.vio_load_delta = 0;
+        move_result.vio_time_delta = new_time_info_i.second - old_time_info_i.second;
+        move_result.vio_time_custom_num_delta = new_time_info_i.first - old_time_info_i.first;
+    }else{
+        move_result.vio_load_delta = 0;
+        move_result.vio_time_delta = 0;
+        move_result.vio_time_custom_num_delta = 0;
+    }
+
     return true;
 }
 
@@ -125,13 +146,9 @@ void NewFlip::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp){
     ns.total_vio_time += move_result.vio_time_delta;
     My_Assert(ns.valid_sol(mcgrp),"Prediction wrong!");
 
-    if(move_result.delta == 0){
-        ns.equal_step++;
-    }
 
     update_score(ns);
     move_result.reset();
-    ns.search_step++;
 }
 
 vector<int> NewFlip::get_sequence(HighSpeedNeighBorSearch &ns, const int start, const int end)

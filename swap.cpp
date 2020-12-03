@@ -40,13 +40,13 @@ bool NewSwap::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen
 #endif
 
             int j = neighbor_task;
-            if (considerable_move(ns, mcgrp, b, j) && ns.policy.check_move(move_result)) {
+            if (considerable_move(ns, mcgrp, b, j) && ns.policy.check_move(mcgrp,ns,move_result)) {
                 if (ns.policy.has_rule(FIRST_ACCEPT)) {
                     move(ns, mcgrp);
                     return true;
                 }
                 else if (ns.policy.has_rule(BEST_ACCEPT)) {
-                    if (ns.policy.check_result(move_result, BestM))
+                    if (ns.policy.check_result(mcgrp,ns,move_result, BestM))
                         BestM = move_result;
                 }
                 else {
@@ -72,13 +72,13 @@ bool NewSwap::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen
                 int j = current_start;
 
                 if (b != j) { //not the same Task
-                    if (considerable_move(ns, mcgrp, b, j) && ns.policy.check_move(move_result)) {
+                    if (considerable_move(ns, mcgrp, b, j) && ns.policy.check_move(mcgrp,ns,move_result)) {
                         if (ns.policy.has_rule(FIRST_ACCEPT)) {
                             move(ns, mcgrp);
                             return true;
                         }
                         else if (ns.policy.has_rule(BEST_ACCEPT)) {
-                            if (ns.policy.check_result(move_result, BestM))
+                            if (ns.policy.check_result(mcgrp,ns,move_result, BestM))
                                 BestM = move_result;
                         }
                         else {
@@ -92,13 +92,13 @@ bool NewSwap::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen
                 const int current_end = ns.routes[current_route]->end;
                 j = current_end;
                 if (b != j) {
-                    if (considerable_move(ns, mcgrp, b, j) && ns.policy.check_move(move_result)) {
+                    if (considerable_move(ns, mcgrp, b, j) && ns.policy.check_move(mcgrp,ns,move_result)) {
                         if (ns.policy.has_rule(FIRST_ACCEPT)) {
                             move(ns, mcgrp);
                             return true;
                         }
                         else if (ns.policy.has_rule(BEST_ACCEPT)) {
-                            if (ns.policy.check_result(move_result, BestM))
+                            if (ns.policy.check_result(mcgrp,ns,move_result, BestM))
                                 BestM = move_result;
                         }
                         else {
@@ -158,18 +158,29 @@ bool NewSwap::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
         u_load_delta = mcgrp.inst_tasks[i].demand - mcgrp.inst_tasks[u].demand;
         i_load_delta = mcgrp.inst_tasks[u].demand - mcgrp.inst_tasks[i].demand;
 
-        if (ns.policy.has_rule(DELTA_ONLY)) {
+        if (ns.policy.has_rule(FEASIBLE)) {
             if (ns.routes[u_route]->load + u_load_delta > mcgrp.capacity) {
                 move_result.reset();
                 return false;
-            }    // route that used to contain u is infeasible
+            }
 
             if (ns.routes[i_route]->load + i_load_delta > mcgrp.capacity) {
                 move_result.reset();
-                return false;    // route that used to contain i is infeasible
+                return false;
             }
         }
-        else if (ns.policy.has_rule(FITNESS_ONLY)) {
+        else if (ns.policy.has_rule(INFEASIBLE)) {
+            int pseudo_capacity = ns.policy.get_pseudo_capacity(mcgrp.capacity);
+            if (ns.routes[u_route]->load + u_load_delta > pseudo_capacity) {
+                move_result.reset();
+                return false;
+            }
+
+            if (ns.routes[i_route]->load + i_load_delta > pseudo_capacity) {
+                move_result.reset();
+                return false;
+            }
+
             //u_route vio-load calculate
             if (u_load_delta >= 0) {
                 //vio_load_delta may get bigger
@@ -242,7 +253,7 @@ bool NewSwap::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
 
     double delta = 0;
     vector<vector<RouteInfo::TimeTable>> new_time_tbl{{{-1, -1}}};
-    bool allow_infeasible = ns.policy.has_rule(FITNESS_ONLY) ? true : false;
+    bool allow_infeasible = ns.policy.has_rule(INFEASIBLE) ? true : false;
 
     if(j == u){
         //...h-i-u-v...
@@ -848,6 +859,13 @@ bool NewSwap::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
         return false;
     }
 
+    if(allow_infeasible){
+        if(ns.policy.check_time_window(mcgrp,new_time_tbl)){
+            move_result.reset();
+            return false;
+        }
+    }
+
     move_result.choose_tasks(original_u, original_i);
 
     move_result.move_arguments.push_back(original_u);
@@ -872,14 +890,24 @@ bool NewSwap::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
         move_result.move_arguments.push_back(u);
         move_result.move_arguments.push_back(i);
 
-        move_result.vio_load_delta = vio_load_delta;
-
         move_result.considerable = true;
 
         move_result.route_time_tbl.emplace_back(new_time_tbl[0]);
-        move_result.vio_time_delta =
-            mcgrp.get_vio_time(move_result.route_time_tbl[0])
-            - mcgrp.get_vio_time(ns.routes[u_route]->time_table);
+
+
+        if(ns.policy.has_rule(INFEASIBLE)){
+            auto old_time_info_u = mcgrp.get_vio_time(ns.routes[u_route]->time_table);
+            auto new_time_info_u = mcgrp.get_vio_time(move_result.route_time_tbl[0]);
+
+            move_result.vio_load_delta = vio_load_delta;
+            move_result.vio_time_delta = new_time_info_u.second - old_time_info_u.second;
+            move_result.vio_time_custom_num_delta = new_time_info_u.first - old_time_info_u.first;
+        }else{
+            move_result.vio_load_delta = 0;
+            move_result.vio_time_delta = 0;
+            move_result.vio_time_custom_num_delta = 0;
+        }
+
         return true;
     }
     else {
@@ -912,16 +940,30 @@ bool NewSwap::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
         move_result.considerable = true;
 
         move_result.route_time_tbl = new_time_tbl;
-        move_result.vio_time_delta =
-            mcgrp.get_vio_time(move_result.route_time_tbl[0])
-            + mcgrp.get_vio_time(move_result.route_time_tbl[1])
-            - mcgrp.get_vio_time(ns.routes[u_route]->time_table)
-            - mcgrp.get_vio_time(ns.routes[i_route]->time_table);
+
+
+        if(ns.policy.has_rule(INFEASIBLE)){
+            move_result.vio_load_delta = vio_load_delta;
+
+            auto old_time_info_i = mcgrp.get_vio_time(ns.routes[i_route]->time_table);
+            auto new_time_info_i = mcgrp.get_vio_time(move_result.route_time_tbl[0]);
+
+            auto old_time_info_u = mcgrp.get_vio_time(ns.routes[u_route]->time_table);
+            auto new_time_info_u = mcgrp.get_vio_time(move_result.route_time_tbl[1]);
+
+            move_result.vio_time_delta =
+                new_time_info_i.second + new_time_info_u.second - old_time_info_i.second - old_time_info_u.second;
+            move_result.vio_time_custom_num_delta =
+                new_time_info_i.first + new_time_info_u.first - old_time_info_i.first - old_time_info_u.first;
+        }else{
+            move_result.vio_load_delta = 0;
+            move_result.vio_time_delta = 0;
+            move_result.vio_time_custom_num_delta = 0;
+        }
 
         return true;
     }
 
-    My_Assert(false,"Cannot reach here!");
 }
 
 void NewSwap::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
@@ -1443,16 +1485,10 @@ void NewSwap::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
     ns.total_vio_time += move_result.vio_time_delta;
     My_Assert(ns.valid_sol(mcgrp),"Prediction wrong!");
 
-    if(move_result.delta == 0){
-        ns.equal_step++;
-    }
 
     ns.trace(mcgrp);
 
-//    mcgrp.check_best_infeasible_solution(ns.cur_solution_cost,ns.policy.beta,ns.total_vio_load,ns.negative_coding_sol);
-
     move_result.reset();
-    ns.search_step++;
 }
 
 vector<vector<RouteInfo::TimeTable>> NewSwap::expected_time_table(HighSpeedNeighBorSearch &ns,

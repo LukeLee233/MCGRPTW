@@ -5,6 +5,9 @@
 #include "ConstructPolicy.h"
 #include "RNG.h"
 #include <bits/stdc++.h>
+#include "NeighborSearch.h"
+#include "SearchPolicy.h"
+
 
 
 using namespace std;
@@ -113,7 +116,9 @@ Individual NearestScanner::operator()(const vector<int> &taskList, const string&
 
 }
 
-void merge_split(class HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, const int merge_size, const int pseudo_capacity)
+void
+merge_split(class HighSpeedNeighBorSearch &ns,
+    const MCGRP &mcgrp, const int merge_size)
 {
     if (ns.routes.activated_route_id.size() < merge_size) {
         DEBUG_PRINT("Too few routes to merge!");
@@ -124,7 +129,7 @@ void merge_split(class HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, const in
         ns.clear();
 
         auto candidate_tasks = ns.get_tasks_set();
-        auto seq_buffer = split_task(ns.policy, mcgrp, candidate_tasks, pseudo_capacity);
+        auto seq_buffer = split_task(mcgrp,ns, candidate_tasks, ns.policy);
 
         ns.unpack_seq(seq_buffer, mcgrp);
 
@@ -186,12 +191,12 @@ void merge_split(class HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, const in
         }
 
 
-        vector<int> seq_buffer = split_task(ns.policy, mcgrp, candidate_tasks, pseudo_capacity);
+        vector<int> seq_buffer = split_task(mcgrp,ns, candidate_tasks, ns.policy);
         My_Assert(seq_buffer.front() == DUMMY && seq_buffer.back() == DUMMY, "Incorrect sequence!");
 
         //Best Accept
         Individual res = mcgrp.parse_delimiter_seq(seq_buffer);
-        double fitness = res.total_cost + ns.policy.beta * res.total_vio_load;
+        double fitness = ns.getFitness(mcgrp,ns.policy,res);
         if (fitness < best_choice) {
             best_choice = fitness;
             best_buffer = seq_buffer;
@@ -205,7 +210,7 @@ void merge_split(class HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, const in
 
 }
 
-vector<int> split_task(Policy &policy, const MCGRP &mcgrp, const vector<int> &tasks, const int load_constraint)
+vector<int> split_task( const MCGRP &mcgrp,HighSpeedNeighBorSearch& ns, const vector<int> &tasks, Policy &policy)
 {
     vector<int> merge_sequence;
 
@@ -215,18 +220,18 @@ vector<int> split_task(Policy &policy, const MCGRP &mcgrp, const vector<int> &ta
 
 
     /*-----------------Nearest L2 distance merge policy--------------------------*/
-    merge_sequence = nearest_growing(mcgrp, tasks, load_constraint);
+    merge_sequence = nearest_growing(mcgrp, tasks, policy);
     Individual nearest_L2_indi;
     nearest_L2_indi = mcgrp.parse_delimiter_seq(merge_sequence);
     res = nearest_L2_indi;
-    fitness = res.total_cost + policy.beta * res.total_vio_load;
+    fitness = ns.getFitness(mcgrp,ns.policy,res);
     /*-----------------Nearest L2 distance merge policy--------------------------*/
 
     /*-----------------Furthest L2 distance merge policy--------------------------*/
-    merge_sequence = nearest_depot_growing(mcgrp, tasks, load_constraint);
+    merge_sequence = nearest_depot_growing(mcgrp, tasks, policy);
     Individual nearest_depot_indi;
     nearest_depot_indi = mcgrp.parse_delimiter_seq(merge_sequence);
-    buffer = nearest_depot_indi.total_cost + policy.beta * nearest_depot_indi.total_vio_load;
+    buffer = ns.getFitness(mcgrp,ns.policy,nearest_depot_indi);
     if (buffer < fitness) {
         res = nearest_depot_indi;
         fitness = buffer;
@@ -234,10 +239,10 @@ vector<int> split_task(Policy &policy, const MCGRP &mcgrp, const vector<int> &ta
     /*-----------------Furthest L2 distance merge policy--------------------------*/
 
     /*-----------------Max yield merge policy--------------------------*/
-    merge_sequence = maximum_yield_growing(mcgrp, tasks, load_constraint);
+    merge_sequence = maximum_yield_growing(mcgrp, tasks, policy);
     Individual maximum_yield_indi;
     maximum_yield_indi = mcgrp.parse_delimiter_seq(merge_sequence);
-    buffer = maximum_yield_indi.total_cost + policy.beta * maximum_yield_indi.total_vio_load;
+    buffer = ns.getFitness(mcgrp,ns.policy,maximum_yield_indi);
     if (buffer < fitness) {
         res = maximum_yield_indi;
         fitness = buffer;
@@ -245,10 +250,10 @@ vector<int> split_task(Policy &policy, const MCGRP &mcgrp, const vector<int> &ta
     /*-----------------Max yield merge policy--------------------------*/
 
     /*-----------------Min yield merge policy--------------------------*/
-    merge_sequence = minimum_yield_growing(mcgrp, tasks, load_constraint);
+    merge_sequence = minimum_yield_growing(mcgrp, tasks, policy);
     Individual minimum_yield_indi;
     minimum_yield_indi = mcgrp.parse_delimiter_seq(merge_sequence);
-    buffer = minimum_yield_indi.total_cost + policy.beta * minimum_yield_indi.total_vio_load;
+    buffer = ns.getFitness(mcgrp,ns.policy,minimum_yield_indi);
     if (buffer < fitness) {
         res = minimum_yield_indi;
         fitness = buffer;
@@ -256,10 +261,10 @@ vector<int> split_task(Policy &policy, const MCGRP &mcgrp, const vector<int> &ta
     /*-----------------Max yield merge policy--------------------------*/
 
     /*-----------------mixture merge policy--------------------------*/
-    merge_sequence = mixture_growing(mcgrp, tasks, load_constraint);
+    merge_sequence = mixture_growing(mcgrp, tasks,policy);
     Individual mixture_indi;
     mixture_indi = mcgrp.parse_delimiter_seq(merge_sequence);
-    buffer = mixture_indi.total_cost + policy.beta * mixture_indi.total_vio_load;
+    buffer = ns.getFitness(mcgrp,ns.policy,mixture_indi);
     if (buffer < fitness) {
         res = mixture_indi;
         fitness = buffer;
@@ -270,7 +275,7 @@ vector<int> split_task(Policy &policy, const MCGRP &mcgrp, const vector<int> &ta
 
 }
 
-vector<int> nearest_growing(const MCGRP &mcgrp, vector<int> tasks, const int constraint)
+vector<int> nearest_growing(const MCGRP &mcgrp, vector<int> tasks, Policy& policy)
 {
     vector<int> sequence;
 
@@ -281,6 +286,7 @@ vector<int> nearest_growing(const MCGRP &mcgrp, vector<int> tasks, const int con
     vector<int> candidate_tasks;
     vector<int> nearest_tasks;
 
+    int constraint = policy.get_pseudo_capacity(mcgrp.capacity);
     while (!tasks.empty()) {
         current_task = sequence.back();
 
@@ -288,7 +294,7 @@ vector<int> nearest_growing(const MCGRP &mcgrp, vector<int> tasks, const int con
         for (auto task : tasks) {
             if (mcgrp.inst_tasks[task].demand <= constraint - current_load
                 && mcgrp.cal_arrive_time(sequence.back(), task, drive_time, true)
-                    <= mcgrp.inst_tasks[task].time_window.second) {
+                    <= policy.get_pseudo_time_window(mcgrp.inst_tasks[task].time_window.second)) {
                 candidate_tasks.push_back(task);
             }
         }
@@ -343,7 +349,7 @@ vector<int> nearest_growing(const MCGRP &mcgrp, vector<int> tasks, const int con
     return sequence;
 }
 
-vector<int> nearest_depot_growing(const MCGRP &mcgrp, vector<int> tasks, const int constraint)
+vector<int> nearest_depot_growing(const MCGRP &mcgrp, vector<int> tasks, Policy& policy)
 {
     vector<int> sequence;
 
@@ -353,12 +359,13 @@ vector<int> nearest_depot_growing(const MCGRP &mcgrp, vector<int> tasks, const i
     vector<int> candidate_tasks;
     vector<int> nearest_tasks;
 
+    int constraint = policy.get_pseudo_capacity(mcgrp.capacity);
     while (!tasks.empty()) {
         candidate_tasks.clear();
         for (auto task : tasks) {
             if (mcgrp.inst_tasks[task].demand <= constraint - current_load
                 && mcgrp.cal_arrive_time(sequence.back(), task, drive_time, true)
-                    <= mcgrp.inst_tasks[task].time_window.second) {
+                    <= policy.get_pseudo_time_window(mcgrp.inst_tasks[task].time_window.second)) {
                 candidate_tasks.push_back(task);
             }
         }
@@ -414,7 +421,7 @@ vector<int> nearest_depot_growing(const MCGRP &mcgrp, vector<int> tasks, const i
     return sequence;
 }
 
-vector<int> maximum_yield_growing(const MCGRP &mcgrp, vector<int> tasks, const int constraint)
+vector<int> maximum_yield_growing(const MCGRP &mcgrp, vector<int> tasks, Policy& policy)
 {
     vector<int> sequence;
 
@@ -424,12 +431,13 @@ vector<int> maximum_yield_growing(const MCGRP &mcgrp, vector<int> tasks, const i
     vector<int> candidate_tasks;
     vector<int> maximum_tasks;
 
+    int constraint = policy.get_pseudo_capacity(mcgrp.capacity);
     while (!tasks.empty()) {
         candidate_tasks.clear();
         for (auto task : tasks) {
             if (mcgrp.inst_tasks[task].demand <= constraint - current_load
                 && mcgrp.cal_arrive_time(sequence.back(), task, drive_time, true)
-                    <= mcgrp.inst_tasks[task].time_window.second) {
+                    <= policy.get_pseudo_time_window(mcgrp.inst_tasks[task].time_window.second)) {
                 candidate_tasks.push_back(task);
             }
         }
@@ -485,7 +493,7 @@ vector<int> maximum_yield_growing(const MCGRP &mcgrp, vector<int> tasks, const i
     return sequence;
 }
 
-vector<int> minimum_yield_growing(const MCGRP &mcgrp, vector<int> tasks, const int constraint)
+vector<int> minimum_yield_growing(const MCGRP &mcgrp, vector<int> tasks, Policy& policy)
 {
     vector<int> sequence;
 
@@ -495,12 +503,13 @@ vector<int> minimum_yield_growing(const MCGRP &mcgrp, vector<int> tasks, const i
     vector<int> candidate_tasks;
     vector<int> minimum_tasks;
 
+    int constraint = policy.get_pseudo_capacity(mcgrp.capacity);
     while (!tasks.empty()) {
         candidate_tasks.clear();
         for (auto task : tasks) {
             if (mcgrp.inst_tasks[task].demand <= constraint - current_load
                 && mcgrp.cal_arrive_time(sequence.back(), task, drive_time, true)
-                    <= mcgrp.inst_tasks[task].time_window.second) {
+                    <= policy.get_pseudo_time_window(mcgrp.inst_tasks[task].time_window.second)) {
                 candidate_tasks.push_back(task);
             }
         }
@@ -556,7 +565,7 @@ vector<int> minimum_yield_growing(const MCGRP &mcgrp, vector<int> tasks, const i
     return sequence;
 }
 
-vector<int> mixture_growing(const MCGRP &mcgrp, vector<int> tasks, const int constraint)
+vector<int> mixture_growing(const MCGRP &mcgrp, vector<int> tasks, Policy& policy)
 {
     vector<int> sequence;
 
@@ -566,12 +575,13 @@ vector<int> mixture_growing(const MCGRP &mcgrp, vector<int> tasks, const int con
     vector<int> candidate_tasks;
     vector<int> potential_tasks;
 
+    int constraint = policy.get_pseudo_capacity(mcgrp.capacity);
     while (!tasks.empty()) {
         candidate_tasks.clear();
         for (auto task : tasks) {
             if (mcgrp.inst_tasks[task].demand <= constraint - current_load
                 && mcgrp.cal_arrive_time(sequence.back(), task, drive_time, true)
-                    <= mcgrp.inst_tasks[task].time_window.second) {
+                    <= policy.get_pseudo_time_window(mcgrp.inst_tasks[task].time_window.second)) {
                 candidate_tasks.push_back(task);
             }
         }

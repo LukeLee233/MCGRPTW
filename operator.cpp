@@ -11,9 +11,9 @@ void unit_test(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, MoveOperator &mo
     std::generate(task_set.begin(), task_set.end(), Generator());
     mcgrp._rng.RandPerm(task_set);    //shuffle tasks
 
-    auto original_policy = ns.policy.get();
-    ns.policy.set(BEST_ACCEPT | DOWNHILL | DELTA_ONLY);
-    ns.policy.beta = 0.5;
+    auto original_policy = ns.policy.getCurrent_policy();
+    ns.policy.setCurrent_policy(BEST_ACCEPT | DOWNHILL | FEASIBLE);
+    ns.policy.setBeta(0.5);
     ns.policy.tolerance = 0.003;
     ns.neigh_size = mcgrp.neigh_size;
 
@@ -41,8 +41,8 @@ void unit_test(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, MoveOperator &mo
     }
 
     ns.neigh_size = 0;
-    ns.policy.set(original_policy);
-    ns.policy.beta = 0;
+    ns.policy.setCurrent_policy(original_policy);
+    ns.policy.setBeta(0);
     ns.policy.tolerance = 0;
 }
 

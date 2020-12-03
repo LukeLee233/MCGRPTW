@@ -9,6 +9,8 @@ using namespace std;
 bool Slice::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_task)
 {
     //No search space in Slice operator, No accept rule for invert operator
+    if(ns.policy.has_rule(INFEASIBLE)) return false;
+    if(ns.policy.has_rule(TOLERANCE)) return false;
 
 #ifdef DEBUG
     pre_slice_times = 0;
@@ -46,7 +48,7 @@ bool Slice::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, c
         //No need do pre slice
         //dummy-b-c...
         post_slice_times++;
-        if (postslice.considerable_move(ns, mcgrp, b) && ns.policy.check_move(postslice.move_result)) {
+        if (postslice.considerable_move(ns, mcgrp, b) && ns.policy.check_move(mcgrp,ns,postslice.move_result)) {
             move_result = postslice.move_result;
             return true;
         }
@@ -60,7 +62,7 @@ bool Slice::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, c
         //No need do post slice
         //...a-b-dummy
         pre_slice_times++;
-        if (preslice.considerable_move(ns, mcgrp, b) && ns.policy.check_move(preslice.move_result)) {
+        if (preslice.considerable_move(ns, mcgrp, b) && ns.policy.check_move(mcgrp,ns,preslice.move_result)) {
             move_result = preslice.move_result;
             return true;
         }
@@ -80,7 +82,7 @@ bool Slice::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, c
             //Both considerable
             if (preslice.move_result.delta <= postslice.move_result.delta) {
                 pre_slice_times++;
-                if (ns.policy.check_move(preslice.move_result)) {
+                if (ns.policy.check_move(mcgrp,ns,preslice.move_result)) {
                     move_result = preslice.move_result;
                     return true;
                 }
@@ -92,7 +94,7 @@ bool Slice::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, c
             }
             else {
                 post_slice_times++;
-                if (ns.policy.check_move(postslice.move_result)) {
+                if (ns.policy.check_move(mcgrp,ns,postslice.move_result)) {
                     move_result = postslice.move_result;
                     return true;
                 }
@@ -106,7 +108,7 @@ bool Slice::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, c
         else if (preslice.move_result.considerable) {
             //only presert is considerable
             pre_slice_times++;
-            if (ns.policy.check_move(preslice.move_result)) {
+            if (ns.policy.check_move(mcgrp,ns,preslice.move_result)) {
                 move_result = preslice.move_result;
                 return true;
             }
@@ -118,7 +120,7 @@ bool Slice::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, c
         }
         else if (postslice.move_result.considerable) {
             post_slice_times++;
-            if (ns.policy.check_move(postslice.move_result)) {
+            if (ns.policy.check_move(mcgrp,ns,postslice.move_result)) {
                 move_result = postslice.move_result;
                 return true;
             }
@@ -200,7 +202,7 @@ bool Preslice::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp
     const auto b_route = ns.solution[b]->route_id;
     const auto seg_after_b = get_segment_info(mcgrp, ns, b);
 
-    bool allow_infeasible = ns.policy.has_rule(FITNESS_ONLY) ? true : false;
+    bool allow_infeasible = ns.policy.has_rule(INFEASIBLE) ? true : false;
     auto new_time_tbl = expected_time_table(ns, mcgrp, b);
 
     move_result.route_time_tbl = new_time_tbl;
@@ -365,13 +367,8 @@ void Preslice::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
     ns.total_vio_time += move_result.vio_time_delta;
     My_Assert(ns.valid_sol(mcgrp), "Prediction wrong!");
 
-    if (move_result.delta == 0) {
-        ns.equal_step++;
-    }
-
     update_score(ns);
     move_result.reset();
-    ns.search_step++;
 }
 
 vector<vector<RouteInfo::TimeTable>>
@@ -570,13 +567,9 @@ void Postslice::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
     ns.total_vio_time += move_result.vio_time_delta;
     My_Assert(ns.valid_sol(mcgrp), "Prediction wrong!");
 
-    if (move_result.delta == 0) {
-        ns.equal_step++;
-    }
 
     update_score(ns);
     move_result.reset();
-    ns.search_step++;
 }
 
 vector<vector<RouteInfo::TimeTable>>

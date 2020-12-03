@@ -18,6 +18,7 @@
 #include <numeric>
 #include "json.hpp"
 #include "config.h"
+#include "ConstructPolicy.h"
 
 using namespace std;
 namespace bpo = boost::program_options;
@@ -227,7 +228,7 @@ int main(int argc, char *argv[])
 
 
             if(pool_size == 1){
-                HighSpeedNeighBorSearch NBS(Mixed_Instance);
+                HighSpeedNeighBorSearch NBS(Mixed_Instance,tabu_step);
                 NBS.initialize_score_matrix(Mixed_Instance);
                 Individual initial_solution = NearestScanner(Mixed_Instance, *Mixed_Instance.distance_look_tbl["cost"])();
 

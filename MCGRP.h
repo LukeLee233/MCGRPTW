@@ -4,6 +4,7 @@
 #include <bits/stdc++.h>
 #include <mutex>
 
+
 #define DUMMY 0
 #define ARC_NO_INVERSE -1
 #define NODE_NO_INVERSE -2
@@ -126,6 +127,10 @@ public:
 
     void create_neighbor_lists(int neighbor_size);
 
+    mutable double average_task_distance = 0;
+    double get_average_task_distance() const;
+
+
 private:
     void _build_neighbor_task(const Task& task, NeighborInfo& neighbor_info);
     void _build_neighbor_node(int start, int end, NeighborInfo& neighbor_info);
@@ -211,7 +216,8 @@ public:
 
     bool isTimeTableFeasible(const vector<RouteInfo::TimeTable>& tbl, bool meta = true) const;
 
-    int get_vio_time(const vector<RouteInfo::TimeTable>& tbl) const;
+    // (vio_customer_number, vio_time)
+    pair<int,int> get_vio_time(const vector<RouteInfo::TimeTable>& tbl) const;
 
     /*!
      * sort a set of tasks based on time

@@ -1,5 +1,6 @@
 //
 // Created by luke on 2020/1/26.
+// doesn't support infeasible and descent search
 //
 
 #ifndef SLICE_H

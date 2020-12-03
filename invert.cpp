@@ -21,7 +21,7 @@ bool Invert::search(HighSpeedNeighBorSearch &ns, const class MCGRP &mcgrp, int c
 
         return false;
     }
-    else if (considerable_move(ns, mcgrp, chosen_task) && ns.policy.check_move(move_result)) {
+    else if (considerable_move(ns, mcgrp, chosen_task) && ns.policy.check_move(mcgrp,ns, move_result)) {
         move(ns, mcgrp);
         return true;
     }
@@ -37,7 +37,7 @@ bool Invert::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, 
     My_Assert(u != DUMMY, "Task u cannot be dummy Task!");
     My_Assert(mcgrp.is_edge(u), "Task u must be edge Task!");
 
-    bool allow_infeasible = ns.policy.has_rule(FITNESS_ONLY) ? true : false;
+    bool allow_infeasible = ns.policy.has_rule(INFEASIBLE) ? true : false;
 
     const int u_tilde = mcgrp.inst_tasks[u].inverse;
 
@@ -63,25 +63,40 @@ bool Invert::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, 
         return false;
     }
 
+    if(allow_infeasible){
+        vector<vector<RouteInfo::TimeTable>> pack_new_time_tbl;
+        pack_new_time_tbl.push_back(new_time_tbl);
+        if(ns.policy.check_time_window(mcgrp,pack_new_time_tbl)){
+            move_result.reset();
+            return false;
+        }
+    }
 
     move_result.choose_tasks(u, u_tilde);
-//    move_result.num_affected_routes = 1;
     move_result.delta = delta;
     move_result.route_id.push_back(u_route);
     move_result.route_lens.push_back(ns.routes[u_route]->length + move_result.delta);
 
-//    move_result.route_loads.push_back(ns.routes[u_route]->load);
-//    move_result.route_custs_num.push_back(ns.routes[u_route]->num_customers);
     move_result.new_total_route_length = ns.cur_solution_cost + move_result.delta;
-//    move_result.total_number_of_routes = ns.routes.activated_route_id.size();
     move_result.move_arguments.push_back(u);
     move_result.move_arguments.push_back(u_tilde);
     move_result.considerable = true;
 
     move_result.route_time_tbl.emplace_back(new_time_tbl);
-    move_result.vio_time_delta =
-        mcgrp.get_vio_time(move_result.route_time_tbl[0])
-        - mcgrp.get_vio_time(ns.routes[u_route]->time_table);
+
+
+    if(ns.policy.has_rule(INFEASIBLE)){
+        auto old_time_info_u = mcgrp.get_vio_time(ns.routes[u_route]->time_table);
+        auto new_time_info_u = mcgrp.get_vio_time(move_result.route_time_tbl[0]);
+
+        move_result.vio_load_delta = 0;
+        move_result.vio_time_delta = new_time_info_u.second - old_time_info_u.second;
+        move_result.vio_time_custom_num_delta = new_time_info_u.first - old_time_info_u.first;
+    }else{
+        move_result.vio_load_delta = 0;
+        move_result.vio_time_delta = 0;
+        move_result.vio_time_custom_num_delta = 0;
+    }
     return true;
 }
 
@@ -141,16 +156,12 @@ void Invert::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
     ns.total_vio_time += move_result.vio_time_delta;
     My_Assert(ns.valid_sol(mcgrp),"Prediction wrong!");
 
-    if(move_result.delta == 0){
-        ns.equal_step++;
-    }
 
     update_score(ns);
 
     ns.trace(mcgrp);
 
     move_result.reset();
-    ns.search_step++;
 }
 
 vector<RouteInfo::TimeTable>

@@ -8,6 +8,8 @@
 
 bool Attraction::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_task)
 {
+    if(ns.policy.has_rule(INFEASIBLE)) return false;
+
     My_Assert(chosen_task >= 1 && chosen_task <= mcgrp.actual_task_num,"Wrong Task");
 
 #ifdef DEBUG
@@ -42,13 +44,13 @@ bool Attraction::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int cho
         attempt_count++;
 #endif
 
-        if (considerable_move(ns, mcgrp, chosen_task, neighbor_task) && ns.policy.check_move(move_result)) {
+        if (considerable_move(ns, mcgrp, chosen_task, neighbor_task) && ns.policy.check_move(mcgrp,ns,move_result)) {
             if (ns.policy.has_rule(FIRST_ACCEPT)) {
                 move(ns, mcgrp);
                 return true;
             }
             else if (ns.policy.has_rule(BEST_ACCEPT)) {
-                if (ns.policy.check_result(move_result, BestM))
+                if (ns.policy.check_result(mcgrp,ns,move_result, BestM))
                     BestM = move_result;
             }
             else {

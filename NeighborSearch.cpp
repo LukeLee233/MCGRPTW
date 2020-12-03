@@ -48,14 +48,12 @@ void HighSpeedNeighBorSearch::DUMMYPOOL::extend()
     return;
 }
 
-HighSpeedNeighBorSearch::HighSpeedNeighBorSearch(const MCGRP &mcgrp)
-    : solution(mcgrp.actual_task_num), routes(mcgrp.actual_task_num),
+HighSpeedNeighBorSearch::HighSpeedNeighBorSearch(const MCGRP &mcgrp,int tabu_step_)
+    : solution(mcgrp.actual_task_num), routes(mcgrp.actual_task_num),policy(Policy(tabu_step_)),
     task_set(mcgrp.actual_task_num), single_pre_insert(new XPreInsert(1)),
     single_post_insert(new XPostInsert(1)), double_pre_insert(new XPreInsert(2)),
     double_post_insert(new XPostInsert(2)),two_opt(new NewTwoOpt),
     invert(new Invert), swap(new NewSwap), extraction(new Extraction), slice(new Slice),attraction(new Attraction) {
-    search_step = 0;
-    equal_step = 0;
     cur_solution_cost = numeric_limits<decltype(best_solution_cost)>::max();
     best_solution_neg.clear();
     total_vio_load = 0;
@@ -303,7 +301,7 @@ void HighSpeedNeighBorSearch::clear()
     routes.clear();
 }
 
-void HighSpeedNeighBorSearch::create_individual(const MCGRP &mcgrp, Individual &p)
+void HighSpeedNeighBorSearch::dump_to_individual(const MCGRP &mcgrp, Individual &p)
 {
     p.sequence = get_current_sol();
 
@@ -491,7 +489,7 @@ bool HighSpeedNeighBorSearch::valid_sol(const MCGRP &mcgrp)
 
 void HighSpeedNeighBorSearch::threshold_exploration(const MCGRP &mcgrp)
 {
-    DEBUG_PRINT("Uphill and downhill...");
+    DEBUG_PRINT("Trigger Feasible Oscillation Search");
 
     // Based on the best solution find so far, experiment shows this is better than the policy,especially on big instance
     // which start from current solution.
@@ -500,10 +498,10 @@ void HighSpeedNeighBorSearch::threshold_exploration(const MCGRP &mcgrp)
 
 
     policy.tolerance = sel_ratio(prob, ratios, mcgrp._rng);
-    const auto original_policy = policy.get();
+    const auto original_policy = policy.getCurrent_policy();
 
-    if(rand() % 2) policy.set(BEST_ACCEPT | TOLERANCE | DELTA_ONLY);
-    else policy.set(FIRST_ACCEPT | TOLERANCE | DELTA_ONLY);;
+    if(rand() % 2) policy.setCurrent_policy(BEST_ACCEPT | TOLERANCE | FEASIBLE);
+    else policy.setCurrent_policy(FIRST_ACCEPT | TOLERANCE | FEASIBLE);;
 
     //you need to decide the dynamic neighbor size when you search based on different policy
 //    neigh_size = min(10,mcgrp.neigh_size);
@@ -580,19 +578,19 @@ void HighSpeedNeighBorSearch::threshold_exploration(const MCGRP &mcgrp)
     }
 
     policy.benchmark = 0;
-    policy.set(original_policy);
+    policy.setCurrent_policy(original_policy);
     policy.tolerance = 0;
     neigh_size = 0;
 }
 
 void HighSpeedNeighBorSearch::descent_exploration(const MCGRP &mcgrp)
 {
-    DEBUG_PRINT("Downhill...");
+    DEBUG_PRINT("Trigger descent feasible search...");
 
-    const auto original_policy = policy.get();
+    const auto original_policy = policy.getCurrent_policy();
 
-    if(rand() % 2) policy.set(BEST_ACCEPT | DOWNHILL | DELTA_ONLY);
-    else policy.set(FIRST_ACCEPT | DOWNHILL | DELTA_ONLY);
+    if(rand() % 2) policy.setCurrent_policy(BEST_ACCEPT | DOWNHILL | FEASIBLE);
+    else policy.setCurrent_policy(FIRST_ACCEPT | DOWNHILL | FEASIBLE);
 
     neigh_size = mcgrp.neigh_size;
 
@@ -658,7 +656,7 @@ void HighSpeedNeighBorSearch::descent_exploration(const MCGRP &mcgrp)
         while (cur_solution_cost < start_val);
     }
 
-    policy.set(original_policy);
+    policy.setCurrent_policy(original_policy);
     neigh_size = 0;
 }
 
@@ -667,32 +665,37 @@ void HighSpeedNeighBorSearch::infeasible_search(const MCGRP &mcgrp)
     _stage = "infeasible search";
     // Based on the best solution find so far, experiment shows this is better than the policy
     // which start from current solution.
+
+    //    vector<int> start_point = get_current_sol("dummy");
+    //    vector<int> start_point = get_delimiter_coding(best_solution_neg);
+    vector<int> start_point = get_delimiter_coding(mcgrp.best_sol_neg);
+
     this->clear();
-    unpack_seq(get_delimiter_coding(mcgrp.best_sol_neg), mcgrp);
+    unpack_seq(start_point, mcgrp);
 
     My_Assert(total_vio_load == 0, "Cannot start from an infeasible point!");
-    policy.nearest_feasible_cost = cur_solution_cost;
-    policy.beta = cur_solution_cost / double(mcgrp.capacity * 15);
 
-//    small_step_infeasible_descent_exploration(mcgrp);
-//
-//    DEBUG_PRINT("Trigger Infeasible Tabu Search");
-//    small_step_infeasible_tabu_exploration(mcgrp);
-//
-//    small_step_infeasible_descent_exploration(mcgrp);
+    // setup penalty coefficient at first
+    //    policy.beta = double(mcgrp.capacity * 15) / cur_solution_cost;
+    policy.setBeta(mcgrp.get_average_task_distance() / cur_solution_cost);
 
+    if(mcgrp._rng.Randint(0,1) == 0){
+        // this is extra procedure with 0.5 probability to be invoked
+        double descent_start;
+        small_step_infeasible_tabu_exploration(mcgrp);
+        do{
+            descent_start = getFitness(mcgrp,policy);
+            small_step_infeasible_descent_exploration(mcgrp);
+        }while(getFitness(mcgrp,policy) < descent_start);
+    }
 
     //Here used to break the local minimum with merge-split operator
     large_step_infeasible_exploration(mcgrp);
 
-    My_Assert(total_vio_load >= 0, "Wrong total violated load!");
-    if (total_vio_load > 0 || total_vio_time > 0) {
-        repair_solution(mcgrp);
-    }
+    repair_solution(mcgrp);
 
-    policy.nearest_feasible_cost = 0;
-    policy.beta = 0;
-//    this->best_solution_cost = cur_solution_cost;
+    // clean infeasible context
+    policy.clearContext("infeasible");
     _stage = "unknown";
 }
 
@@ -721,68 +724,33 @@ void HighSpeedNeighBorSearch::trace(const MCGRP &mcgrp)
 
 void HighSpeedNeighBorSearch::small_step_infeasible_descent_exploration(const MCGRP &mcgrp)
 {
-    auto original_policy = policy.get();
-    policy.set(BEST_ACCEPT | DOWNHILL | FITNESS_ONLY);
+    DEBUG_PRINT("Trigger descent infeasible search...");
+
+    const auto original_policy = policy.getCurrent_policy();
+
+    if(rand() % 2) policy.setCurrent_policy(BEST_ACCEPT | DOWNHILL | INFEASIBLE);
+    else policy.setCurrent_policy(FIRST_ACCEPT | DOWNHILL | INFEASIBLE);
+
     neigh_size = 10;
 
     vector<NeighborOperator> neighbor_operator{
         NeighborOperator::SINGLE_INSERT,
         NeighborOperator::DOUBLE_INSERT,
         NeighborOperator::SWAP,
-        NeighborOperator::TWO_OPT
+        NeighborOperator::TWO_OPT,
+        NeighborOperator::INVERT
     };
 
-    equal_step = 0;
-    search_step = 0;
+    int chosen_task = -1;
+    mcgrp._rng.RandPerm(neighbor_operator);
+    for (auto cur_operator:neighbor_operator) {
+        double start_val = 0;
+        do{
+//            double distance_to_feasible_zone = double(total_vio_load + total_vio_time) / policy.nearest_feasible_cost;
+            double distance_to_feasible_zone = distance_to_feasible(mcgrp);
+            policy.update_beta(distance_to_feasible_zone);
 
-    int prior_search_step;
-    int prior_equal_step;
-
-    int search_step_delta;
-    int equal_step_delta;
-
-    double equal_ratio;
-
-    static int too_far = 0;
-    static int too_near = 0;
-    static int count = 0;
-
-    do {
-        prior_equal_step = this->equal_step;
-        prior_search_step = this->search_step;
-        int chosen_task = -1;
-        mcgrp._rng.RandPerm(neighbor_operator);
-
-        if (total_vio_load > 0) {
-            //start location should not be considered
-            count++;
-
-            double distance_to_feasible_zone = double(total_vio_load) / policy.nearest_feasible_cost;
-
-            if (distance_to_feasible_zone > infeasible_distance_threshold)
-                too_far++;
-            else
-                too_near++;
-
-            if (count % 5 == 0) {
-
-                if (too_near == 5) {
-                    DEBUG_PRINT("Infeasible search too near");
-                    policy.beta /= 2;
-                }
-                else if (too_far == 5) {
-                    DEBUG_PRINT("Infeasible search too far");
-                    policy.beta *= 2;
-                }
-
-                too_far = 0;
-                too_near = 0;
-                count = 0;
-            }
-        }
-
-
-        for (auto cur_operator:neighbor_operator) {
+            start_val = cur_solution_cost;
             mcgrp._rng.RandPerm(task_set);
 
             for (int i = 0; i < mcgrp.actual_task_num; i++) {
@@ -816,53 +784,48 @@ void HighSpeedNeighBorSearch::small_step_infeasible_descent_exploration(const MC
                         break;
                     case TWO_OPT:two_opt->search(*this, mcgrp, chosen_task);
                         break;
+                    case INVERT:invert->search(*this,mcgrp,chosen_task);
+                        break;
                     default:My_Assert(false, "unknown operator!");
                 }
             }
-        }
-
-        search_step_delta = search_step - prior_search_step;
-        equal_step_delta = equal_step - prior_equal_step;
-
-        if (search_step_delta == 0 && equal_step_delta == 0) {
-            equal_ratio = 0;
-        }
-        else {
-            equal_ratio = double(equal_step_delta) / double(search_step_delta);
-        }
-
-        My_Assert(equal_ratio >= 0 && equal_ratio <= 1, "Wrong ratio!");
-        viterbi_refine(mcgrp);
+            viterbi_refine(mcgrp);
+        }while(cur_solution_cost < start_val);
     }
-    while (search_step_delta > significant_search_delta
-            && equal_ratio < local_ratio_threshold);
 
-
-    policy.set(original_policy);
+    policy.setCurrent_policy(original_policy);
     neigh_size = 0;
 }
 
 void HighSpeedNeighBorSearch::small_step_infeasible_tabu_exploration(const MCGRP &mcgrp)
 {
-    policy.benchmark = this->best_solution_cost;
-    policy.tolerance = sel_ratio(prob, ratios, mcgrp._rng);
-    neigh_size = 10;
+    DEBUG_PRINT("Trigger Infeasible Oscillation Search");
 
-    auto original_policy = policy.get();
-    policy.set(BEST_ACCEPT | TOLERANCE | FITNESS_ONLY);
+    policy.benchmark = this->best_solution_cost;
+
+    policy.tolerance = sel_ratio(prob, ratios, mcgrp._rng);
+    auto original_policy = policy.getCurrent_policy();
+
+    if(rand() % 2) policy.setCurrent_policy(BEST_ACCEPT | TOLERANCE | INFEASIBLE);
+    else policy.setCurrent_policy(FIRST_ACCEPT | TOLERANCE | INFEASIBLE);;
+
+    neigh_size = 10;
 
     vector<NeighborOperator> neighbor_operator{
         NeighborOperator::SINGLE_INSERT,
         NeighborOperator::DOUBLE_INSERT,
         NeighborOperator::SWAP,
-        NeighborOperator::TWO_OPT
+        NeighborOperator::TWO_OPT,
+        NeighborOperator::INVERT
     };
+
 
     int L = mcgrp._rng.Randint(28, 33);
 
-    for (int k = 0; k < L; k++) {
-        int chosen_task = -1;
+    for (int k = 1; k < L; k++) {
         mcgrp._rng.RandPerm(neighbor_operator);
+
+        int chosen_task = -1;
 
         for (auto cur_operator:neighbor_operator) {
             mcgrp._rng.RandPerm(task_set);
@@ -897,6 +860,8 @@ void HighSpeedNeighBorSearch::small_step_infeasible_tabu_exploration(const MCGRP
                     case SWAP:swap->search(*this, mcgrp, chosen_task);
                         break;
                     case TWO_OPT:two_opt->search(*this, mcgrp, chosen_task);
+                        break;
+                    case INVERT:invert->search(*this,mcgrp,chosen_task);
                         break;
                     default:My_Assert(false, "unknown operator!");
                 }
@@ -906,7 +871,7 @@ void HighSpeedNeighBorSearch::small_step_infeasible_tabu_exploration(const MCGRP
     }
 
     policy.benchmark = 0;
-    policy.set(original_policy);
+    policy.setCurrent_policy(original_policy);
     policy.tolerance = 0;
     neigh_size = 0;
 }
@@ -919,14 +884,9 @@ void HighSpeedNeighBorSearch::large_step_infeasible_exploration(const MCGRP &mcg
     int merge_size = 10;
 
     // enlarge the capacity for infeasible search to decide whether use infeasible consideration
-//    double scale = mcgrp.capacity * policy.beta;
-//    int pseudo_capacity = int(mcgrp.capacity *(1+ (scale / (policy.beta*sqrt(1+scale*scale)))));
-    int pseudo_capacity = mcgrp.capacity;
-    merge_split(*this, mcgrp, merge_size, pseudo_capacity);
+    merge_split(*this, mcgrp, merge_size);
 
     trace(mcgrp);
-
-//    mcgrp.check_best_infeasible_solution(cur_solution_cost,beta,total_vio_load,negative_coding_sol);
 }
 
 void HighSpeedNeighBorSearch::update(const MCGRP &mcgrp,
@@ -942,7 +902,7 @@ void HighSpeedNeighBorSearch::update(const MCGRP &mcgrp,
         if (routes[route_id]->load > mcgrp.capacity) {
             total_vio_load -= (routes[route_id]->load - mcgrp.capacity);
         }
-        total_vio_time -= mcgrp.get_vio_time(routes[route_id]->time_table);
+        total_vio_time -= mcgrp.get_vio_time(routes[route_id]->time_table).second;
 
         //remove solution
         vector<int> seq;
@@ -1039,7 +999,7 @@ void HighSpeedNeighBorSearch::update(const MCGRP &mcgrp,
             routes[new_route]->time_table.push_back({seqs[row][i],time_tbl[i]});
         }
 
-        total_vio_time += mcgrp.get_vio_time(routes[new_route]->time_table);
+        total_vio_time += mcgrp.get_vio_time(routes[new_route]->time_table).second;
         if (load > mcgrp.capacity) {
             total_vio_load += (load - mcgrp.capacity);
         }
@@ -1096,11 +1056,13 @@ void HighSpeedNeighBorSearch::repair_solution(const MCGRP &mcgrp)
     // Repair infeasible solution
     // Only violated load and time window here
     // No missed Task, duplicated Task problem here
+    if(total_vio_load == 0 && total_vio_time == 0){
+        return;
+    }
+
 
     My_Assert(missed(mcgrp), "Some Task missed!");
     My_Assert(check_duplicated(mcgrp), "Duplicated Task!");
-
-    My_Assert(total_vio_load > 0 || total_vio_time > 0, "This is not a infeasible Task!");
 
 /*
     if (total_vio_load > 0)
@@ -1160,7 +1122,7 @@ void HighSpeedNeighBorSearch::_repair_load(const MCGRP &mcgrp)
         //remove the violated routes info
         cur_solution_cost -= routes[current_route.route_id]->length;
         total_vio_load -= (routes[current_route.route_id]->load - mcgrp.capacity);
-        total_vio_time -= mcgrp.get_vio_time(routes[current_route.route_id]->time_table);
+        total_vio_time -= mcgrp.get_vio_time(routes[current_route.route_id]->time_table).second;
 
         delete_route(current_route.route_id, current_route.task_seq);
         candidate_tasks.insert(candidate_tasks.end(),
@@ -1290,12 +1252,12 @@ void HighSpeedNeighBorSearch::_repair_load(const MCGRP &mcgrp)
             routes[route_id]->num_customers += 1;
             routes[route_id]->load += demand;
 
-            total_vio_time -= mcgrp.get_vio_time(routes[route_id]->time_table);
+            total_vio_time -= mcgrp.get_vio_time(routes[route_id]->time_table).second;
             vector<int> time_tbl = mcgrp.cal_arrive_time(satisfied_routes[chosen_route].task_seq);
             routes[route_id]->time_table.clear();
             for(int i = 0;i<time_tbl.size();i++)
                 routes[route_id]->time_table.push_back({satisfied_routes[chosen_route].task_seq[i],time_tbl[i]});
-            total_vio_time += mcgrp.get_vio_time(routes[route_id]->time_table);
+            total_vio_time += mcgrp.get_vio_time(routes[route_id]->time_table).second;
 
             solution[task]->route_id = route_id;
 
@@ -1349,7 +1311,7 @@ void HighSpeedNeighBorSearch::_repair_time_window(const MCGRP &mcgrp)
 
     for (auto current_route : violated_routes) {
         cur_solution_cost -= routes[current_route.route_id]->length;
-        total_vio_time -= mcgrp.get_vio_time(current_route.time_tbl);
+        total_vio_time -= mcgrp.get_vio_time(current_route.time_tbl).second;
 
         vector<int> candidate_tasks;
         for (const auto &node : current_route.time_tbl)
@@ -1408,7 +1370,7 @@ void HighSpeedNeighBorSearch::_tour_splitting_repair(const MCGRP &mcgrp)
     for (auto current_route : violated_routes) {
         vector<int> route_seq;
         cur_solution_cost -= routes[current_route.route_id]->length;
-        total_vio_time -= mcgrp.get_vio_time(current_route.time_tbl);
+        total_vio_time -= mcgrp.get_vio_time(current_route.time_tbl).second;
         total_vio_load -= max(routes[current_route.route_id]->load - mcgrp.capacity,0);
 
         for (const auto &node : current_route.time_tbl)
@@ -1479,10 +1441,6 @@ bool HighSpeedNeighBorSearch::check_duplicated(const MCGRP &mcgrp)
     return true;
 }
 
-int HighSpeedNeighBorSearch::getSearch_step() const
-{
-    return search_step;
-}
 
 void HighSpeedNeighBorSearch::delete_route(int route_id, const vector<int> &route_seq)
 {
@@ -1701,7 +1659,7 @@ void HighSpeedNeighBorSearch::viterbi_refine(const MCGRP &mcgrp)
             vector<int> task_seq;
             for(const auto &pair :routes[route_id]->time_table) task_seq.push_back(pair.task);
 
-            auto refine_result = viterbi_decoding(mcgrp,task_seq,policy.has_rule(FITNESS_ONLY));
+            auto refine_result = viterbi_decoding(mcgrp,task_seq,policy.has_rule(INFEASIBLE));
 
             if(refine_result.cost < routes[route_id]->length){
 
@@ -1710,7 +1668,7 @@ void HighSpeedNeighBorSearch::viterbi_refine(const MCGRP &mcgrp)
 #endif
                 cur_solution_cost -= routes[route_id]->length;
                 total_vio_load -= max(0,(routes[route_id]->load - mcgrp.capacity));
-                total_vio_time -= mcgrp.get_vio_time(routes[route_id]->time_table);
+                total_vio_time -= mcgrp.get_vio_time(routes[route_id]->time_table).second;
 
 
                 delete_route(route_id, task_seq);
@@ -1718,7 +1676,7 @@ void HighSpeedNeighBorSearch::viterbi_refine(const MCGRP &mcgrp)
                 int new_route_id = new_route(mcgrp,refine_result.sequence);
                 cur_solution_cost += routes[new_route_id]->length;
                 total_vio_load += max(0, routes[new_route_id]->load - mcgrp.capacity);
-                total_vio_time += mcgrp.get_vio_time(routes[new_route_id]->time_table);
+                total_vio_time += mcgrp.get_vio_time(routes[new_route_id]->time_table).second;
                 My_Assert(valid_sol(mcgrp), "Wrong state!");
             }
         }
@@ -1791,3 +1749,66 @@ void HighSpeedNeighBorSearch::print_score_matrix(const string &filename)
         FILE.close();
     }
 }
+
+int HighSpeedNeighBorSearch::get_time_window_violated_number(const MCGRP& mcgrp)
+{
+    int count = 0;
+    for(const auto route_id : routes.activated_route_id){
+        for(const auto& task : routes[route_id]->time_table){
+            if(task.arrive_time > mcgrp.inst_tasks[task.task].time_window.second){
+                count++;
+            }
+        }
+    }
+
+    return count;
+}
+
+
+double HighSpeedNeighBorSearch::distance_to_feasible(const MCGRP &mcgrp){
+    return _distance_to_feasible(mcgrp,total_vio_load,get_time_window_violated_number(mcgrp));
+}
+
+double HighSpeedNeighBorSearch::getFitness(const MCGRP& mcgrp, Policy& policy){
+    return cur_solution_cost * (1 + policy.getBeta() * distance_to_feasible(mcgrp));
+}
+
+double HighSpeedNeighBorSearch::getFitnessDelta(const MCGRP &mcgrp, Policy& policy, const MoveResult &move_result)
+{
+    return move_result.delta * (1 + policy.getBeta() * _distance_to_feasible(
+        mcgrp, total_vio_load + move_result.vio_load_delta, get_time_window_violated_number(mcgrp) + move_result.vio_time_custom_num_delta));
+}
+
+double HighSpeedNeighBorSearch::_distance_to_feasible(const MCGRP &mcgrp, double vioc, double viot)
+{
+    double alpha_capacity;
+    if(mcgrp.capacity < mcgrp.total_demand){
+        alpha_capacity = vioc / double(mcgrp.total_demand - mcgrp.capacity);
+    }else{
+        alpha_capacity = 0;
+    }
+
+    double alpha_time = viot / double(mcgrp.req_arc_num+mcgrp.req_node_num+mcgrp.node_num);
+
+    return 0.5 * (alpha_time + alpha_capacity);
+}
+
+double HighSpeedNeighBorSearch::getFitness(const MCGRP &mcgrp, Policy &policy, const Individual &indi)
+{
+    int task_num = indi.sequence.size();
+    int total_demand = accumulate(indi.route_seg_load.begin(), indi.route_seg_load.end(),0);
+    double alpha_c = mcgrp.capacity < total_demand ? double(indi.total_vio_load) / double(total_demand - mcgrp.capacity) : 0;
+
+    int vio_cus_num = 0;
+    for(const auto time_tbl: indi.time_tbl){
+        for(const auto item:time_tbl){
+            if(item.arrive_time > mcgrp.inst_tasks[item.task].time_window.second) vio_cus_num++;
+        }
+    }
+    double alpha_t = double(vio_cus_num) / (double)task_num;
+
+    double fitness = indi.total_cost * (1 + 0.5 * policy.getBeta() * (alpha_t + alpha_c));
+    return fitness;
+}
+
+

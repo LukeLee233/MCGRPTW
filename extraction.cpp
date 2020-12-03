@@ -11,6 +11,8 @@ using namespace std;
 bool Extraction::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_task)
 {
     // No search space in Extraction operator, No accept rule for invert operator
+    if(ns.policy.has_rule(INFEASIBLE)) return false;
+    if(ns.policy.has_rule(TOLERANCE)) return false;
 
 #ifdef DEBUG
     attempt_count++;
@@ -18,7 +20,7 @@ bool Extraction::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int cho
 
     My_Assert(chosen_task != DUMMY, "Chosen Task can't be dummy");
 
-    if (considerable_move(ns, mcgrp, chosen_task) && ns.policy.check_move(move_result)) {
+    if (considerable_move(ns, mcgrp, chosen_task) && ns.policy.check_move(mcgrp, ns, move_result)) {
         move(ns, mcgrp);
         return true;
     }
@@ -250,15 +252,11 @@ void Extraction::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
     ns.total_vio_time += move_result.vio_time_delta;
     My_Assert(ns.valid_sol(mcgrp), "Prediction wrong!");
 
-    if (move_result.delta == 0) {
-        ns.equal_step++;
-    }
 
     update_score(ns);
     ns.trace(mcgrp);
 
     move_result.reset();
-    ns.search_step++;
 }
 
 vector<vector<RouteInfo::TimeTable>>

@@ -23,6 +23,7 @@ public:
     virtual bool update_score(HighSpeedNeighBorSearch &ns) = 0;
 
     vector<int> getHitInfo();
+
 };
 
 void unit_test(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, MoveOperator& move_operator);

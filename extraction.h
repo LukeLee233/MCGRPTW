@@ -1,5 +1,6 @@
 //
 // Created by luke on 2020/1/27.
+// doesn't support infeasible and descent search
 //
 
 #ifndef EXTRACTION_H

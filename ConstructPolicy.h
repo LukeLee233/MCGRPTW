@@ -8,8 +8,10 @@
 
 #include "MCGRP.h"
 #include "utils.h"
-#include "NeighborSearch.h"
 
+
+class HighSpeedNeighBorSearch;
+class Policy;
 
 class PathConstructor{
 protected:
@@ -61,7 +63,8 @@ public:
  * @param ns
  * @param mcgrp
  */
-void merge_split(class HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, const int merge_size, const int pseudo_capacity);
+void merge_split(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
+    const int merge_size);
 
 /*!
  * @details use different policies to merge Task
@@ -69,7 +72,7 @@ void merge_split(class HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, const in
  * @param tasks
  * @return
  */
-vector<int> split_task(Policy& policy,const MCGRP &mcgrp, const vector<int> &tasks, const int load_constraint);
+vector<int> split_task(const MCGRP &mcgrp,HighSpeedNeighBorSearch& ns, const vector<int> &tasks, Policy& policy);
 
 /*!
  * @details use nearest L2 distance policy to merge tasks
@@ -77,7 +80,7 @@ vector<int> split_task(Policy& policy,const MCGRP &mcgrp, const vector<int> &tas
  * @param tasks
  * @return
  */
-vector<int> nearest_growing(const MCGRP &mcgrp, vector<int> tasks,const int constraint);
+vector<int> nearest_growing(const MCGRP &mcgrp, vector<int> tasks, Policy& policy);
 
 /*!
  * @details use nearest L2 distance to depot policy to merge tasks
@@ -85,7 +88,7 @@ vector<int> nearest_growing(const MCGRP &mcgrp, vector<int> tasks,const int cons
  * @param tasks
  * @return
  */
-vector<int> nearest_depot_growing(const MCGRP &mcgrp, vector<int> tasks, const int constraint);
+vector<int> nearest_depot_growing(const MCGRP &mcgrp, vector<int> tasks, Policy& policy);
 
 /*!
  * @details use max yield  policy to merge tasks
@@ -93,7 +96,7 @@ vector<int> nearest_depot_growing(const MCGRP &mcgrp, vector<int> tasks, const i
  * @param tasks
  * @return
  */
-vector<int> maximum_yield_growing(const MCGRP &mcgrp, vector<int> tasks, const int constraint);
+vector<int> maximum_yield_growing(const MCGRP &mcgrp, vector<int> tasks, Policy& policy);
 
 /*!
  * @details use min yield  policy to merge tasks
@@ -101,7 +104,7 @@ vector<int> maximum_yield_growing(const MCGRP &mcgrp, vector<int> tasks, const i
  * @param tasks
  * @return
  */
-vector<int> minimum_yield_growing(const MCGRP &mcgrp, vector<int> tasks, const int constraint);
+vector<int> minimum_yield_growing(const MCGRP &mcgrp, vector<int> tasks, Policy& policy);
 
 /*!
  * @details use mixture policy to merge tasks
@@ -109,7 +112,7 @@ vector<int> minimum_yield_growing(const MCGRP &mcgrp, vector<int> tasks, const i
  * @param tasks
  * @return
  */
-vector<int> mixture_growing(const MCGRP &mcgrp, vector<int> tasks, const int constraint);
+vector<int> mixture_growing(const MCGRP &mcgrp, vector<int> tasks, Policy& policy);
 
 vector<vector<int>> tour_splitting(const MCGRP &mcgrp, vector<int>& task_list);
 

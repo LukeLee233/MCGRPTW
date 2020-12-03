@@ -634,7 +634,7 @@ Individual MCGRP::parse_delimiter_seq(const vector<int> &seq) const
     buffer.time_tbl = get_time_tbl(seq,"delimiter");
     buffer.total_vio_time = 0;
     for(const auto & time_tbl : buffer.time_tbl)
-        buffer.total_vio_time +=  get_vio_time(time_tbl);
+        buffer.total_vio_time +=  get_vio_time(time_tbl).second;
 
     return buffer;
 }
@@ -841,12 +841,18 @@ vector<RouteInfo::TimeTable> MCGRP::forecast_time_table(const vector<RouteInfo::
 
 }
 
-int MCGRP::get_vio_time(const vector<RouteInfo::TimeTable> &tbl) const
+
+pair<int,int> MCGRP::get_vio_time(const vector<RouteInfo::TimeTable> &tbl) const
 {
     int ans = 0;
-    for (const auto node : tbl)
-        ans += max(node.arrive_time - inst_tasks[node.task].time_window.second, 0);
-    return ans;
+    int vio_num = 0;
+    for (const auto node : tbl){
+        if(node.arrive_time - inst_tasks[node.task].time_window.second > 0){
+            vio_num++;
+            ans += node.arrive_time - inst_tasks[node.task].time_window.second;
+        }
+    }
+    return {vio_num,ans};
 }
 
 void MCGRP::time_window_sort(vector<int> &sequence) const
@@ -1183,6 +1189,30 @@ void MCGRP::register_distance(string name, unique_ptr<Distance> distance_)
         return;
 
     distance_look_tbl[name] = move(distance_);
+}
+
+double MCGRP::get_average_task_distance() const
+{
+    if(average_task_distance != 0) return average_task_distance;
+    double numerator = 0;
+    for(int task_a = 1; task_a <= actual_task_num; task_a++){
+        for(int task_b = 1; task_b <= actual_task_num; task_b++){
+            if(task_a == task_b) continue;
+            if(is_edge(task_a) && inst_tasks[task_a].inverse == task_b) continue;
+            if(is_edge(task_b) && inst_tasks[task_b].inverse == task_b) continue;
+
+            numerator += (
+                min_cost[inst_tasks[task_a].tail_node][inst_tasks[task_b].head_node]
+                + min_cost[inst_tasks[task_a].tail_node][inst_tasks[task_b].tail_node]
+                + min_cost[inst_tasks[task_a].head_node][inst_tasks[task_b].head_node]
+                + min_cost[inst_tasks[task_a].head_node][inst_tasks[task_b].tail_node]
+            ) / 4.0;
+        }
+    }
+
+    double denominator = pow(req_edge_num + req_node_num + req_arc_num,2);
+    average_task_distance = numerator / denominator;
+    return average_task_distance;
 }
 
 Distance::Distance(const MCGRP& mcgrp, const string &name)

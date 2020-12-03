@@ -12,34 +12,13 @@
 extern vector<double> ratios;
 extern vector<double> prob;
 
+
 class HighSpeedNeighBorSearch
 {
-    friend class NewSwap;
-    friend class Invert;
-    friend class NewTwoOpt;
-    friend class NewFlip;
-    friend class NewSwapEnds;
-    friend class MoveOperator;
-    friend class Policy;
-    friend class Slice;
-    friend class Preslice;
-    friend class Postslice;
-    friend class Extraction;
-    friend class XPreInsert;
-    friend class XPostInsert;
-    friend class Attraction;
-
-    friend void merge_split(class HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, const int merge_size, const int pseudo_capacity);
-    friend struct RouteSegment get_segment_info(const MCGRP &mcgrp,HighSpeedNeighBorSearch &ns,const int chosen_task);
-    friend struct seg_info get_seg_info(const MCGRP &mcgrp, HighSpeedNeighBorSearch &ns, const int start_task, const int end_task);
-    friend void unit_test(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, MoveOperator& move_operator);
-
 public:
     double best_solution_cost;
     vector<int> best_solution_neg;
 
-
-private:
 
     struct TASK_NODE{
         int ID;
@@ -272,10 +251,6 @@ private:
     const double local_ratio_threshold = local_ratio;
     const double infeasible_distance_threshold = infeasible_distance;
 
-    int search_step;
-
-    int equal_step;
-
     const int local_threshold = local_minimum_threshold;
 
 
@@ -316,7 +291,7 @@ private:
 
 public:
 
-    HighSpeedNeighBorSearch(const MCGRP &mcgrp);
+    HighSpeedNeighBorSearch(const MCGRP &mcgrp,int tabu_step_);
     ~HighSpeedNeighBorSearch();
 
     vector<vector<double>> score_matrix;
@@ -334,11 +309,6 @@ public:
     void clear();
 
     inline vector<int> get_tasks_set(){return task_set;}
-
-    inline double get_fitness(){
-        My_Assert(policy.beta != std::numeric_limits<decltype(policy.beta)>::max(), "beta is undefined!");
-        return cur_solution_cost + policy.beta * (total_vio_load + total_vio_time);
-    }
 
     inline double get_cur_cost(){
         return cur_solution_cost;
@@ -359,8 +329,7 @@ public:
      * @details pack current sol info to delimiter coding format
      * @param p
      */
-    void create_individual(const MCGRP &mcgrp, Individual &p);
-
+    void dump_to_individual(const MCGRP &mcgrp, Individual &p);
 
     /*!
  * @details unpack sol info to negative coding format
@@ -451,8 +420,6 @@ public:
      */
     void _neigh_search(const MCGRP &mcgrp, int mode);
 
-    int getSearch_step() const;
-
     /*!
  * @details get the successor of the chosen task within the same route,exclude dummy task
  * @param ns
@@ -462,6 +429,14 @@ public:
     vector<int> get_successor_tasks(int length, const int chosen_task);
 
     bool before(const int a,const int b);
+
+    int get_time_window_violated_number(const MCGRP& mcgrp);
+    double distance_to_feasible(const MCGRP& mcgrp);
+    double _distance_to_feasible(const MCGRP& mcgrp, double vioc, double viot);
+    double getFitness(const MCGRP& mcgrp,  Policy& policy);
+    double getFitness(const MCGRP& mcgrp,  Policy& policy,const Individual& indi);
+    double getFitnessDelta(const MCGRP& mcgrp, Policy& policy, const MoveResult &move_result);
+
 
 #ifdef DEBUG
     int success_viterbi = 0;

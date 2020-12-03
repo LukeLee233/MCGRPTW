@@ -9,51 +9,87 @@
 #include "MCGRP.h"
 #include "config.h"
 
+
 enum search_sequence
 {
     RTRIDP, IDPRTR
 };
 
 //the number of rules
-const int RULES = 8;
-
-using std::bitset;
+constexpr int RULES = 8;
 
 //Search Rule
-const bitset<RULES> UNDEFINE("00000000");                                //undefined policy
+extern const bitset<RULES> UNDEFINE;
 
-const bitset<RULES> DOWNHILL("00000001");
-const bitset<RULES> TOLERANCE("00000010");
+extern const bitset<RULES> DOWNHILL;
+extern const bitset<RULES> TOLERANCE;
 
-const bitset<RULES> DELTA_ONLY("10000000");                 //This means feasible search
-const bitset<RULES> FITNESS_ONLY("01000000");              //This means infeasible search
+extern const bitset<RULES> FEASIBLE;
+extern const bitset<RULES> INFEASIBLE;
 
 //Accept Rule
-const bitset<RULES> FIRST_ACCEPT("00010000");
-const bitset<RULES> BEST_ACCEPT("00100000");
+extern const bitset<RULES> FIRST_ACCEPT;
+extern const bitset<RULES> BEST_ACCEPT;
 
-
+class HighSpeedNeighBorSearch;
 
 class Policy{
     bitset<RULES> current_policy;    //the policy used by improvement search
 
+    // parameters to control beta
+    const int update_frequency = 5;
+    int update_tick_time = update_frequency;
+    int too_far = 0;
+    int too_near = 0;
+
+    //infeasible search parameters
+    double beta = DBL_MAX;
+
+private:
+    double infeasible_distance_threshold;
+    double time_window_multiplier = 1.5;
+    double capacity_multiplier = 1.5;
 public:
-    double beta = std::numeric_limits<decltype(beta)>::max();
-    double benchmark = std::numeric_limits<decltype(benchmark)>::max();
-    double nearest_feasible_cost = std::numeric_limits<decltype(benchmark)>::max();
+    void setTime_window_multiplier(double timeWindowMultiplier);
+    void setCapacity_multiplier(double capacityMultiplier);
 
-    const int tabu_step_threshold = tabu_step;
+public:
+    double getBeta() const;
+    void setBeta(double beta);
+    void clearContext(string mode);
 
-    //infeasible search penalty coefficient
+    inline int get_pseudo_capacity(int capacity){
+        // policy 1
+        //    double scale = mcgrp.capacity * policy.beta;
+        //    int pseudo_capacity = int(mcgrp.capacity *(1+ (scale / (policy.beta*sqrt(1+scale*scale)))));
+
+        //policy 2
+        //    int pseudo_capacity = mcgrp.capacity;
+
+        //policy 3
+        return int(capacity * capacity_multiplier);
+    }
+
+    inline int get_pseudo_time_window(int timestamp){
+        return int(timestamp * time_window_multiplier);
+    }
+
+    bool check_time_window(const MCGRP& mcgrp,const vector<vector<RouteInfo::TimeTable>>& time_table);
+
+    // oscillation parameters
+    int tick_time = 0;
+    int tabu_step_threshold;
     double tolerance = 0;
+    double benchmark = 0;
 
+    void update_beta(double infeasible_distance);
 
-    Policy(){current_policy = UNDEFINE;};
-    inline bitset<RULES> get(){return current_policy;};
+    Policy(int tabu_step_):tabu_step_threshold(tabu_step_){
+        current_policy = UNDEFINE;
+    };
 
-    inline void set(bitset<RULES> _policy){current_policy = _policy;};
-
-    double getFitnessDelta(const MoveResult& move_result);
+    const bitset<RULES> &getCurrent_policy() const;
+    void setCurrent_policy(const bitset<RULES> &currentPolicy);
 
     /*!
  * test policy whether has a given rule
@@ -71,7 +107,7 @@ public:
     * @param policy
     * @return
     */
-    bool check_move(const MoveResult &move_result);
+    bool check_move(const MCGRP& mcgrp, HighSpeedNeighBorSearch& ns,const MoveResult &move_result);
 
     /*!
      * @details check if moveresult M1 is better than moveresult M2
@@ -80,7 +116,7 @@ public:
      * @param M2
      * @return
      */
-    bool check_result(const MoveResult &M1, const MoveResult &M2);
+    bool check_result(const MCGRP& mcgrp, HighSpeedNeighBorSearch& ns, const MoveResult &M1, const MoveResult &M2);
 };
 
 #endif //SEARCHPOLICY_H

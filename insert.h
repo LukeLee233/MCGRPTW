@@ -54,6 +54,7 @@ public:
     bool search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_task) override;
 
     bool update_score(HighSpeedNeighBorSearch &ns) override;
+
 };
 
 class XPostInsert : public MoveOperator

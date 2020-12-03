@@ -56,7 +56,7 @@ bool NewTwoOpt::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chos
                     return true;
                 }
                 else if (ns.policy.has_rule(BEST_ACCEPT)){
-                    if (ns.policy.check_result(move_result,BestM))
+                    if (ns.policy.check_result(mcgrp,ns,move_result,BestM))
                         BestM = move_result;
                 }
                 else{
@@ -70,7 +70,7 @@ bool NewTwoOpt::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chos
                     return true;
                 }
                 else if (ns.policy.has_rule(BEST_ACCEPT)){
-                    if (ns.policy.check_result(move_result,BestM))
+                    if (ns.policy.check_result(mcgrp,ns, move_result,BestM))
                         BestM = move_result;
                 }
                 else{
@@ -84,7 +84,7 @@ bool NewTwoOpt::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chos
                     return true;
                 }
                 else if (ns.policy.has_rule(BEST_ACCEPT)){
-                    if (ns.policy.check_result(move_result,BestM))
+                    if (ns.policy.check_result(mcgrp,ns,move_result,BestM))
                         BestM = move_result;
                 }
                 else{
@@ -98,7 +98,7 @@ bool NewTwoOpt::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chos
                     return true;
                 }
                 else if (ns.policy.has_rule(BEST_ACCEPT)){
-                    if (ns.policy.check_result(move_result,BestM))
+                    if (ns.policy.check_result(mcgrp,ns,move_result,BestM))
                         BestM = move_result;
                 }
                 else{
@@ -130,7 +130,7 @@ bool NewTwoOpt::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chos
                         return true;
                     }
                     else if (ns.policy.has_rule(BEST_ACCEPT)){
-                        if (ns.policy.check_result(move_result,BestM))
+                        if (ns.policy.check_result(mcgrp,ns,move_result,BestM))
                             BestM = move_result;
                     }
                     else{
@@ -145,7 +145,7 @@ bool NewTwoOpt::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chos
                         return true;
                     }
                     else if (ns.policy.has_rule(BEST_ACCEPT)){
-                        if (ns.policy.check_result(move_result,BestM))
+                        if (ns.policy.check_result(mcgrp,ns,move_result,BestM))
                             BestM = move_result;
                     }
                     else{
@@ -167,7 +167,7 @@ bool NewTwoOpt::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chos
                         return true;
                     }
                     else if (ns.policy.has_rule(BEST_ACCEPT)){
-                        if (ns.policy.check_result(move_result,BestM))
+                        if (ns.policy.check_result(mcgrp,ns,move_result,BestM))
                             BestM = move_result;
                     }
                     else{
@@ -182,7 +182,7 @@ bool NewTwoOpt::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chos
                         return true;
                     }
                     else if (ns.policy.has_rule(BEST_ACCEPT)){
-                        if (ns.policy.check_result(move_result,BestM))
+                        if (ns.policy.check_result(mcgrp,ns,move_result,BestM))
                             BestM = move_result;
                     }
                     else{
@@ -263,7 +263,7 @@ NewTwoOpt::considerable_move(
         flip_times++;
 
         if(ns.before(a, c)){      //...ab...cd...
-            if(flip.considerable_move(ns, mcgrp, a, d) && ns.policy.check_move(flip.move_result)){
+            if(flip.considerable_move(ns, mcgrp, a, d) && ns.policy.check_move(mcgrp,ns,flip.move_result)){
                 move_result = flip.move_result;
                 return true;
             }
@@ -274,7 +274,7 @@ NewTwoOpt::considerable_move(
             }
         }
         else{        //...cd...ab...
-            if(flip.considerable_move(ns,mcgrp,c,b) && ns.policy.check_move(flip.move_result)){
+            if(flip.considerable_move(ns,mcgrp,c,b) && ns.policy.check_move(mcgrp,ns,flip.move_result)){
                 move_result = flip.move_result;
                 return true;
             }
@@ -297,7 +297,7 @@ NewTwoOpt::considerable_move(
         swapends_times++;
 
         if(swap_ends.considerable_move(ns, mcgrp, a, c, a_route, c_route)
-        && ns.policy.check_move(swap_ends.move_result)){
+        && ns.policy.check_move(mcgrp,ns,swap_ends.move_result)){
             move_result = swap_ends.move_result;
             return true;
         }

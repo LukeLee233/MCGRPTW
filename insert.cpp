@@ -72,13 +72,19 @@ bool XPostInsert::considerable_move(HighSpeedNeighBorSearch &ns,
             load_delta += mcgrp.inst_tasks[task].demand;
         }
 
-        if (ns.policy.has_rule(DELTA_ONLY)) {
+        if (ns.policy.has_rule(FEASIBLE)) {
             if (ns.routes[u_route]->load + load_delta > mcgrp.capacity) {
                 move_result.reset();
                 return false;
             }
         }
-        else if (ns.policy.has_rule(FITNESS_ONLY)) {
+        else if (ns.policy.has_rule(INFEASIBLE)) {
+            int pseudo_capacity = ns.policy.get_pseudo_capacity(mcgrp.capacity);
+            if (ns.routes[u_route]->load + load_delta > pseudo_capacity) {
+                move_result.reset();
+                return false;
+            }
+
             //u_route vio-load calculate
             if (ns.routes[u_route]->load + load_delta > mcgrp.capacity) {
                 //if insert Task to route u and over load
@@ -105,7 +111,7 @@ bool XPostInsert::considerable_move(HighSpeedNeighBorSearch &ns,
         }
     }
 
-    bool allow_infeasible = ns.policy.has_rule(FITNESS_ONLY) ? true : false;
+    bool allow_infeasible = ns.policy.has_rule(INFEASIBLE) ? true : false;
     vector<vector<RouteInfo::TimeTable>> new_time_tbl{{{-1, -1}}};
 
     new_time_tbl = expected_time_table(ns,mcgrp,disturbance_seq,u,allow_infeasible);
@@ -113,6 +119,13 @@ bool XPostInsert::considerable_move(HighSpeedNeighBorSearch &ns,
     if(!mcgrp.isTimeTableFeasible(new_time_tbl[0])){
         move_result.reset();
         return false;
+    }
+
+    if(allow_infeasible){
+        if(ns.policy.check_time_window(mcgrp,new_time_tbl)){
+            move_result.reset();
+            return false;
+        }
     }
 
     const int v = max(ns.solution[u]->next->ID, 0);
@@ -180,14 +193,21 @@ bool XPostInsert::considerable_move(HighSpeedNeighBorSearch &ns,
 
         move_result.new_total_route_length = ns.cur_solution_cost + move_result.delta;
 
-        move_result.vio_load_delta = vio_load_delta;
-
         move_result.considerable = true;
 
-        move_result.route_time_tbl.emplace_back(new_time_tbl[0]);
-        move_result.vio_time_delta =
-            mcgrp.get_vio_time(move_result.route_time_tbl[0])
-                - mcgrp.get_vio_time(ns.routes[i_route]->time_table);
+        if(ns.policy.has_rule(INFEASIBLE)){
+            auto old_time_info_i = mcgrp.get_vio_time( ns.routes[i_route]->time_table);
+            auto new_time_info_i = mcgrp.get_vio_time(move_result.route_time_tbl[0]);
+
+            move_result.vio_load_delta = vio_load_delta;
+            move_result.vio_time_delta = new_time_info_i.second - old_time_info_i.second;
+            move_result.vio_time_custom_num_delta = new_time_info_i.first - old_time_info_i.first;
+        }else{
+            move_result.vio_load_delta = 0;
+            move_result.vio_time_delta = 0;
+            move_result.vio_time_custom_num_delta = 0;
+        }
+
         return true;
     }
     else {
@@ -209,20 +229,34 @@ bool XPostInsert::considerable_move(HighSpeedNeighBorSearch &ns,
 
         move_result.new_total_route_length = ns.cur_solution_cost + move_result.delta;
 
-        move_result.vio_load_delta = vio_load_delta;
 
         move_result.considerable = true;
 
         move_result.route_time_tbl = new_time_tbl;
-        move_result.vio_time_delta =
-            mcgrp.get_vio_time(move_result.route_time_tbl[0])
-                + mcgrp.get_vio_time(move_result.route_time_tbl[1])
-                - mcgrp.get_vio_time(ns.routes[i_route]->time_table)
-                - mcgrp.get_vio_time(ns.routes[u_route]->time_table);
+
+
+        if(ns.policy.has_rule(INFEASIBLE)){
+            auto old_time_info_i = mcgrp.get_vio_time( ns.routes[i_route]->time_table);
+            auto new_time_info_i = mcgrp.get_vio_time(move_result.route_time_tbl[0]);
+                                   
+            auto old_time_info_u = mcgrp.get_vio_time(ns.routes[u_route]->time_table);
+            auto new_time_info_u = mcgrp.get_vio_time(move_result.route_time_tbl[1]);
+
+            move_result.vio_load_delta = vio_load_delta;
+
+            move_result.vio_time_delta =
+                new_time_info_i.second + new_time_info_u.second - old_time_info_i.second - old_time_info_u.second;
+            move_result.vio_time_custom_num_delta =
+                new_time_info_i.first + new_time_info_u.first - old_time_info_i.first - old_time_info_u.first;
+        }else{
+            move_result.vio_load_delta = 0;
+            move_result.vio_time_delta = 0;
+            move_result.vio_time_custom_num_delta = 0;
+        }
+
         return true;
     }
 
-    My_Assert(false,"Cannot reach here!");
 }
 
 void XPostInsert::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
@@ -388,15 +422,10 @@ void XPostInsert::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
     My_Assert(ns.valid_sol(mcgrp),"Prediction wrong!");
 
 
-    if(move_result.delta == 0){
-        ns.equal_step++;
-    }
-
     update_score(ns);
 
     ns.trace(mcgrp);
     move_result.reset();
-    ns.search_step++;
 }
 
 
@@ -443,13 +472,13 @@ bool XPostInsert::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int ch
 
             if (std::find(chosen_seq.begin(), chosen_seq.end(), j) == chosen_seq.end()) {
                 // doesn't overlap
-                if (considerable_move(ns, mcgrp, chosen_seq, j) && ns.policy.check_move(move_result)) {
+                if (considerable_move(ns, mcgrp, chosen_seq, j) && ns.policy.check_move(mcgrp,ns,move_result)) {
                     if (ns.policy.has_rule(FIRST_ACCEPT)) {
                         move(ns, mcgrp);
                         return true;
                     }
                     else if (ns.policy.has_rule(BEST_ACCEPT)) {
-                        if (ns.policy.check_result(move_result, BestM))
+                        if (ns.policy.check_result(mcgrp,ns,move_result, BestM))
                             BestM = move_result;
                     }
                     else {
@@ -477,13 +506,13 @@ bool XPostInsert::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int ch
 
                 if (std::find(chosen_seq.begin(), chosen_seq.end(), j) == chosen_seq.end()) {
                     // doesn't overlap
-                    if (considerable_move(ns, mcgrp, chosen_seq, j) && ns.policy.check_move(move_result)) {
+                    if (considerable_move(ns, mcgrp, chosen_seq, j) && ns.policy.check_move(mcgrp,ns,move_result)) {
                         if (ns.policy.has_rule(FIRST_ACCEPT)) {
                             move(ns, mcgrp);
                             return true;
                         }
                         else if (ns.policy.has_rule(BEST_ACCEPT)) {
-                            if (ns.policy.check_result(move_result, BestM))
+                            if (ns.policy.check_result(mcgrp,ns,move_result, BestM))
                                 BestM = move_result;
                         }
                         else {
@@ -498,13 +527,13 @@ bool XPostInsert::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int ch
                 j = current_end;
                 if (std::find(chosen_seq.begin(), chosen_seq.end(), j) == chosen_seq.end()) {
                     // doesn't overlap
-                    if (considerable_move(ns, mcgrp, chosen_seq, j) && ns.policy.check_move(move_result)) {
+                    if (considerable_move(ns, mcgrp, chosen_seq, j) && ns.policy.check_move(mcgrp,ns,move_result)) {
                         if (ns.policy.has_rule(FIRST_ACCEPT)) {
                             move(ns, mcgrp);
                             return true;
                         }
                         else if (ns.policy.has_rule(BEST_ACCEPT)) {
-                            if (ns.policy.check_result(move_result, BestM))
+                            if (ns.policy.check_result(mcgrp,ns,move_result, BestM))
                                 BestM = move_result;
                         }
                         else {
@@ -626,13 +655,19 @@ XPreInsert::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, v
             load_delta += mcgrp.inst_tasks[task].demand;
         }
 
-        if (ns.policy.has_rule(DELTA_ONLY)) {
+        if (ns.policy.has_rule(FEASIBLE)) {
             if (ns.routes[u_route]->load + load_delta > mcgrp.capacity) {
                 move_result.reset();
                 return false;
             }
         }
-        else if (ns.policy.has_rule(FITNESS_ONLY)) {
+        else if (ns.policy.has_rule(INFEASIBLE)) {
+            int pseudo_capacity = ns.policy.get_pseudo_capacity(mcgrp.capacity);
+            if (ns.routes[u_route]->load + load_delta > pseudo_capacity) {
+                move_result.reset();
+                return false;
+            }
+
             //u_route vio-load calculate
             if (ns.routes[u_route]->load + load_delta > mcgrp.capacity) {
                 //if insert Task to route u and over load
@@ -659,7 +694,7 @@ XPreInsert::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, v
         }
     }
 
-    bool allow_infeasible = ns.policy.has_rule(FITNESS_ONLY) ? true : false;
+    bool allow_infeasible = ns.policy.has_rule(INFEASIBLE) ? true : false;
     vector<vector<RouteInfo::TimeTable>> new_time_tbl{{{-1, -1}}};
 
     new_time_tbl = expected_time_table(ns,mcgrp,disturbance_seq,u,allow_infeasible);
@@ -667,6 +702,13 @@ XPreInsert::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, v
     if(!mcgrp.isTimeTableFeasible(new_time_tbl[0])){
         move_result.reset();
         return false;
+    }
+
+    if(allow_infeasible){
+        if(ns.policy.check_time_window(mcgrp,new_time_tbl)){
+            move_result.reset();
+            return false;
+        }
     }
 
     const int t = max(ns.solution[u]->pre->ID, 0);
@@ -737,14 +779,25 @@ XPreInsert::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, v
 
         move_result.new_total_route_length = ns.cur_solution_cost + move_result.delta;
 
-        move_result.vio_load_delta = vio_load_delta;
 
         move_result.considerable = true;
 
         move_result.route_time_tbl.emplace_back(new_time_tbl[0]);
-        move_result.vio_time_delta =
-            mcgrp.get_vio_time(move_result.route_time_tbl[0])
-                - mcgrp.get_vio_time(ns.routes[i_route]->time_table);
+
+
+        if(ns.policy.has_rule(INFEASIBLE)){
+            auto old_time_info_i = mcgrp.get_vio_time(ns.routes[i_route]->time_table);
+            auto new_time_info_i = mcgrp.get_vio_time(move_result.route_time_tbl[0]);
+
+            move_result.vio_load_delta = vio_load_delta;
+            move_result.vio_time_delta = new_time_info_i.second - old_time_info_i.second;
+            move_result.vio_time_custom_num_delta = new_time_info_i.first - old_time_info_i.first;
+        }else{
+            move_result.vio_load_delta = 0;
+            move_result.vio_time_delta = 0;
+            move_result.vio_time_custom_num_delta = 0;
+        }
+
         return true;
     }
     else {
@@ -766,16 +819,29 @@ XPreInsert::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, v
 
         move_result.new_total_route_length = ns.cur_solution_cost + move_result.delta;
 
-        move_result.vio_load_delta = vio_load_delta;
-
         move_result.considerable = true;
 
         move_result.route_time_tbl = new_time_tbl;
-        move_result.vio_time_delta =
-            mcgrp.get_vio_time(move_result.route_time_tbl[0])
-                + mcgrp.get_vio_time(move_result.route_time_tbl[1])
-                - mcgrp.get_vio_time(ns.routes[i_route]->time_table)
-                - mcgrp.get_vio_time(ns.routes[u_route]->time_table);
+
+        if(ns.policy.has_rule(INFEASIBLE)){
+            move_result.vio_load_delta = vio_load_delta;
+
+            auto old_time_info_i = mcgrp.get_vio_time(ns.routes[i_route]->time_table);
+            auto new_time_info_i = mcgrp.get_vio_time(move_result.route_time_tbl[0]);
+                                
+            auto old_time_info_u = mcgrp.get_vio_time(ns.routes[u_route]->time_table);
+            auto new_time_info_u = mcgrp.get_vio_time(move_result.route_time_tbl[1]);
+
+            move_result.vio_time_delta =
+                new_time_info_i.second + new_time_info_u.second - old_time_info_i.second - old_time_info_u.second;
+            move_result.vio_time_custom_num_delta =
+                new_time_info_i.first + new_time_info_u.first - old_time_info_i.first - old_time_info_u.first;
+        }else{
+            move_result.vio_load_delta = 0;
+            move_result.vio_time_delta = 0;
+            move_result.vio_time_custom_num_delta = 0;
+        }
+
         return true;
     }
 
@@ -946,16 +1012,11 @@ void XPreInsert::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
     My_Assert(ns.valid_sol(mcgrp),"Prediction wrong!");
 
 
-    if(move_result.delta == 0){
-        ns.equal_step++;
-    }
-
 
     update_score(ns);
 
     ns.trace(mcgrp);
     move_result.reset();
-    ns.search_step++;
 }
 
 
@@ -971,20 +1032,19 @@ bool XPreInsert::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int cho
     MoveResult BestM;
 
     vector<int> chosen_seq = ns.get_successor_tasks(length, chosen_task);
+    My_Assert(chosen_seq.size() > 0,"You cannot generate an empty sequence!");
+
+    if (chosen_seq.size() != length) {
+        DEBUG_PRINT("warning, the length after chosen task is not " + to_string(length) + " in " + to_string(length) + "-insert");
+        return false;
+    }
 
     int offset = 0;
     if(ns.policy.has_rule(TOLERANCE)){
-        offset = rand() % mcgrp.actual_task_num;
+        offset = mcgrp._rng.Randint(0, mcgrp.actual_task_num);
     }
     ns.create_search_neighborhood(mcgrp, chosen_seq,"successor", offset);
 
-
-    My_Assert(chosen_seq.size()>0,"You cannot generate an empty sequence!");
-
-    if (chosen_seq.size() != length) {
-        DEBUG_PRINT("The length after chosen Task is not " + to_string(length) + " in " + to_string(length) + "-insert");
-        return false;
-    }
 
     int b = chosen_seq.front();
 
@@ -1002,13 +1062,13 @@ bool XPreInsert::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int cho
 
             if (std::find(chosen_seq.begin(), chosen_seq.end(), j) == chosen_seq.end()) {
                 // doesn't overlap
-                if (considerable_move(ns, mcgrp, chosen_seq, j) && ns.policy.check_move(move_result)) {
+                if (considerable_move(ns, mcgrp, chosen_seq, j) && ns.policy.check_move(mcgrp,ns,move_result)) {
                     if (ns.policy.has_rule(FIRST_ACCEPT)) {
                         move(ns, mcgrp);
                         return true;
                     }
                     else if (ns.policy.has_rule(BEST_ACCEPT)) {
-                        if (ns.policy.check_result(move_result, BestM))
+                        if (ns.policy.check_result(mcgrp,ns,move_result, BestM))
                             BestM = move_result;
                     }
                     else {
@@ -1036,13 +1096,13 @@ bool XPreInsert::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int cho
 
                 if (std::find(chosen_seq.begin(), chosen_seq.end(), j) == chosen_seq.end()) {
                     // doesn't overlap
-                    if (considerable_move(ns, mcgrp, chosen_seq, j) && ns.policy.check_move(move_result)) {
+                    if (considerable_move(ns, mcgrp, chosen_seq, j) && ns.policy.check_move(mcgrp,ns,move_result)) {
                         if (ns.policy.has_rule(FIRST_ACCEPT)) {
                             move(ns, mcgrp);
                             return true;
                         }
                         else if (ns.policy.has_rule(BEST_ACCEPT)) {
-                            if (ns.policy.check_result(move_result, BestM))
+                            if (ns.policy.check_result(mcgrp,ns,move_result, BestM))
                                 BestM = move_result;
                         }
                         else {
@@ -1057,13 +1117,13 @@ bool XPreInsert::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int cho
                 j = current_end;
                 if (std::find(chosen_seq.begin(), chosen_seq.end(), j) == chosen_seq.end()) {
                     // doesn't overlap
-                    if (considerable_move(ns, mcgrp, chosen_seq, j) && ns.policy.check_move(move_result)) {
+                    if (considerable_move(ns, mcgrp, chosen_seq, j) && ns.policy.check_move(mcgrp,ns,move_result)) {
                         if (ns.policy.has_rule(FIRST_ACCEPT)) {
                             move(ns, mcgrp);
                             return true;
                         }
                         else if (ns.policy.has_rule(BEST_ACCEPT)) {
-                            if (ns.policy.check_result(move_result, BestM))
+                            if (ns.policy.check_result(mcgrp,ns,move_result, BestM))
                                 BestM = move_result;
                         }
                         else {

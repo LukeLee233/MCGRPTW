@@ -1,5 +1,6 @@
 //
 // Created by luke on 2020/11/25.
+// doesn't support infeasible search
 //
 
 #ifndef ATTRACTION_H

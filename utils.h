@@ -1,7 +1,8 @@
 #pragma once
 #include <bits/stdc++.h>
 #include <sys/timeb.h>
-#include "RNG.h"
+
+using namespace std;
 
 #define seed_size 100
 
@@ -16,10 +17,10 @@
 #   define DEBUG_PRINT(stuff) ;
 #endif
 
-#define MAX(args) std::numeric_limits<decltype(args)>::max()
-#define MIN(args) std::numeric_limits<decltype(args)>::min()
+#define MAX(args) numeric_limits<decltype(args)>::max()
+#define MIN(args) numeric_limits<decltype(args)>::min()
 
-using std::ofstream;
+class RNG;
 
 extern ofstream result_out;
 
@@ -258,6 +259,7 @@ public:
     double new_total_route_length;
     double vio_load_delta;
     int vio_time_delta;
+    int vio_time_custom_num_delta;
     vector<int> move_arguments;
 
     int num_affected_routes;
