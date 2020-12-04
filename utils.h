@@ -115,13 +115,22 @@ struct TaskNeighborInfo{
 public:
     int task_id;
     double distance;
+    double coverage;
 
     TaskNeighborInfo(int taskId, double distance)
-        : task_id(taskId), distance(distance){}
+        : task_id(taskId), distance(distance),coverage(0){}
 
-    static bool cmp(const TaskNeighborInfo &a, const TaskNeighborInfo &b){
+    TaskNeighborInfo(int taskId, double distance, double coverage)
+        : task_id(taskId), distance(distance),coverage(coverage){}
+
+    static bool cmp_distance(const TaskNeighborInfo &a, const TaskNeighborInfo &b){
         return a.distance < b.distance;
     };
+
+    static bool cmp_hybrid(const TaskNeighborInfo &a, const TaskNeighborInfo &b){
+        if(a.coverage != b.coverage) return a.coverage > b.coverage;
+        else return a.distance < b.distance;
+    }
 };
 
 struct NeighborInfo
