@@ -441,7 +441,23 @@ void HighSpeedNeighBorSearch::create_search_neighborhood(const MCGRP &mcgrp, con
             if(loc == offset) break;
         }
 
-    }else {
+    }
+    else if(mode == "coverage"){
+        My_Assert(chosen_seq.size() == 1, "error, doesn't support long sequence!");
+        My_Assert(!neighbor_info.coverage_neighbor.empty(), "error, doesn't have coverage neighbor!");
+        offset %= neighbor_info.coverage_neighbor.size();
+        int loc = offset;
+
+        while(search_space.size() < neigh_size){
+            int task_id = neighbor_info.coverage_neighbor[loc].task_id;
+            if(solution.tasks[task_id].next != nullptr && check_tbl.find(task_id) == check_tbl.end())
+                search_space.push_back(task_id);
+            loc++;
+            loc %= neighbor_info.coverage_neighbor.size();
+            if(loc == offset) break;
+        }
+    }
+    else {
         My_Assert(false, "Unknown arguments");
     }
 

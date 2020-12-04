@@ -1028,9 +1028,14 @@ void MCGRP::_build_neighbor_task(const Task &task, NeighborInfo &neighbor_info)
 
         neighbor_info.basic_neighbor.push_back(TaskNeighborInfo(
                 neighbor_id, task_dist[task.task_id][neighbor_id]));
+
+        neighbor_info.coverage_neighbor.push_back(TaskNeighborInfo(neighbor_id,_coverage(task.task_id,neighbor_id)));
     }
 
     sort(neighbor_info.basic_neighbor.begin(), neighbor_info.basic_neighbor.end(), TaskNeighborInfo::cmp);
+    sort(neighbor_info.coverage_neighbor.begin(), neighbor_info.coverage_neighbor.end(), TaskNeighborInfo::cmp);
+    reverse(neighbor_info.coverage_neighbor.begin(), neighbor_info.coverage_neighbor.end());
+
 
     // TODO(luke): maybe I should only keep one of the edge task?
 
@@ -1056,6 +1061,28 @@ void MCGRP::_build_neighbor_task(const Task &task, NeighborInfo &neighbor_info)
 //    show_neighbor(neighbor_info.start,neighbor_info.end);
 }
 
+double MCGRP::_coverage(int task_a, int task_b)
+{
+    int a_s = inst_tasks[task_a].time_window.first;
+    int a_e = inst_tasks[task_a].time_window.second;
+    int b_s = inst_tasks[task_b].time_window.first;
+    int b_e = inst_tasks[task_b].time_window.second;
+
+    if(a_s > b_s)
+        return _coverage(task_b,task_a);
+
+    if(a_e < b_s) {
+        return 0;
+    }
+    else{
+        if(a_e <= b_e){
+            return double(b_e - a_e + 1) / min(a_e - a_s + 1 , b_e - b_s + 1);
+        }else{
+            return 1;
+        }
+    }
+
+}
 
 void MCGRP::_build_neighbor_node(int start, int end, NeighborInfo &neighbor_info)
 {

@@ -138,6 +138,7 @@ private:
     unordered_map<int, vector<int>> start_task_lookup_tbl;
     const vector<int>& _same_end_task(int end_node);
     const vector<int>& _same_start_task(int start_node);
+    double _coverage(int task_a, int task_b);
 
 public:
     void register_distance(string name, unique_ptr<Distance> distance_);

@@ -130,9 +130,9 @@ public:
     int start = -1;
     int end = -1;
     vector<TaskNeighborInfo> basic_neighbor;
+    vector<TaskNeighborInfo> coverage_neighbor;
     unordered_map<int, vector<TaskNeighborInfo>> predecessor_neighbor;
     unordered_map<int, vector<TaskNeighborInfo>> successor_neighbor;
-
 };
 
 struct Task
