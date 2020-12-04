@@ -117,7 +117,7 @@ Individual NearestScanner::operator()(const vector<int> &taskList, const string&
 }
 
 void
-merge_split(class HighSpeedNeighBorSearch &ns,
+merge_split(HighSpeedNeighBorSearch &ns,
     const MCGRP &mcgrp, const int merge_size)
 {
     if (ns.routes.activated_route_id.size() < merge_size) {
@@ -283,24 +283,24 @@ vector<int> nearest_growing(const MCGRP &mcgrp, vector<int> tasks, Policy& polic
     int current_task;
     int current_load = 0;
     int drive_time = 0;
-    vector<int> candidate_tasks;
+    vector<int> FCL;
     vector<int> nearest_tasks;
 
     int constraint = policy.get_pseudo_capacity(mcgrp.capacity);
     while (!tasks.empty()) {
         current_task = sequence.back();
 
-        candidate_tasks.clear();
+        FCL.clear();
         for (auto task : tasks) {
             if (mcgrp.inst_tasks[task].demand <= constraint - current_load
                 && mcgrp.cal_arrive_time(sequence.back(), task, drive_time, true)
                     <= policy.get_pseudo_time_window(mcgrp.inst_tasks[task].time_window.second)) {
-                candidate_tasks.push_back(task);
+                FCL.push_back(task);
             }
         }
 
         //check whether need to create a new route
-        if (candidate_tasks.empty()) {
+        if (FCL.empty()) {
             sequence.push_back(DUMMY);
             current_load = 0;
             drive_time = 0;
@@ -309,7 +309,7 @@ vector<int> nearest_growing(const MCGRP &mcgrp, vector<int> tasks, Policy& polic
 
         double min_dist = MAX(min_dist);
         nearest_tasks.clear();
-        for (auto task:candidate_tasks) {
+        for (auto task:FCL) {
             if (mcgrp.min_cost[mcgrp.inst_tasks[current_task].tail_node][mcgrp.inst_tasks[task].head_node] < min_dist) {
                 min_dist = mcgrp.min_cost[mcgrp.inst_tasks[current_task].tail_node][mcgrp.inst_tasks[task].head_node];
                 nearest_tasks.clear();
@@ -356,22 +356,22 @@ vector<int> nearest_depot_growing(const MCGRP &mcgrp, vector<int> tasks, Policy&
     sequence.push_back(DUMMY);
     int current_load = 0;
     int drive_time = 0;
-    vector<int> candidate_tasks;
+    vector<int> FCL;
     vector<int> nearest_tasks;
 
     int constraint = policy.get_pseudo_capacity(mcgrp.capacity);
     while (!tasks.empty()) {
-        candidate_tasks.clear();
+        FCL.clear();
         for (auto task : tasks) {
             if (mcgrp.inst_tasks[task].demand <= constraint - current_load
                 && mcgrp.cal_arrive_time(sequence.back(), task, drive_time, true)
                     <= policy.get_pseudo_time_window(mcgrp.inst_tasks[task].time_window.second)) {
-                candidate_tasks.push_back(task);
+                FCL.push_back(task);
             }
         }
 
         //check whether need to create a new route
-        if (candidate_tasks.empty()) {
+        if (FCL.empty()) {
             sequence.push_back(DUMMY);
             current_load = 0;
             drive_time = 0;
@@ -381,7 +381,7 @@ vector<int> nearest_depot_growing(const MCGRP &mcgrp, vector<int> tasks, Policy&
         double min_dist = MAX(min_dist);
         nearest_tasks.clear();
 
-        for (auto task:candidate_tasks) {
+        for (auto task:FCL) {
             if (mcgrp.min_cost[mcgrp.inst_tasks[task].tail_node][mcgrp.inst_tasks[DUMMY].head_node] < min_dist) {
                 min_dist = mcgrp.min_cost[mcgrp.inst_tasks[task].tail_node][mcgrp.inst_tasks[DUMMY].head_node];
                 nearest_tasks.clear();
@@ -428,22 +428,22 @@ vector<int> maximum_yield_growing(const MCGRP &mcgrp, vector<int> tasks, Policy&
     sequence.push_back(DUMMY);
     int current_load = 0;
     int drive_time = 0;
-    vector<int> candidate_tasks;
+    vector<int> FCL;
     vector<int> maximum_tasks;
 
     int constraint = policy.get_pseudo_capacity(mcgrp.capacity);
     while (!tasks.empty()) {
-        candidate_tasks.clear();
+        FCL.clear();
         for (auto task : tasks) {
             if (mcgrp.inst_tasks[task].demand <= constraint - current_load
                 && mcgrp.cal_arrive_time(sequence.back(), task, drive_time, true)
                     <= policy.get_pseudo_time_window(mcgrp.inst_tasks[task].time_window.second)) {
-                candidate_tasks.push_back(task);
+                FCL.push_back(task);
             }
         }
 
         //check whether need to create a new route
-        if (candidate_tasks.empty()) {
+        if (FCL.empty()) {
             sequence.push_back(DUMMY);
             current_load = 0;
             drive_time = 0;
@@ -453,7 +453,7 @@ vector<int> maximum_yield_growing(const MCGRP &mcgrp, vector<int> tasks, Policy&
         double max_yield = -1;
         maximum_tasks.clear();
 
-        for (auto task:candidate_tasks) {
+        for (auto task:FCL) {
             if (mcgrp.get_yield(task) > max_yield) {
                 max_yield = mcgrp.get_yield(task);
                 maximum_tasks.clear();
@@ -500,22 +500,22 @@ vector<int> minimum_yield_growing(const MCGRP &mcgrp, vector<int> tasks, Policy&
     sequence.push_back(DUMMY);
     int current_load = 0;
     int drive_time = 0;
-    vector<int> candidate_tasks;
+    vector<int> FCL;
     vector<int> minimum_tasks;
 
     int constraint = policy.get_pseudo_capacity(mcgrp.capacity);
     while (!tasks.empty()) {
-        candidate_tasks.clear();
+        FCL.clear();
         for (auto task : tasks) {
             if (mcgrp.inst_tasks[task].demand <= constraint - current_load
                 && mcgrp.cal_arrive_time(sequence.back(), task, drive_time, true)
                     <= policy.get_pseudo_time_window(mcgrp.inst_tasks[task].time_window.second)) {
-                candidate_tasks.push_back(task);
+                FCL.push_back(task);
             }
         }
 
         //check whether need to create a new route
-        if (candidate_tasks.empty()) {
+        if (FCL.empty()) {
             sequence.push_back(DUMMY);
             current_load = 0;
             drive_time = 0;
@@ -525,7 +525,7 @@ vector<int> minimum_yield_growing(const MCGRP &mcgrp, vector<int> tasks, Policy&
         double min_yield = MAX(min_yield);
         minimum_tasks.clear();
 
-        for (auto task:candidate_tasks) {
+        for (auto task:FCL) {
             if (mcgrp.get_yield(task) < min_yield) {
                 min_yield = mcgrp.get_yield(task);
                 minimum_tasks.clear();
@@ -572,22 +572,22 @@ vector<int> mixture_growing(const MCGRP &mcgrp, vector<int> tasks, Policy& polic
     sequence.push_back(DUMMY);
     int current_load = 0;
     int drive_time = 0;
-    vector<int> candidate_tasks;
+    vector<int> FCL;
     vector<int> potential_tasks;
 
     int constraint = policy.get_pseudo_capacity(mcgrp.capacity);
     while (!tasks.empty()) {
-        candidate_tasks.clear();
+        FCL.clear();
         for (auto task : tasks) {
             if (mcgrp.inst_tasks[task].demand <= constraint - current_load
                 && mcgrp.cal_arrive_time(sequence.back(), task, drive_time, true)
                     <= policy.get_pseudo_time_window(mcgrp.inst_tasks[task].time_window.second)) {
-                candidate_tasks.push_back(task);
+                FCL.push_back(task);
             }
         }
 
         //check whether need to create a new route
-        if (candidate_tasks.empty()) {
+        if (FCL.empty()) {
             sequence.push_back(DUMMY);
             current_load = 0;
             drive_time = 0;
@@ -599,7 +599,7 @@ vector<int> mixture_growing(const MCGRP &mcgrp, vector<int> tasks, Policy& polic
             double min_dist = MAX(min_dist);
             potential_tasks.clear();
 
-            for (auto task:candidate_tasks) {
+            for (auto task:FCL) {
                 if (mcgrp.min_cost[mcgrp.inst_tasks[task].tail_node][mcgrp.inst_tasks[DUMMY].head_node] < min_dist) {
                     min_dist = mcgrp.min_cost[mcgrp.inst_tasks[task].tail_node][mcgrp.inst_tasks[DUMMY].head_node];
                     potential_tasks.clear();
@@ -637,7 +637,7 @@ vector<int> mixture_growing(const MCGRP &mcgrp, vector<int> tasks, Policy& polic
             double max_yield = -1;
             potential_tasks.clear();
 
-            for (auto task:candidate_tasks) {
+            for (auto task:FCL) {
                 if (mcgrp.get_yield(task) > max_yield) {
                     max_yield = mcgrp.get_yield(task);
                     potential_tasks.clear();
@@ -675,7 +675,6 @@ vector<int> mixture_growing(const MCGRP &mcgrp, vector<int> tasks, Policy& polic
 
     return sequence;
 }
-
 
 vector<vector<int>> tour_splitting(const MCGRP &mcgrp,vector<int>& task_list)
 {

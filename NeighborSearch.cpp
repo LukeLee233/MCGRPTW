@@ -1057,6 +1057,7 @@ void HighSpeedNeighBorSearch::repair_solution(const MCGRP &mcgrp)
     // Only violated load and time window here
     // No missed Task, duplicated Task problem here
     if(total_vio_load == 0 && total_vio_time == 0){
+        trace(mcgrp);
         return;
     }
 
@@ -1076,13 +1077,16 @@ void HighSpeedNeighBorSearch::repair_solution(const MCGRP &mcgrp)
     My_Assert(total_vio_time == 0, "time window reparation mistake!");
 */
 
-    _tour_splitting_repair(mcgrp);
+    _two_phase_repair(mcgrp);
+//    _tour_splitting_repair(mcgrp);
+//    _inplace_repair(mcgrp);
     My_Assert(total_vio_load == 0 && total_vio_time == 0, "Repair failed");
-
+    trace(mcgrp);
 }
 
 void HighSpeedNeighBorSearch::_repair_load(const MCGRP &mcgrp)
 {
+    if(total_vio_load == 0) return;
     DEBUG_PRINT("Repair Load infeasible solution...");
 
     struct Route
@@ -1327,7 +1331,7 @@ void HighSpeedNeighBorSearch::_repair_time_window(const MCGRP &mcgrp)
             for(const auto& task : cur_route){
                 tasks_id.push_back(task.task);
             }
-            new_route(mcgrp, tasks_id);
+            cur_solution_cost += routes[new_route(mcgrp, tasks_id)]->length;
         }
     }
 
@@ -1393,9 +1397,35 @@ void HighSpeedNeighBorSearch::_tour_splitting_repair(const MCGRP &mcgrp)
 
     My_Assert(missed(mcgrp), "Some Task missed!");
     My_Assert(check_duplicated(mcgrp), "Duplicated Task!");
-    My_Assert(total_vio_time == 0, "This is not a infeasible Task!");
 
     My_Assert(valid_sol(mcgrp), "Repair method doesn't work properly!");
+}
+
+void HighSpeedNeighBorSearch::_inplace_repair(const MCGRP &mcgrp)
+{
+    vector<int> task_list;
+    for(auto& iter = solution.very_start; iter != solution.very_end;iter = iter->next){
+        if(iter->ID > 0) task_list.push_back(iter->ID);
+    }
+
+    this->clear();
+
+    auto new_routes = tour_splitting(mcgrp, task_list);
+
+    vector<int>dummy_seq;
+    for (const auto& route : new_routes){
+        dummy_seq.push_back(DUMMY);
+        for(int task_id : route){
+            dummy_seq.push_back(task_id);
+        }
+    }
+    dummy_seq.push_back(DUMMY);
+    unpack_seq(dummy_seq,mcgrp);
+
+    My_Assert(missed(mcgrp), "Some Task missed!");
+    My_Assert(check_duplicated(mcgrp), "Duplicated Task!");
+    My_Assert(valid_sol(mcgrp), "Repair method doesn't work properly!");
+
 }
 
 bool HighSpeedNeighBorSearch::missed(const MCGRP &mcgrp)
@@ -1810,5 +1840,13 @@ double HighSpeedNeighBorSearch::getFitness(const MCGRP &mcgrp, Policy &policy, c
     double fitness = indi.total_cost * (1 + 0.5 * policy.getBeta() * (alpha_t + alpha_c));
     return fitness;
 }
+
+void HighSpeedNeighBorSearch::_two_phase_repair(const MCGRP &mcgrp)
+{
+    _repair_load(mcgrp);
+    _repair_time_window(mcgrp);
+}
+
+
 
 

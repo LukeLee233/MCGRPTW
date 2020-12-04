@@ -388,10 +388,11 @@ public:
      * @param mcgrp
      */
     void repair_solution(const MCGRP &mcgrp);
+    void _two_phase_repair(const MCGRP& mcgrp);
     void _repair_load(const MCGRP &mcgrp);
     void _repair_time_window(const MCGRP &mcgrp);
     void _tour_splitting_repair(const MCGRP &mcgrp);
-
+    void _inplace_repair(const MCGRP &mcgrp);
 
     /*!
      * @details Check if any tasks missed.
