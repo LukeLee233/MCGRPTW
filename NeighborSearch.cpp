@@ -1077,9 +1077,9 @@ void HighSpeedNeighBorSearch::repair_solution(const MCGRP &mcgrp)
     My_Assert(total_vio_time == 0, "time window reparation mistake!");
 */
 
-    _two_phase_repair(mcgrp);
+//    _two_phase_repair(mcgrp);
 //    _tour_splitting_repair(mcgrp);
-//    _inplace_repair(mcgrp);
+    _inplace_repair(mcgrp);
     My_Assert(total_vio_load == 0 && total_vio_time == 0, "Repair failed");
     trace(mcgrp);
 }

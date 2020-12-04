@@ -195,6 +195,8 @@ bool XPostInsert::considerable_move(HighSpeedNeighBorSearch &ns,
 
         move_result.considerable = true;
 
+        move_result.route_time_tbl.emplace_back(new_time_tbl[0]);
+
         if(ns.policy.has_rule(INFEASIBLE)){
             auto old_time_info_i = mcgrp.get_vio_time( ns.routes[i_route]->time_table);
             auto new_time_info_i = mcgrp.get_vio_time(move_result.route_time_tbl[0]);
