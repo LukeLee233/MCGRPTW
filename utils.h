@@ -91,7 +91,6 @@ struct RouteInfo
     int start = -1;
     int end = -1;
     int load = 0;
-    pair<int,int> dummy_pair{0,0};
     double length = 0;
     int num_customers = 0;
     int num_edges = 0;
@@ -105,7 +104,6 @@ struct RouteInfo
         length = 0;
         num_customers = 0;
         num_edges = 0;
-        dummy_pair = {0,0};
         time_table.clear();
     }
 

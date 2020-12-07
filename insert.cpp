@@ -1033,7 +1033,6 @@ void XPreInsert::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
     My_Assert(all_of(output_move_seq.begin(),output_move_seq.end(),[&](int i){return i>=1 && i<=mcgrp.actual_task_num;}),"Wrong arguments");
 
 
-
     // phase 1: update the route level info
     const int i_route = move_result.route_id[0];
     const int u_route = move_result.route_id[1];
@@ -1053,14 +1052,6 @@ void XPreInsert::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
 
         ns.routes[i_route]->time_table = move_result.route_time_tbl[0];
 
-        if(ns.solution[input_move_seq.back()]->next->ID < 0){
-            ns.routes[i_route]->end = ns.solution[input_move_seq.front()]->pre->ID;
-        }
-
-        if(ns.solution[u]->pre->ID < 0){
-            ns.routes[u_route]->start = output_move_seq.front();
-        }
-
     }else if(move_result.num_affected_routes == 2){
         // affect two routes
 
@@ -1078,18 +1069,6 @@ void XPreInsert::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
 
         for(auto task : output_move_seq){
             ns.solution[task]->route_id = u_route;
-        }
-
-        if(ns.solution[input_move_seq.front()]->pre->ID < 0){
-            ns.routes[i_route]->start = ns.solution[input_move_seq.back()]->next->ID;
-        }
-
-        if(ns.solution[input_move_seq.back()]->next->ID < 0){
-            ns.routes[i_route]->end = ns.solution[input_move_seq.front()]->pre->ID;
-        }
-
-        if(ns.solution[u]->pre->ID < 0){
-            ns.routes[u_route]->start = output_move_seq.front();
         }
 
     }else{
@@ -1238,7 +1217,7 @@ bool XPreInsert::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int cho
 
                 // Consider the end location
                 const int current_route = ns.solution[current_start]->route_id;
-                const int current_end = ns.routes[current_route]->end;
+                const int current_end = ns.solution[ns.routes[current_route]->end]->pre->ID;
                 j = current_end;
                 if (std::find(chosen_seq.begin(), chosen_seq.end(), j) == chosen_seq.end()) {
                     // doesn't overlap
@@ -1258,7 +1237,11 @@ bool XPreInsert::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int cho
                 }
 
                 // Advance to next route's starting Task
-                current_start = ns.solution[current_end]->next->next->ID;
+                if(ns.solution[current_end]->next == ns.solution.very_end){
+                    current_start = current_end;
+                }else{
+                    current_start = ns.solution[current_end]->next->next->ID;
+                }
             }
         }
     }
@@ -1290,9 +1273,9 @@ bool XPreInsert::update_score(HighSpeedNeighBorSearch &ns)
 
     double penalty = (ns.best_solution_cost / ns.cur_solution_cost) * (-move_result.delta);
 
-    const int u = move_result.move_arguments.back();
-    const int seq_front = move_result.move_arguments.front();
-    const int seq_back = *(move_result.move_arguments.end() - 2);
+    const int u = move_result.move_arguments_bak.at("insert_pos").front();
+    const int seq_front = move_result.move_arguments_bak.at("output_seq").front();
+    const int seq_back = move_result.move_arguments_bak.at("output_seq").back();
 
     // ...seq()-u...
     ns.score_matrix[seq_back][u] += penalty;

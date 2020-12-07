@@ -13,7 +13,7 @@ void unit_test(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, MoveOperator &mo
     mcgrp._rng.RandPerm(task_set);    //shuffle tasks
 
     auto original_policy = ns.policy.getCurrent_policy();
-    ns.policy.setCurrent_policy(BEST_ACCEPT | DOWNHILL | FEASIBLE);
+    ns.policy.setCurrent_policy(FIRST_ACCEPT | DOWNHILL | FEASIBLE);
     ns.policy.setBeta(0.5);
     ns.policy.tolerance = 0.003;
     ns.neigh_size = mcgrp.neigh_size;
