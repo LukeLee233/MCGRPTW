@@ -12,7 +12,7 @@ bool Extraction::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int cho
 {
     // No search space in Extraction operator, No accept rule for invert operator
     if(ns.policy.has_rule(INFEASIBLE)) return false;
-    if(ns.policy.has_rule(TOLERANCE)) return false;
+    if(ns.policy.has_rule(DOWNHILL)) return false;
 
 #ifdef DEBUG
     attempt_count++;
@@ -73,6 +73,8 @@ bool Extraction::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcg
 {
     My_Assert(b >= 1 && b <= mcgrp.actual_task_num, "Wrong Task");
 
+    move_result.reset();
+
     const int a = ns.solution[b]->pre->ID;
     const int c = ns.solution[b]->next->ID;
 
@@ -91,8 +93,8 @@ bool Extraction::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcg
         My_Assert(c >= 1 && c <= mcgrp.actual_task_num, "Wrong Task");
 
         int old_route_id = ns.solution[b]->route_id;
-        const auto old_route_start = ns.routes[old_route_id]->start;
-        const auto old_route_end = ns.routes[old_route_id]->end;
+        const auto old_route_start = ns.solution[ns.routes[old_route_id]->start]->next->ID;
+        const auto old_route_end = ns.solution[ns.routes[old_route_id]->end]->pre->ID;
 
         auto a_seg = get_seg_info(mcgrp, ns, old_route_start, a);
         auto c_seg = get_seg_info(mcgrp, ns, c, old_route_end);
@@ -115,13 +117,13 @@ bool Extraction::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcg
         My_Assert(dummy_old_route_start + a_seg.length + ab + mcgrp.inst_tasks[b].serv_cost + bc + c_seg.length
                       + old_route_end_dummy == ns.routes[old_route_id]->length, "Wrong tasks");
 
-        move_result.reset();
         move_result.task1 = b;
-        move_result.move_arguments.push_back(old_route_start);
-        move_result.move_arguments.push_back(a);
-        move_result.move_arguments.push_back(b);
-        move_result.move_arguments.push_back(c);
-        move_result.move_arguments.push_back(old_route_end);
+        move_result.move_arguments_bak["cut_position"] = vector<int>();
+        move_result.move_arguments_bak["cut_position"].push_back(old_route_start);
+        move_result.move_arguments_bak["cut_position"].push_back(a);
+        move_result.move_arguments_bak["cut_position"].push_back(b);
+        move_result.move_arguments_bak["cut_position"].push_back(c);
+        move_result.move_arguments_bak["cut_position"].push_back(old_route_end);
 
         move_result.route_id.push_back(old_route_id);
 
@@ -168,13 +170,13 @@ void Extraction::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
     DEBUG_PRINT("execute a extraction move");
 
     My_Assert(move_result.considerable, "Invalid predictions");
-    My_Assert(move_result.move_arguments.size() == 5, "Incorrect move arguments!");
 
-    const int a_route_start = move_result.move_arguments[0];
-    const int a_route_end = move_result.move_arguments[1];
-    const int b = move_result.move_arguments[2];
-    const int c_route_start = move_result.move_arguments[3];
-    const int c_route_end = move_result.move_arguments[4];
+    //phase 0: extract move arguments
+    const int a_route_start = move_result.move_arguments_bak.at("cut_position")[0];
+    const int a_route_end = move_result.move_arguments_bak.at("cut_position")[1];
+    const int b = move_result.move_arguments_bak.at("cut_position")[2];
+    const int c_route_start = move_result.move_arguments_bak.at("cut_position")[3];
+    const int c_route_end = move_result.move_arguments_bak.at("cut_position")[4];
 
     My_Assert(a_route_start >= 1 && a_route_start <= mcgrp.actual_task_num, "Wrong arguments");
     My_Assert(a_route_end >= 1 && a_route_end <= mcgrp.actual_task_num, "Wrong arguments");
@@ -182,6 +184,7 @@ void Extraction::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
     My_Assert(c_route_start >= 1 && c_route_start <= mcgrp.actual_task_num, "Wrong arguments");
     My_Assert(c_route_end >= 1 && c_route_end <= mcgrp.actual_task_num, "Wrong arguments");
 
+    // phase 1: update the route level info
     const int a_route = move_result.route_id[0];
     const auto b_route = ns.routes.allocate_route();
     const auto c_route = ns.routes.allocate_route();
@@ -219,21 +222,13 @@ void Extraction::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
     ns.routes[a_route]->num_edges -= (ns.routes[b_route]->num_edges + ns.routes[c_route]->num_edges);
 
 
-    ns.routes[a_route]->end = a_route_end;
-
-    ns.routes[b_route]->start = b;
-    ns.routes[b_route]->end = b;
-
-    ns.routes[c_route]->start = c_route_start;
-    ns.routes[c_route]->end = c_route_end;
-
     ns.solution[b]->route_id = b_route;
 
     for (auto cur = c_route_start; cur != ns.solution[c_route_end]->next->ID; cur = ns.solution[cur]->next->ID) {
         ns.solution[cur]->route_id = c_route;
     }
 
-    //handle solution
+    // phase 3: update the sequence level info
     auto new_dummy = ns.solution.dummypool.get_new_dummy();
     new_dummy->pre = ns.solution[a_route_end];
     new_dummy->next = ns.solution[b];
@@ -246,12 +241,21 @@ void Extraction::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
     ns.solution[c_route_start]->pre = new_dummy;
     ns.solution[b]->next = new_dummy;
 
-    //modify global info
+    // phase 4: set the dummy tasks of routes
+    ns.routes[c_route]->end = ns.routes[a_route]->end;
+    ns.routes[a_route]->end = ns.solution[a_route_end]->next->ID;
+
+    ns.routes[b_route]->start = ns.solution[b]->pre->ID;
+    ns.routes[b_route]->end = ns.solution[b]->next->ID;
+
+    ns.routes[c_route]->start = ns.solution[c_route_start]->pre->ID;
+
+
+    // phase 5: modify global info
     ns.cur_solution_cost += move_result.delta;
     ns.total_vio_load += move_result.vio_load_delta;
     ns.total_vio_time += move_result.vio_time_delta;
     My_Assert(ns.valid_sol(mcgrp), "Prediction wrong!");
-
 
     update_score(ns);
     ns.trace(mcgrp);

@@ -730,10 +730,14 @@ vector<int> MCGRP::cal_arrive_time(const vector<int> &route) const
         return vector<int>();
 
     vector<int> arrive_time;
-    My_Assert(route.front() != DUMMY && route.back() != DUMMY,
-              "invalid route!");
 
-    int drive_time = cal_arrive_time(DUMMY, route.front(),0,true);
+    int drive_time;
+    if(route.front() != DUMMY){
+        drive_time = cal_arrive_time(DUMMY, route.front(),0,true);
+    }else{
+        drive_time = 0;
+    }
+
     arrive_time.push_back(drive_time);
     for (int i = 1; i < route.size(); i++) {
         drive_time = cal_arrive_time(route[i-1],route[i],drive_time,true);

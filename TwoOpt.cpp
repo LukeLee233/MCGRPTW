@@ -8,7 +8,7 @@ using namespace std;
 
 bool NewTwoOpt::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_task){
 
-    My_Assert(chosen_task >= 1 && chosen_task <= mcgrp.actual_task_num,"Wrong Task");
+    My_Assert(chosen_task >= 1 && chosen_task <= mcgrp.actual_task_num,"error, Wrong Task");
 
 #ifdef DEBUG
     flip_times = 0;
@@ -154,8 +154,8 @@ bool NewTwoOpt::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chos
                 }
 
                 // Consider the end location
-                int current_route = ns.solution[current_start]->route_id;
-                int current_end = ns.routes[current_route]->end;
+                const int current_route = ns.solution[current_start]->route_id;
+                const int current_end = ns.solution[ns.routes[current_route]->end]->pre->ID;
                 j = current_end;
 
                 My_Assert(ns.solution[j]->next->ID < 0,"Wrong Task");
@@ -190,8 +190,12 @@ bool NewTwoOpt::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chos
                     }
                 }
 
-                // advance to next route
-                current_start = ns.solution[current_end]->next->next->ID;
+                // Advance to next route's starting Task
+                if(ns.solution[current_end]->next == ns.solution.very_end){
+                    current_start = current_end;
+                }else{
+                    current_start = ns.solution[current_end]->next->next->ID;
+                }
             }
         }
     }
@@ -255,8 +259,8 @@ NewTwoOpt::considerable_move(
     }
 
 
-    if (a_route == c_route) {   // This is flip operation
-        // Definitely feasible
+    if (a_route == c_route) {
+        // This is flip operation
         // same route: the 2opt move here corresponds to reversing the sequence of
         // the sub route that is between (a|b) and (c|d), open interval
         DEBUG_PRINT("Flip operator in 2-opt");

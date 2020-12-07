@@ -78,8 +78,8 @@ bool Invert::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, 
     move_result.route_lens.push_back(ns.routes[u_route]->length + move_result.delta);
 
     move_result.new_total_route_length = ns.cur_solution_cost + move_result.delta;
-    move_result.move_arguments.push_back(u);
-    move_result.move_arguments.push_back(u_tilde);
+    move_result.move_arguments_bak["input"] = {u};
+    move_result.move_arguments_bak["output"] = {u_tilde};
     move_result.considerable = true;
 
     move_result.route_time_tbl.emplace_back(new_time_tbl);
@@ -110,10 +110,9 @@ void Invert::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
     DEBUG_PRINT("execute an invert move");
 
     My_Assert(move_result.considerable,"Invalid predictions");
-    My_Assert(move_result.move_arguments.size() == 2, "Incorrect move arguments!");
 
-    const int u = move_result.move_arguments[0];
-    const int u_tilde = move_result.move_arguments[1];
+    const int u = move_result.move_arguments_bak.at("input")[0];
+    const int u_tilde = move_result.move_arguments_bak.at("output")[0];
 
     My_Assert(u != DUMMY, "Invert can't handle dummy Task!");
     My_Assert(u_tilde == mcgrp.inst_tasks[u].inverse, "Invert can't handle dummy Task!");
@@ -128,14 +127,6 @@ void Invert::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
     ns.routes[route_id]->length = move_result.route_lens[0];
 
     ns.routes[route_id]->time_table = move_result.route_time_tbl[0];
-
-    if(ns.solution[u]->pre->ID < 0){
-        ns.routes[route_id]->start = u_tilde;
-    }
-
-    if(ns.solution[u]->next->ID < 0){
-        ns.routes[route_id]->end = u_tilde;
-    }
 
     ns.solution[u_tilde]->route_id = route_id;
 
@@ -197,7 +188,7 @@ bool Invert::update_score(HighSpeedNeighBorSearch &ns)
 {
     if(move_result.delta > 0) return false;
 
-    const int actual_u = move_result.move_arguments[1];
+    const int actual_u = move_result.move_arguments_bak.at("output")[0];
     double penalty = (ns.best_solution_cost / ns.cur_solution_cost) * (-move_result.delta);
 
     ns.score_matrix[actual_u][max(0,ns.solution[actual_u]->next->ID)] += penalty;

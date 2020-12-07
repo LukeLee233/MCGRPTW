@@ -13,7 +13,7 @@ void unit_test(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, MoveOperator &mo
     mcgrp._rng.RandPerm(task_set);    //shuffle tasks
 
     auto original_policy = ns.policy.getCurrent_policy();
-    ns.policy.setCurrent_policy(FIRST_ACCEPT | DOWNHILL | FEASIBLE);
+    ns.policy.setCurrent_policy(BEST_ACCEPT | DOWNHILL | FEASIBLE);
     ns.policy.setBeta(0.5);
     ns.policy.tolerance = 0.003;
     ns.neigh_size = mcgrp.neigh_size;
@@ -114,7 +114,7 @@ viterbi::PseudoTask MoveOperator::Seq2Pseudo(const MCGRP &mcgrp, const vector<in
         for(int ii = 1;ii < regularized_seq.size();ii++){
             constant += mcgrp.inst_tasks[regularized_seq[ii-1]].serve_time;
             constant += mcgrp.min_time[mcgrp.inst_tasks[regularized_seq[ii-1]].tail_node][mcgrp.inst_tasks[regularized_seq[ii]].head_node];
-            x = max(x, mcgrp.inst_tasks[regularized_seq[ii]].time_window.second - constant);
+            x = min(x, mcgrp.inst_tasks[regularized_seq[ii]].time_window.second - constant);
         }
 
         time_window.second = x;
@@ -145,7 +145,8 @@ viterbi::BestDecode viterbi::viterbi_decode(const viterbi::PseudoTask* first,
     viterbi::BestDecode ans;
 
     vector<vector<const Task *>> DAG;
-    DAG.push_back( {first} );
+    DAG.push_back({&mcgrp.inst_tasks[DUMMY]});
+    if(first != nullptr) DAG.push_back( {first} );
     for(int i = 0; i< move_seq.size(); i++){
         if(mcgrp.is_edge(move_seq[i])){
             DAG.push_back( {&mcgrp.inst_tasks[move_seq[i]], &mcgrp.inst_tasks[mcgrp.inst_tasks[move_seq[i]].inverse]} );
@@ -153,15 +154,16 @@ viterbi::BestDecode viterbi::viterbi_decode(const viterbi::PseudoTask* first,
             DAG.push_back( { &mcgrp.inst_tasks[move_seq[i]] } );
         }
     }
-    DAG.push_back( {last} );
+    if(last != nullptr) DAG.push_back( {last} );
+    DAG.push_back({&mcgrp.inst_tasks[DUMMY]});
 
     vector<vector<int>> W(DAG.size(),vector<int>());
     vector<vector<int>> P(DAG.size(),vector<int>());
     vector<vector<int>> ArriveTime(DAG.size(), vector<int>());
 
-    W[0].push_back(DAG[0][0]->serv_cost);
+    W[0].push_back(0);
     P[0].push_back(0);
-    ArriveTime[0].push_back(DAG[0][0]->time_window.first);
+    ArriveTime[0].push_back(0);
 
     function<pair<int,int>(const vector<int>&)> argmin_ = [](const vector<int>& seq){
         int index = -1;
@@ -176,12 +178,13 @@ viterbi::BestDecode viterbi::viterbi_decode(const viterbi::PseudoTask* first,
         return make_pair(index, val);
     };
 
-
+    vector<int> distance_;
+    vector<int> ArriveTime_;
     for(int i = 1; i < DAG.size();i++){
 
         for(int j = 0;j < DAG[i].size() ;j++){
-            vector<int> distance_;
-            vector<int> ArriveTime_;
+            distance_.clear();
+            ArriveTime_.clear();
 
             int LatestDepartureTime;
 
@@ -242,7 +245,6 @@ viterbi::BestDecode viterbi::viterbi_decode(const viterbi::PseudoTask* first,
         for(int ii = 0;ii < (int)indices.size(); ii++){
             ans.seq.push_back(DAG[ii+1][indices[ii]]->task_id);
         }
-        ans.cost = W.back().back();
     }
 
     return ans;

@@ -10,7 +10,7 @@ bool Slice::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_t
 {
     //No search space in Slice operator, No accept rule for invert operator
     if(ns.policy.has_rule(INFEASIBLE)) return false;
-    if(ns.policy.has_rule(TOLERANCE)) return false;
+    if(ns.policy.has_rule(DOWNHILL)) return false;
 
 #ifdef DEBUG
     pre_slice_times = 0;
@@ -210,8 +210,8 @@ bool Preslice::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp
 
     move_result.task1 = b;
     if (seg_after_b.num_custs != 0) {
-        move_result.move_arguments.push_back(b);
-        move_result.move_arguments.push_back(seg_after_b.segment_end);
+        move_result.move_arguments_bak["seg_start"] = {b};
+        move_result.move_arguments_bak["seg_end"] = {seg_after_b.segment_end};
 
         double new_load_delta = seg_after_b.load + mcgrp.inst_tasks[b].demand;
         My_Assert(new_load_delta <= mcgrp.capacity, "Wrong tasks");
@@ -254,7 +254,8 @@ bool Preslice::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp
         return true;
     }
     else {
-        move_result.move_arguments.push_back(b);
+        move_result.move_arguments_bak["seg_start"] = {b};
+        move_result.move_arguments_bak["seg_end"] = {b};
 
         double new_load_delta = mcgrp.inst_tasks[b].demand;
         My_Assert(new_load_delta <= mcgrp.capacity, "Wrong tasks");
@@ -305,7 +306,14 @@ void Preslice::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
     DEBUG_PRINT("execute a slice : pre-slice move");
     My_Assert(move_result.considerable, "Invalid predictions");
 
-    //Modify routes info
+    //phase 0: extract move arguments
+    int new_route_start = move_result.move_arguments_bak.at("seg_start")[0];
+    int new_route_end = move_result.move_arguments_bak.at("seg_end")[0];
+
+    My_Assert(new_route_start >= 1 && new_route_start <= mcgrp.actual_task_num, "Wrong Task");
+    My_Assert(new_route_end >= 1 && new_route_end <= mcgrp.actual_task_num, "Wrong Task");
+
+    // phase 1: update the route level info
     const int sliced_route = move_result.route_id[0];
     const auto new_route = ns.routes.allocate_route();
     My_Assert(ns.routes.activated_route_id.find(sliced_route) != ns.routes.activated_route_id.end(), "Invalid route");
@@ -329,29 +337,10 @@ void Preslice::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
     }
     ns.routes[sliced_route]->num_edges -= ns.routes[new_route]->num_edges;
 
-    int new_route_start;
-    int new_route_end;
-    if (move_result.route_custs_num[1] == 1) {
-        new_route_start = move_result.move_arguments[0];
-        new_route_end = move_result.move_arguments[0];
-    }
-    else {
-        new_route_start = move_result.move_arguments[0];
-        new_route_end = move_result.move_arguments[1];
-    }
-
-
-    My_Assert(new_route_start >= 1 && new_route_start <= mcgrp.actual_task_num, "Wrong Task");
-    My_Assert(new_route_end >= 1 && new_route_end <= mcgrp.actual_task_num, "Wrong Task");
-
-    ns.routes[sliced_route]->end = ns.solution[new_route_start]->pre->ID;
-
-    ns.routes[new_route]->start = new_route_start;
-    ns.routes[new_route]->end = new_route_end;
-
     for (auto cur = new_route_start; cur != ns.solution[new_route_end]->next->ID; cur = ns.solution[cur]->next->ID) {
         ns.solution[cur]->route_id = new_route;
     }
+
 
     //handle solution
     auto new_dummy = ns.solution.dummypool.get_new_dummy();
@@ -360,8 +349,14 @@ void Preslice::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
     ns.solution[new_route_start]->pre->next = new_dummy;
     ns.solution[new_route_start]->pre = new_dummy;
 
+    // phase 4: set the dummy tasks of routes
+    ns.routes[new_route]->start = ns.solution[new_route_start]->pre->ID;
+    ns.routes[new_route]->end = ns.routes[sliced_route]->end;
 
-    //modify global info
+    ns.routes[sliced_route]->end = ns.solution[new_route_start]->pre->ID;
+
+
+    // phase 5: modify global info
     ns.cur_solution_cost += move_result.delta;
     ns.total_vio_load += move_result.vio_load_delta;
     ns.total_vio_time += move_result.vio_time_delta;
@@ -455,8 +450,8 @@ bool Postslice::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgr
 
     move_result.task1 = b;
 
-    move_result.move_arguments.push_back(seg_after_b.segment_start);
-    move_result.move_arguments.push_back(seg_after_b.segment_end);
+    move_result.move_arguments_bak["seg_start"] = {seg_after_b.segment_start};
+    move_result.move_arguments_bak["seg_end"] = {seg_after_b.segment_end};
 
     auto new_time_tbl = expected_time_table(ns, mcgrp, b);
 
@@ -512,7 +507,14 @@ void Postslice::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
     DEBUG_PRINT("execute a slice : post-slice move");
     My_Assert(move_result.considerable, "Invalid predictions");
 
-    //Modify routes info
+    //phase 0: extract move arguments
+    const int new_route_start = move_result.move_arguments_bak.at("seg_start")[0];
+    const int new_route_end = move_result.move_arguments_bak.at("seg_end")[0];
+
+    My_Assert(new_route_start >= 1 && new_route_start <= mcgrp.actual_task_num, "Wrong Task");
+    My_Assert(new_route_end >= 1 && new_route_end <= mcgrp.actual_task_num, "Wrong Task");
+
+    // phase 1: update the route level info
     const int sliced_route = move_result.route_id[0];
     const auto new_route = ns.routes.allocate_route();
     My_Assert(ns.routes.activated_route_id.find(sliced_route) != ns.routes.activated_route_id.end(), "Invalid route");
@@ -534,34 +536,27 @@ void Postslice::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
     for(const auto& item : ns.routes[new_route]->time_table){
         if(mcgrp.is_edge(item.task)) ns.routes[new_route]->num_edges++;
     }
+
     ns.routes[sliced_route]->num_edges -= ns.routes[new_route]->num_edges;
-
-    int new_route_start;
-    int new_route_end;
-    new_route_start = move_result.move_arguments[0];
-    new_route_end = move_result.move_arguments[1];
-
-    My_Assert(new_route_start >= 1 && new_route_start <= mcgrp.actual_task_num, "Wrong Task");
-    My_Assert(new_route_end >= 1 && new_route_end <= mcgrp.actual_task_num, "Wrong Task");
-
-    ns.routes[sliced_route]->end = ns.solution[new_route_start]->pre->ID;
-
-    ns.routes[new_route]->start = new_route_start;
-    ns.routes[new_route]->end = new_route_end;
 
     for (auto cur = new_route_start; cur != ns.solution[new_route_end]->next->ID; cur = ns.solution[cur]->next->ID) {
         ns.solution[cur]->route_id = new_route;
     }
 
-    //handle solution
+    // phase 3: update the sequence level info
     auto new_dummy = ns.solution.dummypool.get_new_dummy();
     new_dummy->pre = ns.solution[new_route_start]->pre;
     new_dummy->next = ns.solution[new_route_start];
     ns.solution[new_route_start]->pre->next = new_dummy;
     ns.solution[new_route_start]->pre = new_dummy;
 
+    // phase 4: set the dummy tasks of routes
+    ns.routes[new_route]->end = ns.routes[sliced_route]->end;
+    ns.routes[sliced_route]->end = ns.solution[new_route_start]->pre->ID;
 
-    //modify global info
+    ns.routes[new_route]->start = ns.solution[new_route_start]->pre->ID;
+
+    // phase 5: modify global info
     ns.cur_solution_cost += move_result.delta;
     ns.total_vio_load += move_result.vio_load_delta;
     ns.total_vio_time += move_result.vio_time_delta;

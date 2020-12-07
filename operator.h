@@ -35,8 +35,11 @@ struct PseudoTask: public Task{
         this->serv_cost = serve_cost;
         this->trave_cost = serve_cost;
 
+        this->time_window = time_window;
+
         this->serve_time = 0;
         this->trave_time = 0;
+
     };
 };
 

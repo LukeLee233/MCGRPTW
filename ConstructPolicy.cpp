@@ -142,9 +142,9 @@ merge_split(HighSpeedNeighBorSearch &ns,
     //generate tasks distribution in routes
     unordered_map<int, vector<int>> task_routes;
     for (auto route_id : ns.routes.activated_route_id) {
-        int cur_task = ns.routes[route_id]->start;
+        int cur_task = ns.solution[ns.routes[route_id]->start]->next->ID;
         vector<int> buffer;
-        while (cur_task != ns.routes[route_id]->end) {
+        while (cur_task != ns.solution[ns.routes[route_id]->end]->pre->ID) {
             buffer.push_back(cur_task);
             cur_task = ns.solution[cur_task]->next->ID;
         }

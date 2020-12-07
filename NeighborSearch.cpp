@@ -489,6 +489,12 @@ bool HighSpeedNeighBorSearch::valid_sol(const MCGRP &mcgrp)
     double routes_cost_sum = 0;
     int vio_time = 0;
     for (auto id : routes.activated_route_id) {
+        if(solution[routes[id]->start] && routes[id]->start != solution[routes[id]->time_table.front().task]->pre->ID)
+            return false;
+
+        if(solution[routes[id]->end] && routes[id]->end != solution[routes[id]->time_table.back().task]->next->ID)
+            return false;
+
         if(routes[id]->num_customers != routes[id]->time_table.size()
             || routes[id]->num_edges < 0
             || routes[id]->num_edges > routes[id]->num_customers)
@@ -501,6 +507,7 @@ bool HighSpeedNeighBorSearch::valid_sol(const MCGRP &mcgrp)
             vio_time += max(0, plan.arrive_time - mcgrp.inst_tasks[plan.task].time_window.second);
         }
     }
+
 
     return routes_cost_sum == cost && cost == cur_solution_cost
         && vio_load == total_vio_load && vio_time == total_vio_time;
@@ -564,15 +571,16 @@ void HighSpeedNeighBorSearch::threshold_exploration(const MCGRP &mcgrp)
                     case SINGLE_INSERT:
                         if (mcgrp._rng.Randint(0,1)){
                             single_pre_insert->search(*this, mcgrp, chosen_task);
-                            single_post_insert->search(*this, mcgrp,chosen_task);
                         }else{
                             single_post_insert->search(*this, mcgrp,chosen_task);
-                            single_pre_insert->search(*this, mcgrp, chosen_task);
                         }
                         break;
                     case DOUBLE_INSERT:
-                        double_pre_insert->search(*this, mcgrp, chosen_task);
-                        double_post_insert->search(*this, mcgrp, chosen_task);
+                        if (mcgrp._rng.Randint(0,1)){
+                            double_pre_insert->search(*this, mcgrp, chosen_task);
+                        }else{
+                            double_post_insert->search(*this, mcgrp, chosen_task);
+                        }
                         break;
                     case SWAP:swap->search(*this, mcgrp, chosen_task);
                         break;
@@ -646,15 +654,16 @@ void HighSpeedNeighBorSearch::descent_exploration(const MCGRP &mcgrp)
                     case SINGLE_INSERT:
                         if (mcgrp._rng.Randint(0,1)){
                             single_pre_insert->search(*this, mcgrp, chosen_task);
-                            single_post_insert->search(*this, mcgrp,chosen_task);
                         }else{
                             single_post_insert->search(*this, mcgrp,chosen_task);
-                            single_pre_insert->search(*this, mcgrp, chosen_task);
                         }
                         break;
                     case DOUBLE_INSERT:
-                        double_pre_insert->search(*this, mcgrp, chosen_task);
-                        double_post_insert->search(*this, mcgrp, chosen_task);
+                        if (mcgrp._rng.Randint(0,1)) {
+                            double_pre_insert->search(*this, mcgrp, chosen_task);
+                        }else{
+                            double_post_insert->search(*this, mcgrp, chosen_task);
+                        }
                         break;
                     case SWAP:swap->search(*this, mcgrp, chosen_task);
                         break;
@@ -789,15 +798,17 @@ void HighSpeedNeighBorSearch::small_step_infeasible_descent_exploration(const MC
                     case SINGLE_INSERT:
                         if (mcgrp._rng.Randint(0, 1) == 0){
                             single_pre_insert->search(*this, mcgrp, chosen_task);
-                            single_post_insert->search(*this, mcgrp,chosen_task);
                         }else{
                             single_post_insert->search(*this, mcgrp,chosen_task);
-                            single_pre_insert->search(*this, mcgrp, chosen_task);
                         }
                         break;
                     case DOUBLE_INSERT:
-                        double_pre_insert->search(*this, mcgrp, chosen_task);
-                        double_post_insert->search(*this, mcgrp, chosen_task);
+                        if (mcgrp._rng.Randint(0, 1) == 0) {
+                            double_pre_insert->search(*this, mcgrp, chosen_task);
+                        }
+                        else{
+                            double_post_insert->search(*this, mcgrp, chosen_task);
+                        }
                         break;
                     case SWAP:swap->search(*this, mcgrp, chosen_task);
                         break;
@@ -866,15 +877,17 @@ void HighSpeedNeighBorSearch::small_step_infeasible_tabu_exploration(const MCGRP
                     case SINGLE_INSERT:
                         if (mcgrp._rng.Randint(0, 1) == 0){
                             single_pre_insert->search(*this, mcgrp, chosen_task);
-                            single_post_insert->search(*this, mcgrp,chosen_task);
                         }else{
                             single_post_insert->search(*this, mcgrp,chosen_task);
-                            single_pre_insert->search(*this, mcgrp, chosen_task);
                         }
                         break;
                     case DOUBLE_INSERT:
-                        double_pre_insert->search(*this, mcgrp, chosen_task);
-                        double_post_insert->search(*this, mcgrp, chosen_task);
+                        if (mcgrp._rng.Randint(0, 1) == 0) {
+                            double_pre_insert->search(*this, mcgrp, chosen_task);
+                        }
+                        else{
+                            double_post_insert->search(*this, mcgrp, chosen_task);
+                        }
                         break;
                     case SWAP:swap->search(*this, mcgrp, chosen_task);
                         break;
@@ -925,47 +938,18 @@ void HighSpeedNeighBorSearch::update(const MCGRP &mcgrp,
 
         //remove solution
         vector<int> seq;
-        int cur_task = routes[route_id]->start;
-        while (cur_task != routes[route_id]->end) {
+        int cur_task = solution[routes[route_id]->start]->next->ID;
+        while (cur_task != solution[routes[route_id]->end]->pre->ID) {
             seq.push_back(cur_task);
             cur_task = solution[cur_task]->next->ID;
         }
         seq.push_back(cur_task);
 
-        int dummy_marker = 0;
-        HighSpeedNeighBorSearch::TASK_NODE *reserve_dummy;
-        bool very_end_case = false;
-        if (solution[seq.back()]->next == solution.very_end) {
-            dummy_marker = solution[seq.front()]->pre->ID;
-            reserve_dummy = solution[seq.back()]->next;
-            very_end_case = true;
-        }
-        else {
-            dummy_marker = solution[seq.back()]->next->ID;
-            reserve_dummy = solution[seq.front()]->pre;
-        }
-        My_Assert(dummy_marker < 0, "Wrong tasks");
+        delete_route(route_id,seq);
+        My_Assert(valid_sol(mcgrp), "Wrong state!");
 
-        if (very_end_case) {
-            solution[dummy_marker]->pre->next = reserve_dummy;
-            reserve_dummy->pre = solution[dummy_marker]->pre;
-        }
-        else {
-            reserve_dummy->next = solution[dummy_marker]->next;
-            solution[dummy_marker]->next->pre = reserve_dummy;
-        }
-
-        solution.dummypool.free_dummy(dummy_marker);
-
-        for (auto task: seq) {
-            solution[task]->clear();
-        }
-
-        //free old route
-        routes.free_route(route_id);
     }
 
-    My_Assert(valid_sol(mcgrp), "Wrong state!");
 
     My_Assert(best_buffer.front() == DUMMY && best_buffer.back() == DUMMY, "Wrong state");
 
@@ -982,87 +966,15 @@ void HighSpeedNeighBorSearch::update(const MCGRP &mcgrp,
         }
     }
 
+    My_Assert(solution.very_start->next != solution.very_end,"Wrong state");
     // insert new routes
     for (int row = 0; row < seqs.size(); row++) {
-        int new_route = routes.allocate_route();
-        double
-            length = mcgrp.min_cost[mcgrp.inst_tasks[DUMMY].tail_node][mcgrp.inst_tasks[seqs[row].front()].head_node];
-        double load = 0;
+        int new_route_id = new_route(mcgrp,seqs[row]);
 
-        for (int col = 0; col < seqs[row].size() - 1; col++) {
-            length += mcgrp.inst_tasks[seqs[row][col]].serv_cost
-                + mcgrp.min_cost[mcgrp.inst_tasks[seqs[row][col]].tail_node][mcgrp.inst_tasks[seqs[row][col + 1]]
-                    .head_node];
-
-            load += mcgrp.inst_tasks[seqs[row][col]].demand;
-
-            solution[seqs[row][col]]->route_id = new_route;
-        }
-
-        length += mcgrp.inst_tasks[seqs[row].back()].serv_cost
-            + mcgrp.min_cost[mcgrp.inst_tasks[seqs[row].back()].tail_node][mcgrp.inst_tasks[DUMMY].head_node];
-
-        load += mcgrp.inst_tasks[seqs[row].back()].demand;
-        solution[seqs[row].back()]->route_id = new_route;
-
-
-        routes[new_route]->length = length;
-        routes[new_route]->load = load;
-        routes[new_route]->start = seqs[row].front();
-        routes[new_route]->end = seqs[row].back();
-        routes[new_route]->num_customers = seqs[row].size();
-        routes[new_route]->num_edges = mcgrp.count_edges(seqs[row]);
-        vector<int> time_tbl = mcgrp.cal_arrive_time(seqs[row]);
-        routes[new_route]->time_table.clear();
-        for(int i = 0;i< time_tbl.size();i++){
-            routes[new_route]->time_table.push_back({seqs[row][i],time_tbl[i]});
-        }
-
-        total_vio_time += mcgrp.get_vio_time(routes[new_route]->time_table).second;
-        if (load > mcgrp.capacity) {
-            total_vio_load += (load - mcgrp.capacity);
-        }
-
-        cur_solution_cost += length;
-
-        //handle solution
-        if (seqs[row].size() == 1) {
-            auto task = seqs[row][0];
-            auto new_dummy = solution.dummypool.get_new_dummy();
-            new_dummy->pre = solution.very_end->pre;
-            new_dummy->next = solution[task];
-            new_dummy->pre->next = new_dummy;
-            solution[task]->pre = new_dummy;
-            solution[task]->next = solution.very_end;
-            solution.very_end->pre = solution[task];
-        }
-        else {
-            My_Assert(seqs[row].size() > 1, "Wrong state");
-
-            auto new_dummy = solution.dummypool.get_new_dummy();
-            new_dummy->pre = solution.very_end->pre;
-            new_dummy->next = solution[seqs[row].front()];
-
-            new_dummy->pre->next = new_dummy;
-
-            solution[seqs[row].front()]->pre = new_dummy;
-            solution[seqs[row].front()]->next = solution[seqs[row][1]];
-
-            for (auto i = 1; i < seqs[row].size() - 1; i++) {
-                auto pre_task = seqs[row][i - 1];
-                auto task = seqs[row][i];
-                auto next_task = seqs[row][i + 1];
-                My_Assert(solution[task]->pre == nullptr && solution[task]->next == nullptr, "Wrong state!");
-                solution[task]->next = solution[next_task];
-                solution[task]->pre = solution[pre_task];
-            }
-
-            solution[seqs[row].back()]->pre = solution[seqs[row][seqs[row].size() - 2]];
-            solution[seqs[row].back()]->next = solution.very_end;
-
-            solution.very_end->pre = solution[seqs[row].back()];
-
-        }
+        cur_solution_cost += routes[new_route_id]->length;
+        total_vio_load += max(0, routes[new_route_id]->load - mcgrp.capacity);
+        total_vio_time += mcgrp.get_vio_time(routes[new_route_id]->time_table).second;
+        My_Assert(valid_sol(mcgrp), "Wrong state!");
 
     }
 
@@ -1123,8 +1035,8 @@ void HighSpeedNeighBorSearch::_repair_load(const MCGRP &mcgrp)
         Route tmp;
         tmp.route_id = route_id;
         tmp.load = routes[route_id]->load;
-        int cur_task = routes[route_id]->start;
-        while (cur_task != routes[route_id]->end) {
+        int cur_task = solution[routes[route_id]->start]->next->ID;
+        while (cur_task != solution[routes[route_id]->end]->pre->ID) {
             tmp.task_seq.push_back(cur_task);
             cur_task = solution[cur_task]->next->ID;
         }
@@ -1284,12 +1196,6 @@ void HighSpeedNeighBorSearch::_repair_load(const MCGRP &mcgrp)
 
             solution[task]->route_id = route_id;
 
-            if (a < 0) {
-                routes[route_id]->start = task;
-            }
-            else if (b < 0) {
-                routes[route_id]->end = task;
-            }
 
             cur_solution_cost += best_delta;
             //handle solution
@@ -1493,48 +1399,16 @@ bool HighSpeedNeighBorSearch::check_duplicated(const MCGRP &mcgrp)
 
 void HighSpeedNeighBorSearch::delete_route(int route_id, const vector<int> &route_seq)
 {
-    My_Assert(routes[route_id]->start == route_seq.front() && routes[route_id]->end == route_seq.back(),
+    My_Assert(solution[routes[route_id]->start]->next->ID == route_seq.front() && solution[routes[route_id]->end]->pre->ID == route_seq.back(),
               "Wrong route!");
-
-    routes.free_route(route_id);
-
-    //remove solution
-    int dummy_marker = 0;
-    HighSpeedNeighBorSearch::TASK_NODE *reserve_dummy;
-    bool very_end_case = false;
-    if (solution[route_seq.back()]->next == solution.very_end) {
-        dummy_marker = solution[route_seq.front()]->pre->ID;
-        reserve_dummy = solution[route_seq.back()]->next;
-        very_end_case = true;
-    }
-    else {
-        dummy_marker = solution[route_seq.back()]->next->ID;
-        reserve_dummy = solution[route_seq.front()]->pre;
-    }
-    My_Assert(dummy_marker < 0, "Wrong tasks");
-
-    if (very_end_case) {
-        My_Assert(reserve_dummy == solution.very_end, "Wrong state");
-        if (solution[dummy_marker] != solution.very_start) {
-            solution[dummy_marker]->pre->next = reserve_dummy;
-            reserve_dummy->pre = solution[dummy_marker]->pre;
-            solution.dummypool.free_dummy(dummy_marker);
-        }
-        else {
-            solution[dummy_marker]->next = reserve_dummy;
-            reserve_dummy->pre = solution[dummy_marker];
-        }
-
-    }
-    else {
-        reserve_dummy->next = solution[dummy_marker]->next;
-        solution[dummy_marker]->next->pre = reserve_dummy;
-        solution.dummypool.free_dummy(dummy_marker);
-    }
-
 
     for (auto task: route_seq)
         solution[task]->clear();
+
+    routes[route_id]->num_customers = 0;
+    solution[routes[route_id]->start]->next = solution[routes[route_id]->end];
+    solution[routes[route_id]->end]->pre = solution[routes[route_id]->start];
+    compress_empty_route(route_id);
 }
 
 int HighSpeedNeighBorSearch::new_route(const MCGRP &mcgrp, const vector<int> &route_seq)
@@ -1562,6 +1436,7 @@ int HighSpeedNeighBorSearch::new_route(const MCGRP &mcgrp, const vector<int> &ro
 
     // step 2: update meta info
     routes[new_route]->num_customers = route_seq.size();
+    routes[solution[route_seq.front()]->pre->pre->route_id]->end = solution[route_seq.front()]->pre->ID;
     routes[new_route]->start = solution[route_seq.front()]->pre->ID;
     routes[new_route]->end = solution[route_seq.back()]->next->ID;
     routes[new_route]->length = dummy_task + task_dummy;
@@ -1717,8 +1592,9 @@ void HighSpeedNeighBorSearch::viterbi_refine(const MCGRP &mcgrp)
                 total_vio_load -= max(0,(routes[route_id]->load - mcgrp.capacity));
                 total_vio_time -= mcgrp.get_vio_time(routes[route_id]->time_table).second;
 
-
                 delete_route(route_id, task_seq);
+                My_Assert(valid_sol(mcgrp), "Wrong state!");
+
 
                 int new_route_id = new_route(mcgrp,refine_result.sequence);
                 cur_solution_cost += routes[new_route_id]->length;

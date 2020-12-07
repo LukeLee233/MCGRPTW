@@ -265,14 +265,12 @@ public:
     int seq2_cus_num = -1;
 
     bool considerable = false;
-    int total_number_of_routes; // TODO: deprecated later
     double delta;
 
     double new_total_route_length;
     double vio_load_delta;
     int vio_time_delta;
     int vio_time_custom_num_delta;
-    vector<int> move_arguments;
     unordered_map<string, vector<int>> move_arguments_bak;
 
     int num_affected_routes;
@@ -328,13 +326,12 @@ public:
         task2 = -1;
         seq1_cus_num = -1;
         seq2_cus_num = -1;
-        total_number_of_routes = 0;
         delta = 0;
         vio_load_delta = 0;
         vio_time_delta = 0;
         new_total_route_length =
             std::numeric_limits<identity<decltype(MoveResult::new_total_route_length)>::type>::max();
-        move_arguments.clear();
+        move_arguments_bak.clear();
 
         num_affected_routes = -1;
         route_loads.clear();

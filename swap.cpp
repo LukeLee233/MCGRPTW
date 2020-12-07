@@ -62,7 +62,7 @@ bool NewSwap::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen
 
             int current_start = ns.solution.very_start->next->ID;
 
-            while (current_start != DUMMY) {
+            while (ns.solution[current_start]->next != ns.solution.very_end) {
 
 #ifdef DEBUG
                 attempt_count += 2;
@@ -89,7 +89,7 @@ bool NewSwap::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen
 
                 // Consider the end location
                 const int current_route = ns.solution[current_start]->route_id;
-                const int current_end = ns.routes[current_route]->end;
+                const int current_end = ns.solution[ns.routes[current_route]->end]->pre->ID;
                 j = current_end;
                 if (b != j) {
                     if (considerable_move(ns, mcgrp, b, j) && ns.policy.check_move(mcgrp,ns,move_result)) {
@@ -108,7 +108,11 @@ bool NewSwap::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen
                 }
 
                 // Advance to next route's starting Task
-                current_start = ns.solution[current_end]->next->next->ID;
+                if(ns.solution[current_end]->next == ns.solution.very_end){
+                    current_start = current_end;
+                }else{
+                    current_start = ns.solution[current_end]->next->next->ID;
+                }
             }
         }
     }
@@ -136,6 +140,9 @@ bool NewSwap::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen
 
 bool NewSwap::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int i, int u)
 {
+    // This move used to swap the task `i` and the task `u`
+    // best mode choice
+
     My_Assert(u != i, "two Task need to be different!");
     My_Assert(i >= 1 && i <= mcgrp.actual_task_num,"Wrong Task");
     My_Assert(u >= 1 && u <= mcgrp.actual_task_num,"Wrong Task");
@@ -868,10 +875,8 @@ bool NewSwap::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
 
     move_result.choose_tasks(original_u, original_i);
 
-    move_result.move_arguments.push_back(original_u);
-    move_result.move_arguments.push_back(original_i);
-
-    move_result.total_number_of_routes = ns.routes.activated_route_id.size();
+    move_result.move_arguments_bak["input_task_u"] = {original_u};
+    move_result.move_arguments_bak["input_task_i"] = {original_i};
 
     if (u_route == i_route) {
 
@@ -887,8 +892,9 @@ bool NewSwap::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
         move_result.route_custs_num.push_back(ns.routes[u_route]->num_customers);
 
         move_result.new_total_route_length = ns.cur_solution_cost + move_result.delta;
-        move_result.move_arguments.push_back(u);
-        move_result.move_arguments.push_back(i);
+
+        move_result.move_arguments_bak["output_task_u"] = {u};
+        move_result.move_arguments_bak["output_task_i"] = {i};
 
         move_result.considerable = true;
 
@@ -932,8 +938,8 @@ bool NewSwap::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
 
         move_result.new_total_route_length = ns.cur_solution_cost + move_result.delta;
 
-        move_result.move_arguments.push_back(u);
-        move_result.move_arguments.push_back(i);
+        move_result.move_arguments_bak["output_task_u"] = {u};
+        move_result.move_arguments_bak["output_task_i"] = {i};
 
         move_result.vio_load_delta = vio_load_delta;
 
@@ -976,13 +982,11 @@ void NewSwap::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
     DEBUG_PRINT("execute a swap move");
 
     My_Assert(move_result.considerable,"Invalid predictions");
-    My_Assert(move_result.move_arguments.size() == 4, "Incorrect move arguments!");
 
-
-    const int original_u = move_result.move_arguments[0];
-    const int original_i = move_result.move_arguments[1];
-    const int actual_u = move_result.move_arguments[2];
-    const int actual_i = move_result.move_arguments[3];
+    const int original_u = move_result.move_arguments_bak.at("input_task_u").front();
+    const int original_i = move_result.move_arguments_bak.at("input_task_i").front();
+    const int actual_u = move_result.move_arguments_bak.at("output_task_u").front();
+    const int actual_i = move_result.move_arguments_bak.at("output_task_i").front();
 
     My_Assert(original_u >= 1 && original_u <= mcgrp.actual_task_num,"Wrong arguments");
     My_Assert(actual_u >= 1 && actual_u <= mcgrp.actual_task_num,"Wrong arguments");
@@ -1019,21 +1023,6 @@ void NewSwap::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
 
             ns.routes[route_id]->time_table = move_result.route_time_tbl[0];
 
-            if(ns.solution[original_u]->pre->ID < 0){
-                ns.routes[route_id]->start = actual_i;
-            }
-            else if (ns.solution[original_u]->next->ID < 0){
-                ns.routes[route_id]->end = actual_i;
-            }
-
-            if (ns.solution[original_i]->pre->ID < 0){
-                ns.routes[route_id]->start = actual_u;
-            }
-            else if(ns.solution[original_i]->next->ID < 0){
-                ns.routes[route_id]->end = actual_u;
-            }
-
-
             ns.solution[actual_u]->route_id = route_id;
             ns.solution[actual_i]->route_id = route_id;
         }
@@ -1055,22 +1044,6 @@ void NewSwap::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
 
             ns.routes[u_route]->time_table = move_result.route_time_tbl[0];
             ns.routes[i_route]->time_table = move_result.route_time_tbl[1];
-
-            if(ns.solution[original_u]->pre->ID < 0){
-                ns.routes[u_route]->start = actual_i;
-            }
-
-            if (ns.solution[original_u]->next->ID < 0){
-                ns.routes[u_route]->end = actual_i;
-            }
-
-            if (ns.solution[original_i]->pre->ID < 0){
-                ns.routes[i_route]->start = actual_u;
-            }
-
-            if(ns.solution[original_i]->next->ID < 0){
-                ns.routes[i_route]->end = actual_u;
-            }
 
             ns.solution[actual_u]->route_id = i_route;
             ns.solution[actual_i]->route_id = u_route;
@@ -1141,20 +1114,6 @@ void NewSwap::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
 
             ns.routes[route_id]->time_table = move_result.route_time_tbl[0];
 
-            if(ns.solution[original_u]->pre->ID < 0){
-                ns.routes[route_id]->start = original_i;
-            }
-            else if (ns.solution[original_u]->next->ID < 0){
-                ns.routes[route_id]->end = original_i;
-            }
-
-            if (ns.solution[original_i]->pre->ID < 0){
-                ns.routes[route_id]->start = actual_u;
-            }
-            else if(ns.solution[original_i]->next->ID < 0){
-                ns.routes[route_id]->end = actual_u;
-            }
-
             ns.solution[actual_u]->route_id = route_id;
         }
         else{
@@ -1175,22 +1134,6 @@ void NewSwap::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
 
             ns.routes[u_route]->time_table = move_result.route_time_tbl[0];
             ns.routes[i_route]->time_table = move_result.route_time_tbl[1];
-
-            if(ns.solution[original_u]->pre->ID < 0){
-                ns.routes[u_route]->start = original_i;
-            }
-
-            if (ns.solution[original_u]->next->ID < 0){
-                ns.routes[u_route]->end = original_i;
-            }
-
-            if (ns.solution[original_i]->pre->ID < 0){
-                ns.routes[i_route]->start = actual_u;
-            }
-
-            if(ns.solution[original_i]->next->ID < 0){
-                ns.routes[i_route]->end = actual_u;
-            }
 
             ns.solution[actual_u]->route_id = i_route;
             ns.solution[original_i]->route_id = u_route;
@@ -1261,20 +1204,6 @@ void NewSwap::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
 
             ns.routes[route_id]->time_table = move_result.route_time_tbl[0];
 
-            if(ns.solution[original_u]->pre->ID < 0){
-                ns.routes[route_id]->start = actual_i;
-            }
-            else if (ns.solution[original_u]->next->ID < 0){
-                ns.routes[route_id]->end = actual_i;
-            }
-
-            if (ns.solution[original_i]->pre->ID < 0){
-                ns.routes[route_id]->start = original_u;
-            }
-            else if(ns.solution[original_i]->next->ID < 0){
-                ns.routes[route_id]->end = original_u;
-            }
-
             ns.solution[actual_i]->route_id = route_id;
         }
         else{
@@ -1295,22 +1224,6 @@ void NewSwap::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
 
             ns.routes[u_route]->time_table = move_result.route_time_tbl[0];
             ns.routes[i_route]->time_table = move_result.route_time_tbl[1];
-
-            if(ns.solution[original_u]->pre->ID < 0){
-                ns.routes[u_route]->start = actual_i;
-            }
-
-            if (ns.solution[original_u]->next->ID < 0){
-                ns.routes[u_route]->end = actual_i;
-            }
-
-            if (ns.solution[original_i]->pre->ID < 0){
-                ns.routes[i_route]->start = original_u;
-            }
-
-            if(ns.solution[original_i]->next->ID < 0){
-                ns.routes[i_route]->end = original_u;
-            }
 
             ns.solution[original_u]->route_id = i_route;
             ns.solution[actual_i]->route_id = u_route;
@@ -1378,20 +1291,6 @@ void NewSwap::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
 
             ns.routes[route_id]->time_table = move_result.route_time_tbl[0];
 
-            if(ns.solution[original_u]->pre->ID < 0){
-                ns.routes[route_id]->start = original_i;
-            }
-            else if(ns.solution[original_u]->next->ID < 0){
-                ns.routes[route_id]->end = original_i;
-            }
-
-            if(ns.solution[original_i]->pre->ID < 0){
-                ns.routes[route_id]->start = original_u;
-            }
-            else if(ns.solution[original_i]->next->ID < 0){
-                ns.routes[route_id]->end = original_u;
-            }
-
         }
         else{
             const int u_route = move_result.route_id[0];
@@ -1411,22 +1310,6 @@ void NewSwap::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
 
             ns.routes[u_route]->time_table = move_result.route_time_tbl[0];
             ns.routes[i_route]->time_table = move_result.route_time_tbl[1];
-
-            if(ns.solution[original_u]->pre->ID < 0){
-                ns.routes[u_route]->start = original_i;
-            }
-
-            if(ns.solution[original_u]->next->ID < 0){
-                ns.routes[u_route]->end = original_i;
-            }
-
-            if(ns.solution[original_i]->pre->ID < 0){
-                ns.routes[i_route]->start = original_u;
-            }
-
-            if(ns.solution[original_i]->next->ID < 0){
-                ns.routes[i_route]->end = original_u;
-            }
 
             ns.solution[original_u]->route_id = i_route;
             ns.solution[original_i]->route_id = u_route;
@@ -1584,8 +1467,8 @@ bool NewSwap::update_score(HighSpeedNeighBorSearch &ns)
 {
     if(move_result.delta > 0) return false;
 
-    const int actual_u = move_result.move_arguments[2];
-    const int actual_i = move_result.move_arguments[3];
+    const int actual_u = move_result.move_arguments_bak.at("output_task_u").front();
+    const int actual_i = move_result.move_arguments_bak.at("output_task_i").front();
 
     double penalty = (ns.best_solution_cost / ns.cur_solution_cost) * (-move_result.delta);
 

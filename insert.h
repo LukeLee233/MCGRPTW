@@ -85,7 +85,7 @@ public:
     bool
     considerable_move(HighSpeedNeighBorSearch &ns,
                       const MCGRP &mcgrp,
-                      vector<int> disturbance_seq,
+                      vector<int> move_seq,
                       const int u);
 
     /*!
@@ -109,6 +109,12 @@ public:
     bool search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_task) override;
 
     bool update_score(HighSpeedNeighBorSearch &ns) override;
+
+
+    pair<double,double> cost_delta(HighSpeedNeighBorSearch &ns,
+                                   const MCGRP &mcgrp,
+                                   const vector<int>& move_seq,
+                                   const int u);
 };
 
 
