@@ -22,7 +22,7 @@ public:
 	 * @details yielding h-l & t-u-i-j-k-v-w
      * @param ns
      * @param mcgrp
-     * @param disturbance_seq
+     * @param move_seq
      * @param u
      * @param move_result
      * @return
@@ -30,8 +30,14 @@ public:
     bool
     considerable_move(HighSpeedNeighBorSearch &ns,
                       const MCGRP &mcgrp,
-                      vector<int> disturbance_seq,
+                      const vector<int>& move_seq,
                       const int u);
+
+
+    pair<double,double> cost_delta(HighSpeedNeighBorSearch &ns,
+                   const MCGRP &mcgrp,
+                   const vector<int>& move_seq,
+                   const int u);
 
     /*!
  *
@@ -46,7 +52,7 @@ public:
     vector<vector<RouteInfo::TimeTable>>
     expected_time_table(HighSpeedNeighBorSearch &ns,
                         const MCGRP &mcgrp,
-                        vector<int> &disturbance_seq,
+                        const vector<int> &move_sequence,
                         const int i, bool allow_infeasible);
 
     void move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp);

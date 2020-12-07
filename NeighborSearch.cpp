@@ -1863,6 +1863,44 @@ void HighSpeedNeighBorSearch::_two_phase_repair(const MCGRP &mcgrp)
     _repair_time_window(mcgrp);
 }
 
+vector<int> HighSpeedNeighBorSearch::get_sub_seq(int start, int end)
+{
+    vector<int> seq{max(0,start)};
+    int current = start;
+    while(seq.back() != end){
+        current = solution[current]->next->ID;
+        seq.push_back(max(0,current));
+    }
+
+    return seq;
+}
+
+bool HighSpeedNeighBorSearch::compress_empty_route(const int route_id)
+{
+    if(routes[route_id]->num_customers != 0) return false;
+    My_Assert(routes[route_id]->dummy_pair.first != routes[route_id]->dummy_pair.second,"error, Wrong state");
+
+    // dummy marker is the task which will be removed
+    int dummy_marker = 0;
+    My_Assert( routes[route_id]->dummy_pair.first < 0 && routes[route_id]->dummy_pair.second < 0,"error, dummy_pair satae incorrect");
+
+    if(routes[route_id]->dummy_pair.second == solution.very_end->ID){
+        dummy_marker = routes[route_id]->dummy_pair.first;
+    }
+    else{
+        dummy_marker = routes[route_id]->dummy_pair.second;
+    }
+
+    //free dummy marker
+    solution[dummy_marker]->pre->next = solution[dummy_marker]->next;
+    solution[dummy_marker]->next->pre = solution[dummy_marker]->pre;
+    solution.dummypool.free_dummy(dummy_marker);
+
+    // release this route resource
+    routes.free_route(route_id);
+    return true;
+}
+
 
 
 

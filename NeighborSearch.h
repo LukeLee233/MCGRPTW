@@ -314,6 +314,7 @@ public:
         return cur_solution_cost;
     }
 
+    vector<int> get_sub_seq(int start, int end);
 
     /*!
      * sub procedure in decode_seq method
@@ -437,6 +438,9 @@ public:
     double getFitness(const MCGRP& mcgrp,  Policy& policy);
     double getFitness(const MCGRP& mcgrp,  Policy& policy,const Individual& indi);
     double getFitnessDelta(const MCGRP& mcgrp, Policy& policy, const MoveResult &move_result);
+
+    bool compress_empty_route(const int route_id);
+
 
 
 #ifdef DEBUG

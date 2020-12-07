@@ -593,17 +593,17 @@ bool XPostInsert::update_score(HighSpeedNeighBorSearch &ns)
 vector<vector<RouteInfo::TimeTable>>
 XPreInsert::expected_time_table(HighSpeedNeighBorSearch &ns,
                                 const MCGRP &mcgrp,
-                                vector<int> &disturbance_seq,
+                                const vector<int> &move_sequence,
                                 const int i,
                                 bool allow_infeasible){
     vector<vector<RouteInfo::TimeTable>>
         res(2,vector<RouteInfo::TimeTable>({{-1, -1}}));
 
     const int i_route = ns.solution[i]->route_id;
-    const int u_route = ns.solution[disturbance_seq.front()]->route_id;
+    const int u_route = ns.solution[move_sequence.front()]->route_id;
 
     auto intermediate = mcgrp.forecast_time_table(ns.routes[u_route]->time_table,
-                                                  disturbance_seq,"remove",-1 ,allow_infeasible);
+                                                  move_sequence, "remove", -1 , allow_infeasible);
 
     if(!mcgrp.isTimeTableFeasible(intermediate)){
         return res;
@@ -612,11 +612,11 @@ XPreInsert::expected_time_table(HighSpeedNeighBorSearch &ns,
     vector<RouteInfo::TimeTable> final;
     if(u_route == i_route){
         final = mcgrp.forecast_time_table(intermediate,
-                                          disturbance_seq,"insert_before",i,allow_infeasible);
+                                          move_sequence, "insert_before", i, allow_infeasible);
         intermediate = final;
     }else{
         final = mcgrp.forecast_time_table(ns.routes[i_route]->time_table,
-                                          disturbance_seq,"insert_before",i,allow_infeasible);
+                                          move_sequence, "insert_before", i, allow_infeasible);
     }
 
     if(!mcgrp.isTimeTableFeasible(final)){
@@ -632,38 +632,44 @@ XPreInsert::expected_time_table(HighSpeedNeighBorSearch &ns,
 
 
 bool
-XPreInsert::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, vector<int> disturbance_seq, const int u)
+XPreInsert::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,const vector<int>& move_seq, const int u)
 {
+    // This move used to move the `move_seq` to the front of the task `u`
+    // Two policy are contained, 1: no mode choice 2: best mode choice
+
     // Task u cannot be dummy Task
     My_Assert(u >= 1 && u <= mcgrp.actual_task_num,"Wrong Task");
-    My_Assert(all_of(disturbance_seq.begin(), disturbance_seq.end(),
+    My_Assert(all_of(move_seq.begin(), move_seq.end(),
                      [&](int i){return i>=1 && i<=mcgrp.actual_task_num;}), "Wrong Task");
 
-    if(u == ns.solution[disturbance_seq.back()]->next->ID){
+    if(u == ns.solution[move_seq.back()]->next->ID){
         // Nothing to do
         move_result.reset();
         return false;
     }
 
-    const int i_route = ns.solution[disturbance_seq.front()]->route_id;
+    const int i_route = ns.solution[move_seq.front()]->route_id;
     const int u_route = ns.solution[u]->route_id;
 
-    // Check load feasibility easily
+    // load legality is independent with mode choice
     int load_delta = 0;
     double vio_load_delta = 0;
-    //not the same route
     if (i_route != u_route) {
-        for (auto task : disturbance_seq) {
+
+        for (auto task : move_seq) {
             load_delta += mcgrp.inst_tasks[task].demand;
         }
 
         if (ns.policy.has_rule(FEASIBLE)) {
+
             if (ns.routes[u_route]->load + load_delta > mcgrp.capacity) {
                 move_result.reset();
                 return false;
             }
+
         }
         else if (ns.policy.has_rule(INFEASIBLE)) {
+
             int pseudo_capacity = ns.policy.get_pseudo_capacity(mcgrp.capacity);
             if (ns.routes[u_route]->load + load_delta > pseudo_capacity) {
                 move_result.reset();
@@ -694,73 +700,229 @@ XPreInsert::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, v
                 }
             }
         }
+
+
     }
+
+    if(ns.policy.has_rule(BEST_ACCEPT)) {
+        // with mode refine
+
+        vector<int> first_seq;
+        vector<int> last_seq;
+
+        if(i_route == u_route){
+            // special case
+
+        }else{
+            // trivial case
+            first_seq = ns.get_sub_seq(DUMMY, ns.solution[u]->pre->ID);
+            last_seq = ns.get_sub_seq(u, DUMMY);
+        }
+
+        viterbi::PseudoTask first_task = Seq2Pseudo(first_seq, 1);
+        viterbi::PseudoTask last_task = Seq2Pseudo(last_seq, 2);
+
+        // insert sequence will invoke viterbi result
+        auto best_sequence = viterbi::viterbi_decode(&first_task,&last_task,move_seq,mcgrp,ns.policy);
+
+        // use best sequence to update the move result
+
+    }
+    else if(ns.policy.has_rule(FIRST_ACCEPT)){
+        // without mode refine
+
+        bool allow_infeasible = ns.policy.has_rule(INFEASIBLE) ? true : false;
+        vector<vector<RouteInfo::TimeTable>> new_time_tbl{{{-1, -1}}};
+
+        new_time_tbl = expected_time_table(ns, mcgrp, move_seq, u, allow_infeasible);
+
+        if(!mcgrp.isTimeTableFeasible(new_time_tbl[0])){
+            move_result.reset();
+            return false;
+        }
+
+        if(allow_infeasible){
+            if(ns.policy.check_time_window(mcgrp,new_time_tbl)){
+                move_result.reset();
+                return false;
+            }
+        }
+
+        auto routes_cost_delta = cost_delta(ns,mcgrp,move_seq,u);
+        double u_route_length_delta = routes_cost_delta.first;
+        double i_route_length_delta = routes_cost_delta.second;
+
+        move_result.choose_tasks(move_seq.front(), u);
+
+        move_result.move_arguments_bak["input_seq"] = move_seq;
+        move_result.move_arguments_bak["output_seq"] = move_seq;
+        move_result.move_arguments_bak["insert_pos"] = {u};
+
+
+        if (i_route == u_route) {
+
+            move_result.num_affected_routes = 1;
+
+            move_result.route_id.push_back(i_route);
+
+            move_result.delta = u_route_length_delta + i_route_length_delta;
+            move_result.route_lens.push_back(ns.routes[i_route]->length + move_result.delta);
+
+            move_result.route_loads.push_back(ns.routes[i_route]->load);
+
+            move_result.route_custs_num.push_back(ns.routes[i_route]->num_customers);
+
+            move_result.new_total_route_length = ns.cur_solution_cost + move_result.delta;
+
+
+            move_result.considerable = true;
+
+            move_result.route_time_tbl.emplace_back(new_time_tbl[0]);
+
+
+            if(ns.policy.has_rule(INFEASIBLE)){
+                auto old_time_info_i = mcgrp.get_vio_time(ns.routes[i_route]->time_table);
+                auto new_time_info_i = mcgrp.get_vio_time(move_result.route_time_tbl[0]);
+
+                move_result.vio_load_delta = vio_load_delta;
+                move_result.vio_time_delta = new_time_info_i.second - old_time_info_i.second;
+                move_result.vio_time_custom_num_delta = new_time_info_i.first - old_time_info_i.first;
+            }else{
+                move_result.vio_load_delta = 0;
+                move_result.vio_time_delta = 0;
+                move_result.vio_time_custom_num_delta = 0;
+            }
+
+            return true;
+        }
+        else {
+            // Different routes!
+            move_result.num_affected_routes = 2;
+            move_result.route_id.push_back(i_route);
+            move_result.route_id.push_back(u_route);
+
+            move_result.delta = u_route_length_delta + i_route_length_delta;
+
+            move_result.route_lens.push_back(ns.routes[i_route]->length + i_route_length_delta);
+            move_result.route_lens.push_back(ns.routes[u_route]->length + u_route_length_delta);
+
+            move_result.route_loads.push_back(ns.routes[i_route]->load - load_delta);
+            move_result.route_loads.push_back(ns.routes[u_route]->load + load_delta);
+
+            move_result.route_custs_num.push_back(ns.routes[i_route]->num_customers - move_seq.size());
+            move_result.route_custs_num.push_back(ns.routes[u_route]->num_customers + move_seq.size());
+
+            move_result.new_total_route_length = ns.cur_solution_cost + move_result.delta;
+
+            move_result.considerable = true;
+
+            move_result.route_time_tbl = new_time_tbl;
+
+            if(ns.policy.has_rule(INFEASIBLE)){
+                move_result.vio_load_delta = vio_load_delta;
+
+                auto old_time_info_i = mcgrp.get_vio_time(ns.routes[i_route]->time_table);
+                auto new_time_info_i = mcgrp.get_vio_time(move_result.route_time_tbl[0]);
+
+                auto old_time_info_u = mcgrp.get_vio_time(ns.routes[u_route]->time_table);
+                auto new_time_info_u = mcgrp.get_vio_time(move_result.route_time_tbl[1]);
+
+                move_result.vio_time_delta =
+                    new_time_info_i.second + new_time_info_u.second - old_time_info_i.second - old_time_info_u.second;
+                move_result.vio_time_custom_num_delta =
+                    new_time_info_i.first + new_time_info_u.first - old_time_info_i.first - old_time_info_u.first;
+            }else{
+                move_result.vio_load_delta = 0;
+                move_result.vio_time_delta = 0;
+                move_result.vio_time_custom_num_delta = 0;
+            }
+
+            return true;
+        }
+
+    }
+    else{
+        My_Assert(false,"error, unknown policy!");
+    }
+
+
+    /*----------------------------------------------------------------------*/
+
+
+
+    vector<int> best_move_seq = move_seq;
 
     bool allow_infeasible = ns.policy.has_rule(INFEASIBLE) ? true : false;
     vector<vector<RouteInfo::TimeTable>> new_time_tbl{{{-1, -1}}};
 
-    new_time_tbl = expected_time_table(ns,mcgrp,disturbance_seq,u,allow_infeasible);
+    double u_route_length_delta, i_route_length_delta;
+    if(ns.policy.has_rule(BEST_ACCEPT)){
+        vector<vector<int>> all_possible_mode_seq = generate_possible_seq(mcgrp,move_seq);
+        double best_delta = DBL_MAX;
+        vector<vector<RouteInfo::TimeTable>> tmp_time_tbl{{{-1, -1}}};
 
-    if(!mcgrp.isTimeTableFeasible(new_time_tbl[0])){
-        move_result.reset();
-        return false;
-    }
+        for(const auto& candidate_move_seq : all_possible_mode_seq){
 
-    if(allow_infeasible){
-        if(ns.policy.check_time_window(mcgrp,new_time_tbl)){
+            tmp_time_tbl = expected_time_table(ns, mcgrp, move_seq, u, allow_infeasible);
+
+            if(!mcgrp.isTimeTableFeasible(tmp_time_tbl[0])){
+                continue;
+            }
+
+            if(allow_infeasible){
+                if(ns.policy.check_time_window(mcgrp,tmp_time_tbl)){
+                    continue;
+                }
+            }
+
+            auto routes_cost_delta = cost_delta(ns,mcgrp,move_seq,u);
+            if(routes_cost_delta.first + routes_cost_delta.second < best_delta){
+                best_delta = routes_cost_delta.first + routes_cost_delta.second;
+                u_route_length_delta = routes_cost_delta.first;
+                i_route_length_delta = routes_cost_delta.second;
+                best_move_seq = candidate_move_seq;
+                new_time_tbl = tmp_time_tbl;
+            }
+        }
+
+        if(best_delta == DBL_MAX){
             move_result.reset();
             return false;
         }
     }
+    else if(ns.policy.has_rule(FIRST_ACCEPT)){
+        new_time_tbl = expected_time_table(ns, mcgrp, move_seq, u, allow_infeasible);
 
-    const int t = max(ns.solution[u]->pre->ID, 0);
+        if(!mcgrp.isTimeTableFeasible(new_time_tbl[0])){
+            move_result.reset();
+            return false;
+        }
 
-    const int h = max(ns.solution[disturbance_seq.front()]->pre->ID, 0);
-    const int l = max(ns.solution[disturbance_seq.back()]->next->ID, 0);
+        if(allow_infeasible){
+            if(ns.policy.check_time_window(mcgrp,new_time_tbl)){
+                move_result.reset();
+                return false;
+            }
+        }
 
-    const double hi = mcgrp.min_cost[mcgrp.inst_tasks[h].tail_node][mcgrp.inst_tasks[disturbance_seq.front()].head_node];
-    const double kl = mcgrp.min_cost[mcgrp.inst_tasks[disturbance_seq.back()].tail_node][mcgrp.inst_tasks[l].head_node];
-    const double hl = mcgrp.min_cost[mcgrp.inst_tasks[h].tail_node][mcgrp.inst_tasks[l].head_node];
-
-    double i_route_length_delta = hl - (hi + kl);
-
-    for (int cursor = 0; cursor < disturbance_seq.size() - 1; cursor++) {
-        i_route_length_delta -=
-            mcgrp.min_cost[mcgrp.inst_tasks[disturbance_seq[cursor]].tail_node][mcgrp.inst_tasks[disturbance_seq[cursor
-                + 1]].head_node];
-        i_route_length_delta -= mcgrp.inst_tasks[disturbance_seq[cursor]].serv_cost;
-    }
-    i_route_length_delta -= mcgrp.inst_tasks[disturbance_seq.back()].serv_cost;
+        auto routes_cost_delta = cost_delta(ns,mcgrp,move_seq,u);
+        u_route_length_delta = routes_cost_delta.first;
+        i_route_length_delta = routes_cost_delta.second;
 
 
-    const double tu = mcgrp.min_cost[mcgrp.inst_tasks[t].tail_node][mcgrp.inst_tasks[u].head_node];
-    double u_route_length_delta = -tu;
-
-    for (auto cursor = 0; cursor < disturbance_seq.size() - 1; cursor++) {
-        u_route_length_delta +=
-            mcgrp.min_cost[mcgrp.inst_tasks[disturbance_seq[cursor]].tail_node][mcgrp.inst_tasks[disturbance_seq[
-                cursor + 1]].head_node];
-        u_route_length_delta += mcgrp.inst_tasks[disturbance_seq[cursor]].serv_cost;
     }
 
-    u_route_length_delta += mcgrp.inst_tasks[disturbance_seq.back()].serv_cost;
-    //handle ends
-    u_route_length_delta +=
-        mcgrp.min_cost[mcgrp.inst_tasks[t].tail_node][mcgrp.inst_tasks[disturbance_seq.front()].head_node];
-    u_route_length_delta +=
-        mcgrp.min_cost[mcgrp.inst_tasks[disturbance_seq.back()].tail_node][mcgrp.inst_tasks[u].head_node];
+    move_result.choose_tasks(move_seq.front(), u);
 
-
-    move_result.choose_tasks(disturbance_seq.front(), u);
-
-    move_result.move_arguments = disturbance_seq;
-    move_result.move_arguments.push_back(u);
+    move_result.move_arguments_bak["input_seq"] = move_seq;
+    move_result.move_arguments_bak["output_seq"] = best_move_seq;
+    move_result.move_arguments_bak["insert_pos"] = {u};
 
 
     // Check if we need to reduce the # of routes here
     const int start_i = ns.routes[i_route]->start;
     const int end_i = ns.routes[i_route]->end;
-    if (start_i == disturbance_seq.front() && end_i == disturbance_seq.back())
+    if (start_i == move_seq.front() && end_i == move_seq.back())
         move_result.total_number_of_routes = ns.routes.activated_route_id.size() - 1;
     else
         move_result.total_number_of_routes = ns.routes.activated_route_id.size();
@@ -816,8 +978,8 @@ XPreInsert::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, v
         move_result.route_loads.push_back(ns.routes[i_route]->load - load_delta);
         move_result.route_loads.push_back(ns.routes[u_route]->load + load_delta);
 
-        move_result.route_custs_num.push_back(ns.routes[i_route]->num_customers - disturbance_seq.size());
-        move_result.route_custs_num.push_back(ns.routes[u_route]->num_customers + disturbance_seq.size());
+        move_result.route_custs_num.push_back(ns.routes[i_route]->num_customers - move_seq.size());
+        move_result.route_custs_num.push_back(ns.routes[u_route]->num_customers + move_seq.size());
 
         move_result.new_total_route_length = ns.cur_solution_cost + move_result.delta;
 
@@ -861,153 +1023,114 @@ void XPreInsert::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
     DEBUG_PRINT("execute a " + to_string(length) + "-insert:presert move");
     My_Assert(move_result.considerable,"Invalid predictions");
 
-    //extract move arguments
-    const int u = move_result.move_arguments.back();
-    vector<int> disturbance_sequence(move_result.move_arguments.begin(),move_result.move_arguments.end() - 1);
+    //phase 0: extract move arguments
+    const int u = move_result.move_arguments_bak.at("insert_pos").front();
+    const vector<int>& input_move_seq = move_result.move_arguments_bak.at("input_seq");
+    const vector<int>& output_move_seq = move_result.move_arguments_bak.at("output_seq");
 
     My_Assert(u >= 1 && u <= mcgrp.actual_task_num,"Wrong arguments");
-    My_Assert(all_of(disturbance_sequence.begin(),disturbance_sequence.end(),[&](int i){return i>=1 && i<=mcgrp.actual_task_num;}),"Wrong arguments");
+    My_Assert(all_of(input_move_seq.begin(),input_move_seq.end(),[&](int i){return i>=1 && i<=mcgrp.actual_task_num;}),"Wrong arguments");
+    My_Assert(all_of(output_move_seq.begin(),output_move_seq.end(),[&](int i){return i>=1 && i<=mcgrp.actual_task_num;}),"Wrong arguments");
 
-    int edge_num = mcgrp.count_edges(disturbance_sequence);
-    if(edge_num > 0 && move_result.num_affected_routes == 2){
-        const int i_route = move_result.route_id[0];
-        const int u_route = move_result.route_id[1];
+
+
+    // phase 1: update the route level info
+    const int i_route = move_result.route_id[0];
+    const int u_route = move_result.route_id[1];
+
+    if(move_result.num_affected_routes == 2){
+        int edge_num = mcgrp.count_edges(input_move_seq);
 
         ns.routes[i_route]->num_edges -= edge_num;
         ns.routes[u_route]->num_edges += edge_num;
     }
 
-    if (move_result.total_number_of_routes != ns.routes.activated_route_id.size()) {
-        //need to eliminate an empty route
-        My_Assert(move_result.total_number_of_routes == ns.routes.activated_route_id.size() - 1,"Incorrect routes number");
-        My_Assert(move_result.num_affected_routes == 2,"Incorrect routes number");
-        const int i_route = move_result.route_id[0];
-        const int u_route = move_result.route_id[1];
-        My_Assert(ns.routes.activated_route_id.find(i_route)!=ns.routes.activated_route_id.end(),"Invalid route");
-        My_Assert(ns.routes.activated_route_id.find(u_route)!=ns.routes.activated_route_id.end(),"Invalid route");
-        My_Assert(ns.routes[i_route]->start == disturbance_sequence.front() && ns.routes[i_route]->end == disturbance_sequence.back(),"Wrong route");
+    if (move_result.num_affected_routes == 1) {
+        // affect one route
+        My_Assert(i_route == u_route,"error, wrong arguments");
 
-        //Modify routes info
-        ns.routes[u_route]->length = move_result.route_lens[1];
+        ns.routes[i_route]->length = move_result.route_lens[0];
 
-        ns.routes[u_route]->load = move_result.route_loads[1];
+        ns.routes[i_route]->time_table = move_result.route_time_tbl[0];
 
-        ns.routes[u_route]->num_customers = move_result.route_custs_num[1];
-
-        ns.routes[u_route]->time_table = move_result.route_time_tbl[1];
-
-        for(auto task:disturbance_sequence){
-            ns.solution[task]->route_id = u_route;
+        if(ns.solution[input_move_seq.back()]->next->ID < 0){
+            ns.routes[i_route]->end = ns.solution[input_move_seq.front()]->pre->ID;
         }
 
         if(ns.solution[u]->pre->ID < 0){
-            ns.routes[u_route]->start = disturbance_sequence.front();
+            ns.routes[u_route]->start = output_move_seq.front();
         }
 
-        ns.routes.free_route(i_route);
+    }else if(move_result.num_affected_routes == 2){
+        // affect two routes
 
-        //handle solution
-        //record next dummy Task of actual u
-        int dummy_marker = 0;
-        My_Assert(ns.solution[disturbance_sequence.front()]->pre->ID < 0 && ns.solution[disturbance_sequence.back()]->next->ID < 0,"Route is not empty!");
-        if(ns.solution[disturbance_sequence.back()]->next == ns.solution.very_end){
-            dummy_marker = ns.solution[disturbance_sequence.front()]->pre->ID;
-        }
-        else{
-            dummy_marker = ns.solution[disturbance_sequence.back()]->next->ID;
-        }
+        ns.routes[i_route]->length = move_result.route_lens[0];
+        ns.routes[u_route]->length = move_result.route_lens[1];
 
-        //handle solution
-        //remove
-        ns.solution[disturbance_sequence.front()]->pre->next = ns.solution[disturbance_sequence.back()]->next;
-        ns.solution[disturbance_sequence.back()]->next->pre = ns.solution[disturbance_sequence.front()]->pre;
+        ns.routes[i_route]->load = move_result.route_loads[0];
+        ns.routes[u_route]->load = move_result.route_loads[1];
 
-        //presert
-        ns.solution[disturbance_sequence.front()]->pre = ns.solution[u]->pre;
-        ns.solution[disturbance_sequence.back()]->next = ns.solution[u];
-        ns.solution[u]->pre->next = ns.solution[disturbance_sequence.front()];
-        ns.solution[u]->pre = ns.solution[disturbance_sequence.back()];
+        ns.routes[i_route]->num_customers = move_result.route_custs_num[0];
+        ns.routes[u_route]->num_customers = move_result.route_custs_num[1];
 
-        //free dummy marker
-        ns.solution[dummy_marker]->pre->next = ns.solution[dummy_marker]->next;
-        ns.solution[dummy_marker]->next->pre = ns.solution[dummy_marker]->pre;
-        ns.solution.dummypool.free_dummy(dummy_marker);
-    }
-    else{
-        //no routes eliminates
-        //Modify routes info
-        if (move_result.num_affected_routes == 1) {
-            //No need to change route id
-            const int route_id = move_result.route_id[0];
-            My_Assert(ns.routes.activated_route_id.find(route_id)!=ns.routes.activated_route_id.end(),"Invalid route");
+        ns.routes[i_route]->time_table = move_result.route_time_tbl[0];
+        ns.routes[u_route]->time_table = move_result.route_time_tbl[1];
 
-            ns.routes[route_id]->length = move_result.route_lens[0];
-
-            ns.routes[route_id]->time_table = move_result.route_time_tbl[0];
-
-            if(ns.solution[disturbance_sequence.front()]->pre->ID < 0){
-                ns.routes[route_id]->start = ns.solution[disturbance_sequence.back()]->next->ID;
-            }
-
-            if(ns.solution[disturbance_sequence.back()]->next->ID < 0){
-                ns.routes[route_id]->end = ns.solution[disturbance_sequence.front()]->pre->ID;
-            }
-
-            if(ns.solution[u]->pre->ID < 0){
-                ns.routes[route_id]->start = disturbance_sequence.front();
-            }
-        }
-        else{
-            const int i_route = move_result.route_id[0];
-            const int u_route = move_result.route_id[1];
-
-            My_Assert(ns.routes.activated_route_id.find(i_route)!=ns.routes.activated_route_id.end(),"Invalid route");
-            My_Assert(ns.routes.activated_route_id.find(u_route)!=ns.routes.activated_route_id.end(),"Invalid route");
-
-            ns.routes[i_route]->length = move_result.route_lens[0];
-            ns.routes[u_route]->length = move_result.route_lens[1];
-
-            ns.routes[i_route]->load = move_result.route_loads[0];
-            ns.routes[u_route]->load = move_result.route_loads[1];
-
-            ns.routes[i_route]->num_customers = move_result.route_custs_num[0];
-            ns.routes[u_route]->num_customers = move_result.route_custs_num[1];
-
-            ns.routes[i_route]->time_table = move_result.route_time_tbl[0];
-            ns.routes[u_route]->time_table = move_result.route_time_tbl[1];
-
-            for(auto task:disturbance_sequence){
-                ns.solution[task]->route_id = u_route;
-            }
-
-            if(ns.solution[disturbance_sequence.front()]->pre->ID < 0){
-                ns.routes[i_route]->start = ns.solution[disturbance_sequence.back()]->next->ID;
-            }
-
-            if(ns.solution[disturbance_sequence.back()]->next->ID < 0){
-                ns.routes[i_route]->end = ns.solution[disturbance_sequence.front()]->pre->ID;
-            }
-
-            if(ns.solution[u]->pre->ID < 0){
-                ns.routes[u_route]->start = disturbance_sequence.front();
-            }
+        for(auto task : output_move_seq){
+            ns.solution[task]->route_id = u_route;
         }
 
-        //handle solution
-        //remove
-        ns.solution[disturbance_sequence.front()]->pre->next = ns.solution[disturbance_sequence.back()]->next;
-        ns.solution[disturbance_sequence.back()]->next->pre = ns.solution[disturbance_sequence.front()]->pre;
+        if(ns.solution[input_move_seq.front()]->pre->ID < 0){
+            ns.routes[i_route]->start = ns.solution[input_move_seq.back()]->next->ID;
+        }
 
-        //presert
-        ns.solution[disturbance_sequence.front()]->pre = ns.solution[u]->pre;
-        ns.solution[disturbance_sequence.back()]->next = ns.solution[u];
-        ns.solution[u]->pre->next = ns.solution[disturbance_sequence.front()];
-        ns.solution[u]->pre = ns.solution[disturbance_sequence.back()];
+        if(ns.solution[input_move_seq.back()]->next->ID < 0){
+            ns.routes[i_route]->end = ns.solution[input_move_seq.front()]->pre->ID;
+        }
 
+        if(ns.solution[u]->pre->ID < 0){
+            ns.routes[u_route]->start = output_move_seq.front();
+        }
+
+    }else{
+        My_Assert(false, "error, wrong arguments!");
     }
 
+    // phase 3: update the sequence level info
 
-    //modify global info
+    // remove from the i route
+    ns.solution[input_move_seq.front()]->pre->next = ns.solution[input_move_seq.back()]->next;
+    ns.solution[input_move_seq.back()]->next->pre = ns.solution[input_move_seq.front()]->pre;
+
+    //presert
+    if(input_move_seq == output_move_seq){
+
+        ns.solution[input_move_seq.front()]->pre = ns.solution[u]->pre;
+        ns.solution[input_move_seq.back()]->next = ns.solution[u];
+        ns.solution[u]->pre->next = ns.solution[input_move_seq.front()];
+        ns.solution[u]->pre = ns.solution[input_move_seq.back()];
+
+    }else{
+
+        for(auto input_task : input_move_seq){
+            ns.solution[input_task]->clear();
+        }
+
+        ns.solution[output_move_seq.front()]->pre = ns.solution[u]->pre;
+        ns.solution[output_move_seq.back()]->next = ns.solution[u];
+
+        ns.solution.connect_tasks(output_move_seq);
+
+        ns.solution[u]->pre->next = ns.solution[output_move_seq.front()];
+        ns.solution[u]->pre = ns.solution[output_move_seq.back()];
+    }
+
+    // phase 4: compress the empty routes
+    if(ns.routes[i_route]->num_customers == 0){
+        ns.compress_empty_route(i_route);
+    }
+
+    // phase 5: modify global info
     ns.cur_solution_cost += move_result.delta;
     ns.total_vio_load += move_result.vio_load_delta;
     ns.total_vio_time += move_result.vio_time_delta;
@@ -1176,4 +1299,46 @@ bool XPreInsert::update_score(HighSpeedNeighBorSearch &ns)
     ns.score_matrix[max(0,ns.solution[seq_front]->pre->ID)][seq_front] += penalty;
 
     return true;
+}
+
+pair<double,double> XPreInsert::cost_delta(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, const vector<int> &move_seq, const int u)
+{
+    const int t = max(ns.solution[u]->pre->ID, 0);
+
+    const int h = max(ns.solution[move_seq.front()]->pre->ID, 0);
+    const int l = max(ns.solution[move_seq.back()]->next->ID, 0);
+
+    const double hi = mcgrp.min_cost[mcgrp.inst_tasks[h].tail_node][mcgrp.inst_tasks[move_seq.front()].head_node];
+    const double kl = mcgrp.min_cost[mcgrp.inst_tasks[move_seq.back()].tail_node][mcgrp.inst_tasks[l].head_node];
+    const double hl = mcgrp.min_cost[mcgrp.inst_tasks[h].tail_node][mcgrp.inst_tasks[l].head_node];
+
+    double i_route_length_delta = hl - (hi + kl);
+
+    for (int cursor = 0; cursor < move_seq.size() - 1; cursor++) {
+        i_route_length_delta -=
+            mcgrp.min_cost[mcgrp.inst_tasks[move_seq[cursor]].tail_node][mcgrp.inst_tasks[move_seq[cursor
+                + 1]].head_node];
+        i_route_length_delta -= mcgrp.inst_tasks[move_seq[cursor]].serv_cost;
+    }
+    i_route_length_delta -= mcgrp.inst_tasks[move_seq.back()].serv_cost;
+
+
+    const double tu = mcgrp.min_cost[mcgrp.inst_tasks[t].tail_node][mcgrp.inst_tasks[u].head_node];
+    double u_route_length_delta = -tu;
+
+    for (auto cursor = 0; cursor < move_seq.size() - 1; cursor++) {
+        u_route_length_delta +=
+            mcgrp.min_cost[mcgrp.inst_tasks[move_seq[cursor]].tail_node][mcgrp.inst_tasks[move_seq[
+                cursor + 1]].head_node];
+        u_route_length_delta += mcgrp.inst_tasks[move_seq[cursor]].serv_cost;
+    }
+
+    u_route_length_delta += mcgrp.inst_tasks[move_seq.back()].serv_cost;
+    //handle ends
+    u_route_length_delta +=
+        mcgrp.min_cost[mcgrp.inst_tasks[t].tail_node][mcgrp.inst_tasks[move_seq.front()].head_node];
+    u_route_length_delta +=
+        mcgrp.min_cost[mcgrp.inst_tasks[move_seq.back()].tail_node][mcgrp.inst_tasks[u].head_node];
+
+    return {u_route_length_delta,i_route_length_delta};
 }

@@ -91,10 +91,12 @@ struct RouteInfo
     int start = -1;
     int end = -1;
     int load = 0;
+    pair<int,int> dummy_pair{0,0};
     double length = 0;
     int num_customers = 0;
     int num_edges = 0;
     vector<TimeTable> time_table;
+
 
     void clear(){
         start = -1;
@@ -103,6 +105,7 @@ struct RouteInfo
         length = 0;
         num_customers = 0;
         num_edges = 0;
+        dummy_pair = {0,0};
         time_table.clear();
     }
 
@@ -158,6 +161,8 @@ struct Task
     int trave_time;
     int serve_time;
     Window time_window;
+
+    Task() = default;
 };
 
 struct Arc
@@ -262,7 +267,7 @@ public:
     int seq2_cus_num = -1;
 
     bool considerable = false;
-    int total_number_of_routes;
+    int total_number_of_routes; // TODO: deprecated later
     double delta;
 
     double new_total_route_length;
@@ -270,6 +275,7 @@ public:
     int vio_time_delta;
     int vio_time_custom_num_delta;
     vector<int> move_arguments;
+    unordered_map<string, vector<int>> move_arguments_bak;
 
     int num_affected_routes;
     vector<int> route_loads;
@@ -291,8 +297,7 @@ public:
         delta = 0;
         seq1_cus_num = -1;
         seq2_cus_num = -1;
-        new_total_route_length =
-            std::numeric_limits<identity<decltype(MoveResult::new_total_route_length)>::type>::max();
+        new_total_route_length = DBL_MAX;
 
         vio_load_delta = 0;
         vio_time_delta = 0;
