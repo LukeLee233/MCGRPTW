@@ -82,20 +82,168 @@ vector<vector<int>> MoveOperator::generate_possible_seq(const MCGRP &mcgrp, cons
 
     return total_sequence;
 }
-viterbi::PseudoTask MoveOperator::Seq2Pseudo(const vector<int> &seq, int phase)
+
+viterbi::PseudoTask MoveOperator::Seq2Pseudo(const MCGRP &mcgrp, const vector<int> &seq, int phase)
 {
-    // Auto-generated stub
-    auto time_window = Task::Window(0,0);
-    return viterbi::PseudoTask(0, 0, 0, 0, 0, time_window);
+    vector<int> regularized_seq = _seq_regularization(seq);
+    int head_node = mcgrp.inst_tasks[regularized_seq.front()].head_node;
+    int tail_node = mcgrp.inst_tasks[regularized_seq.back()].tail_node;
+    int demand = 0;
+    int serve_cost = 0;
+
+    for(int ii = 0; ii < regularized_seq.size(); ii++){
+        demand += mcgrp.inst_tasks[regularized_seq[ii]].demand;
+
+        serve_cost += mcgrp.inst_tasks[regularized_seq[ii]].serv_cost;
+
+        if(ii != 0){
+            serve_cost += mcgrp.min_cost[mcgrp.inst_tasks[regularized_seq[ii-1]].tail_node][mcgrp.inst_tasks[regularized_seq[ii]].head_node];
+        }
+    }
+
+    Task::Window time_window;
+    if(phase == 1){
+        int depart_time = mcgrp.cal_arrive_time(regularized_seq).back() + mcgrp.inst_tasks[regularized_seq.back()].serve_time;
+        time_window.first = time_window.second = depart_time;
+    }
+    else if(phase == 2){
+        time_window.first = mcgrp.inst_tasks[regularized_seq.front()].time_window.first;
+        int x = mcgrp.inst_tasks[regularized_seq.front()].time_window.second;
+        int constant = 0;
+
+        for(int ii = 1;ii < regularized_seq.size();ii++){
+            constant += mcgrp.inst_tasks[regularized_seq[ii-1]].serve_time;
+            constant += mcgrp.min_time[mcgrp.inst_tasks[regularized_seq[ii-1]].tail_node][mcgrp.inst_tasks[regularized_seq[ii]].head_node];
+            x = max(x, mcgrp.inst_tasks[regularized_seq[ii]].time_window.second - constant);
+        }
+
+        time_window.second = x;
+    }else{
+        My_Assert(false, "error, wrong phase");
+    }
+
+    return viterbi::PseudoTask(head_node,tail_node,demand,serve_cost,time_window);
 }
 
+vector<int> MoveOperator::_seq_regularization(const vector<int> seq)
+{
+    vector<int> res;
+    for(int task : seq){
+        res.push_back(max(DUMMY, task));
+    }
 
-viterbi::BestDecode viterbi::viterbi_decode(const viterbi::PseudoTask *first,
-                                            const viterbi::PseudoTask *last,
+    return res;
+}
+
+viterbi::BestDecode viterbi::viterbi_decode(const viterbi::PseudoTask* first,
+                                            const viterbi::PseudoTask* last,
                                             const vector<int> &move_seq,
                                             const MCGRP &mcgrp,
                                             Policy &policy)
 {
-    // Auto-generated stub
-    return viterbi::BestDecode();
+
+    viterbi::BestDecode ans;
+
+    vector<vector<const Task *>> DAG;
+    DAG.push_back( {first} );
+    for(int i = 0; i< move_seq.size(); i++){
+        if(mcgrp.is_edge(move_seq[i])){
+            DAG.push_back( {&mcgrp.inst_tasks[move_seq[i]], &mcgrp.inst_tasks[mcgrp.inst_tasks[move_seq[i]].inverse]} );
+        }else{
+            DAG.push_back( { &mcgrp.inst_tasks[move_seq[i]] } );
+        }
+    }
+    DAG.push_back( {last} );
+
+    vector<vector<int>> W(DAG.size(),vector<int>());
+    vector<vector<int>> P(DAG.size(),vector<int>());
+    vector<vector<int>> ArriveTime(DAG.size(), vector<int>());
+
+    W[0].push_back(DAG[0][0]->serv_cost);
+    P[0].push_back(0);
+    ArriveTime[0].push_back(DAG[0][0]->time_window.first);
+
+    function<pair<int,int>(const vector<int>&)> argmin_ = [](const vector<int>& seq){
+        int index = -1;
+        int val = INT32_MAX;
+        for(int ii = 0;ii < seq.size();ii++){
+            if (seq[ii] < val){
+                index  = ii;
+                val = seq[ii];
+            }
+        }
+
+        return make_pair(index, val);
+    };
+
+
+    for(int i = 1; i < DAG.size();i++){
+
+        for(int j = 0;j < DAG[i].size() ;j++){
+            vector<int> distance_;
+            vector<int> ArriveTime_;
+
+            int LatestDepartureTime;
+
+            if(policy.has_rule(FEASIBLE)){
+                LatestDepartureTime = DAG[i][j]->time_window.second;
+            }else if(policy.has_rule(INFEASIBLE)){
+                LatestDepartureTime = policy.get_pseudo_time_window(DAG[i][j]->time_window.second);
+            }else{
+                My_Assert(false, "error, wrong arguments!");
+            }
+
+            for(int k = 0; k < W[i-1].size(); k++){
+                if(W[i - 1][k] == INT32_MAX ||
+                    ArriveTime[i - 1][k] == INT32_MAX ||
+                    ArriveTime[i - 1][k] + DAG[i - 1][k]->serve_time +
+                        mcgrp.min_time[DAG[i - 1][k]->tail_node][DAG[i][j]->head_node]
+                        > LatestDepartureTime){
+                    distance_.push_back(INT32_MAX);
+                    ArriveTime_.push_back(INT32_MAX);
+                }
+                else{
+                    distance_.push_back(W[i - 1][k] +
+                        DAG[i - 1][k]->serv_cost +
+                        mcgrp.min_cost[DAG[i - 1][k]->tail_node][DAG[i][j]->head_node]);
+                    ArriveTime_.push_back(max(DAG[i][j]->time_window.first,
+                                              ArriveTime[i - 1][k] + DAG[i - 1][k]->serve_time +
+                                                  mcgrp.min_time[DAG[i-1][k]->tail_node][DAG[i][j]->head_node]));
+                }
+            }
+
+            int idx;
+            int val;
+            auto tmp = argmin_(distance_);
+            idx = tmp.first;
+            val = tmp.second;
+
+            P[i].push_back(idx);
+            W[i].push_back(val);
+            if (idx == -1)
+                ArriveTime[i].push_back(INT32_MAX);
+            else
+                ArriveTime[i].push_back(ArriveTime_[idx]);
+        }
+    }
+
+    if (P.back() == vector<int>{-1}){
+        ans.cost = INT_MAX;
+    }else{
+        My_Assert(W.back().size() == 1, "Wrong status!");
+        ans.cost = W.back().back();
+        vector<int> indices{P.back().back()};
+        for(int ii = (int)P.size() - 2; ii >= 2 ; ii--){
+            indices.push_back(P[ii][indices.back()]);
+        }
+        My_Assert(indices.size() == P.size() - 2, "Wrong decode sequence!");
+
+        reverse(indices.begin(),indices.end());
+        for(int ii = 0;ii < (int)indices.size(); ii++){
+            ans.seq.push_back(DAG[ii+1][indices[ii]]->task_id);
+        }
+        ans.cost = W.back().back();
+    }
+
+    return ans;
 }

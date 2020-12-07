@@ -700,9 +700,8 @@ XPreInsert::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,co
                 }
             }
         }
-
-
     }
+
 
     if(ns.policy.has_rule(BEST_ACCEPT)) {
         // with mode refine
@@ -712,20 +711,167 @@ XPreInsert::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,co
 
         if(i_route == u_route){
             // special case
+            vector<int> u_route_seq = ns.get_sub_seq(ns.routes[ns.solution[u]->route_id]->start, ns.routes[ns.solution[u]->route_id]->end);
+
+            // try to use offset to generate sequence
+            int move_seq_loc = -1;
+            int u_loc = -1;
+            for(int ii = 0;ii < u_route_seq.size(); ii++){
+                if(u_route_seq[ii] == u) u_loc = ii;
+                if(u_route_seq[ii] == move_seq.front()) move_seq_loc = ii;
+            }
+
+            if(move_seq_loc < u_loc){
+                first_seq.insert (first_seq.end(),u_route_seq.begin(),u_route_seq.begin() + move_seq_loc);
+                first_seq.insert (first_seq.end(), u_route_seq.begin() + move_seq_loc + move_seq.size(), u_route_seq.begin() + u_loc);
+
+                last_seq.insert (last_seq.end(), u_route_seq.begin() + u_loc, u_route_seq.end());
+            }
+            else if(move_seq_loc > u_loc){
+                first_seq.insert (first_seq.end(),u_route_seq.begin(),u_route_seq.begin() + u_loc);
+
+                last_seq.insert (last_seq.end(), u_route_seq.begin() + u_loc,u_route_seq.begin() + move_seq_loc);
+                last_seq.insert( last_seq.end(), u_route_seq.begin() + u_loc + move_seq.size(), u_route_seq.end());
+            }else{
+                My_Assert(false,"error, wrong location");
+            }
 
         }else{
             // trivial case
-            first_seq = ns.get_sub_seq(DUMMY, ns.solution[u]->pre->ID);
-            last_seq = ns.get_sub_seq(u, DUMMY);
+            first_seq = ns.get_sub_seq(ns.routes[ns.solution[u]->route_id]->start, ns.solution[u]->pre->ID);
+            last_seq = ns.get_sub_seq(u, ns.routes[ns.solution[u]->route_id]->end);
         }
 
-        viterbi::PseudoTask first_task = Seq2Pseudo(first_seq, 1);
-        viterbi::PseudoTask last_task = Seq2Pseudo(last_seq, 2);
+        My_Assert(first_seq.front() < 0 && last_seq.back() < 0, "error, wrong sequence!");
+
+        viterbi::PseudoTask first_task = Seq2Pseudo(mcgrp,first_seq, 1);
+        viterbi::PseudoTask last_task = Seq2Pseudo(mcgrp,last_seq, 2);
 
         // insert sequence will invoke viterbi result
-        auto best_sequence = viterbi::viterbi_decode(&first_task,&last_task,move_seq,mcgrp,ns.policy);
+        auto best_sequence = viterbi::viterbi_decode(&first_task, &last_task,move_seq,mcgrp,ns.policy);
 
         // use best sequence to update the move result
+        if(best_sequence.cost == INT32_MAX){
+            move_result.reset();
+            return false;
+        }
+
+        My_Assert(best_sequence.seq.front() == INT32_MAX && best_sequence.seq.back() == INT32_MAX, "error, wrong decoding!");
+
+        move_result.choose_tasks(move_seq.front(), u);
+
+        move_result.move_arguments_bak["input_seq"] = move_seq;
+        move_result.move_arguments_bak["output_seq"] = vector<int>(best_sequence.seq.begin() + 1, best_sequence.seq.end() - 1);
+        move_result.move_arguments_bak["insert_pos"] = {u};
+
+        auto routes_cost_delta = cost_delta(ns,mcgrp,move_seq,u);
+        double u_route_length_delta = best_sequence.cost - ns.routes[u_route]->length;
+        double i_route_length_delta = routes_cost_delta.second;
+
+        if (i_route == u_route) {
+
+            move_result.num_affected_routes = 1;
+
+            move_result.route_id.push_back(i_route);
+
+            move_result.delta = u_route_length_delta + i_route_length_delta;
+            move_result.route_lens.push_back(ns.routes[i_route]->length + move_result.delta);
+
+            move_result.route_loads.push_back(ns.routes[i_route]->load);
+
+            move_result.route_custs_num.push_back(ns.routes[i_route]->num_customers);
+
+            move_result.new_total_route_length = ns.cur_solution_cost + move_result.delta;
+
+            move_result.considerable = true;
+
+            vector<int> u_route_seq;
+            u_route_seq.insert(u_route_seq.end(), first_seq.begin() + 1, first_seq.end());
+            u_route_seq.insert(u_route_seq.end(), best_sequence.seq.begin(), best_sequence.seq.end());
+            u_route_seq.insert(u_route_seq.end(), last_seq.begin(), last_seq.end() - 1);
+
+            move_result.route_time_tbl.emplace_back(RouteInfo::TimeTable::zip(u_route_seq, mcgrp.cal_arrive_time(u_route_seq)));
+
+
+            if(ns.policy.has_rule(INFEASIBLE)){
+                auto old_time_info_i = mcgrp.get_vio_time(ns.routes[i_route]->time_table);
+                auto new_time_info_i = mcgrp.get_vio_time(move_result.route_time_tbl[0]);
+
+                move_result.vio_load_delta = vio_load_delta;
+                move_result.vio_time_delta = new_time_info_i.second - old_time_info_i.second;
+                move_result.vio_time_custom_num_delta = new_time_info_i.first - old_time_info_i.first;
+            }else{
+                move_result.vio_load_delta = 0;
+                move_result.vio_time_delta = 0;
+                move_result.vio_time_custom_num_delta = 0;
+            }
+
+            return true;
+        }
+        else{
+
+            // Different routes!
+            move_result.num_affected_routes = 2;
+            move_result.route_id.push_back(i_route);
+            move_result.route_id.push_back(u_route);
+
+            move_result.delta = u_route_length_delta + i_route_length_delta;
+
+            move_result.route_lens.push_back(ns.routes[i_route]->length + i_route_length_delta);
+            move_result.route_lens.push_back(ns.routes[u_route]->length + u_route_length_delta);
+
+            move_result.route_loads.push_back(ns.routes[i_route]->load - load_delta);
+            move_result.route_loads.push_back(ns.routes[u_route]->load + load_delta);
+
+            move_result.route_custs_num.push_back(ns.routes[i_route]->num_customers - move_seq.size());
+            move_result.route_custs_num.push_back(ns.routes[u_route]->num_customers + move_seq.size());
+
+            move_result.new_total_route_length = ns.cur_solution_cost + move_result.delta;
+
+            move_result.considerable = true;
+
+            vector<int> i_route_seq;
+            for(int ii = 0; ii < ns.routes[i_route]->time_table.size();){
+                if(move_seq.front() == ns.routes[i_route]->time_table[ii].task){
+                    ii += move_seq.size();
+                    continue;
+                }
+
+                i_route_seq.push_back(ns.routes[i_route]->time_table[ii].task);
+                ii ++;
+            }
+            move_result.route_time_tbl.emplace_back(RouteInfo::TimeTable::zip(i_route_seq, mcgrp.cal_arrive_time(i_route_seq)));
+
+            vector<int> u_route_seq;
+            u_route_seq.insert(u_route_seq.end(), first_seq.begin() + 1, first_seq.end());
+            u_route_seq.insert(u_route_seq.end(), best_sequence.seq.begin(), best_sequence.seq.end());
+            u_route_seq.insert(u_route_seq.end(), last_seq.begin(), last_seq.end() - 1);
+
+            move_result.route_time_tbl.emplace_back(RouteInfo::TimeTable::zip(u_route_seq, mcgrp.cal_arrive_time(u_route_seq)));
+
+            if(ns.policy.has_rule(INFEASIBLE)){
+                move_result.vio_load_delta = vio_load_delta;
+
+                auto old_time_info_i = mcgrp.get_vio_time(ns.routes[i_route]->time_table);
+                auto new_time_info_i = mcgrp.get_vio_time(move_result.route_time_tbl[0]);
+
+                auto old_time_info_u = mcgrp.get_vio_time(ns.routes[u_route]->time_table);
+                auto new_time_info_u = mcgrp.get_vio_time(move_result.route_time_tbl[1]);
+
+                move_result.vio_time_delta =
+                    new_time_info_i.second + new_time_info_u.second - old_time_info_i.second - old_time_info_u.second;
+                move_result.vio_time_custom_num_delta =
+                    new_time_info_i.first + new_time_info_u.first - old_time_info_i.first - old_time_info_u.first;
+            }else{
+                move_result.vio_load_delta = 0;
+                move_result.vio_time_delta = 0;
+                move_result.vio_time_custom_num_delta = 0;
+            }
+
+            return true;
+
+        }
+
 
     }
     else if(ns.policy.has_rule(FIRST_ACCEPT)){
@@ -844,172 +990,6 @@ XPreInsert::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,co
     else{
         My_Assert(false,"error, unknown policy!");
     }
-
-
-    /*----------------------------------------------------------------------*/
-
-
-
-    vector<int> best_move_seq = move_seq;
-
-    bool allow_infeasible = ns.policy.has_rule(INFEASIBLE) ? true : false;
-    vector<vector<RouteInfo::TimeTable>> new_time_tbl{{{-1, -1}}};
-
-    double u_route_length_delta, i_route_length_delta;
-    if(ns.policy.has_rule(BEST_ACCEPT)){
-        vector<vector<int>> all_possible_mode_seq = generate_possible_seq(mcgrp,move_seq);
-        double best_delta = DBL_MAX;
-        vector<vector<RouteInfo::TimeTable>> tmp_time_tbl{{{-1, -1}}};
-
-        for(const auto& candidate_move_seq : all_possible_mode_seq){
-
-            tmp_time_tbl = expected_time_table(ns, mcgrp, move_seq, u, allow_infeasible);
-
-            if(!mcgrp.isTimeTableFeasible(tmp_time_tbl[0])){
-                continue;
-            }
-
-            if(allow_infeasible){
-                if(ns.policy.check_time_window(mcgrp,tmp_time_tbl)){
-                    continue;
-                }
-            }
-
-            auto routes_cost_delta = cost_delta(ns,mcgrp,move_seq,u);
-            if(routes_cost_delta.first + routes_cost_delta.second < best_delta){
-                best_delta = routes_cost_delta.first + routes_cost_delta.second;
-                u_route_length_delta = routes_cost_delta.first;
-                i_route_length_delta = routes_cost_delta.second;
-                best_move_seq = candidate_move_seq;
-                new_time_tbl = tmp_time_tbl;
-            }
-        }
-
-        if(best_delta == DBL_MAX){
-            move_result.reset();
-            return false;
-        }
-    }
-    else if(ns.policy.has_rule(FIRST_ACCEPT)){
-        new_time_tbl = expected_time_table(ns, mcgrp, move_seq, u, allow_infeasible);
-
-        if(!mcgrp.isTimeTableFeasible(new_time_tbl[0])){
-            move_result.reset();
-            return false;
-        }
-
-        if(allow_infeasible){
-            if(ns.policy.check_time_window(mcgrp,new_time_tbl)){
-                move_result.reset();
-                return false;
-            }
-        }
-
-        auto routes_cost_delta = cost_delta(ns,mcgrp,move_seq,u);
-        u_route_length_delta = routes_cost_delta.first;
-        i_route_length_delta = routes_cost_delta.second;
-
-
-    }
-
-    move_result.choose_tasks(move_seq.front(), u);
-
-    move_result.move_arguments_bak["input_seq"] = move_seq;
-    move_result.move_arguments_bak["output_seq"] = best_move_seq;
-    move_result.move_arguments_bak["insert_pos"] = {u};
-
-
-    // Check if we need to reduce the # of routes here
-    const int start_i = ns.routes[i_route]->start;
-    const int end_i = ns.routes[i_route]->end;
-    if (start_i == move_seq.front() && end_i == move_seq.back())
-        move_result.total_number_of_routes = ns.routes.activated_route_id.size() - 1;
-    else
-        move_result.total_number_of_routes = ns.routes.activated_route_id.size();
-
-
-    if (i_route == u_route) {
-
-        move_result.num_affected_routes = 1;
-
-        move_result.route_id.push_back(i_route);
-
-        move_result.delta = u_route_length_delta + i_route_length_delta;
-        move_result.route_lens.push_back(ns.routes[i_route]->length + move_result.delta);
-
-        move_result.route_loads.push_back(ns.routes[i_route]->load);
-
-        move_result.route_custs_num.push_back(ns.routes[i_route]->num_customers);
-
-        move_result.new_total_route_length = ns.cur_solution_cost + move_result.delta;
-
-
-        move_result.considerable = true;
-
-        move_result.route_time_tbl.emplace_back(new_time_tbl[0]);
-
-
-        if(ns.policy.has_rule(INFEASIBLE)){
-            auto old_time_info_i = mcgrp.get_vio_time(ns.routes[i_route]->time_table);
-            auto new_time_info_i = mcgrp.get_vio_time(move_result.route_time_tbl[0]);
-
-            move_result.vio_load_delta = vio_load_delta;
-            move_result.vio_time_delta = new_time_info_i.second - old_time_info_i.second;
-            move_result.vio_time_custom_num_delta = new_time_info_i.first - old_time_info_i.first;
-        }else{
-            move_result.vio_load_delta = 0;
-            move_result.vio_time_delta = 0;
-            move_result.vio_time_custom_num_delta = 0;
-        }
-
-        return true;
-    }
-    else {
-        // Different routes!
-        move_result.num_affected_routes = 2;
-        move_result.route_id.push_back(i_route);
-        move_result.route_id.push_back(u_route);
-
-        move_result.delta = u_route_length_delta + i_route_length_delta;
-
-        move_result.route_lens.push_back(ns.routes[i_route]->length + i_route_length_delta);
-        move_result.route_lens.push_back(ns.routes[u_route]->length + u_route_length_delta);
-
-        move_result.route_loads.push_back(ns.routes[i_route]->load - load_delta);
-        move_result.route_loads.push_back(ns.routes[u_route]->load + load_delta);
-
-        move_result.route_custs_num.push_back(ns.routes[i_route]->num_customers - move_seq.size());
-        move_result.route_custs_num.push_back(ns.routes[u_route]->num_customers + move_seq.size());
-
-        move_result.new_total_route_length = ns.cur_solution_cost + move_result.delta;
-
-        move_result.considerable = true;
-
-        move_result.route_time_tbl = new_time_tbl;
-
-        if(ns.policy.has_rule(INFEASIBLE)){
-            move_result.vio_load_delta = vio_load_delta;
-
-            auto old_time_info_i = mcgrp.get_vio_time(ns.routes[i_route]->time_table);
-            auto new_time_info_i = mcgrp.get_vio_time(move_result.route_time_tbl[0]);
-                                
-            auto old_time_info_u = mcgrp.get_vio_time(ns.routes[u_route]->time_table);
-            auto new_time_info_u = mcgrp.get_vio_time(move_result.route_time_tbl[1]);
-
-            move_result.vio_time_delta =
-                new_time_info_i.second + new_time_info_u.second - old_time_info_i.second - old_time_info_u.second;
-            move_result.vio_time_custom_num_delta =
-                new_time_info_i.first + new_time_info_u.first - old_time_info_i.first - old_time_info_u.first;
-        }else{
-            move_result.vio_load_delta = 0;
-            move_result.vio_time_delta = 0;
-            move_result.vio_time_custom_num_delta = 0;
-        }
-
-        return true;
-    }
-
-    My_Assert(false,"Cannot reach here!");
 }
 
 

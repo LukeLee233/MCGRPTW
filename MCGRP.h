@@ -200,6 +200,7 @@ public:
      */
     int cal_arrive_time(int source, int sink, int start, bool head_of_source) const;
 
+
     /*!
      * forecast the time table when modify the serve sequence
      * @param old_table

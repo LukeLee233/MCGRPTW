@@ -1866,11 +1866,11 @@ void HighSpeedNeighBorSearch::_two_phase_repair(const MCGRP &mcgrp)
 
 vector<int> HighSpeedNeighBorSearch::get_sub_seq(int start, int end)
 {
-    vector<int> seq{max(0,start)};
+    vector<int> seq{start};
     int current = start;
     while(seq.back() != end){
         current = solution[current]->next->ID;
-        seq.push_back(max(0,current));
+        seq.push_back(current);
     }
 
     return seq;
