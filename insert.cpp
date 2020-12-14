@@ -115,6 +115,7 @@ bool XPostInsert::considerable_move(HighSpeedNeighBorSearch &ns,
 
 
     if(ns.policy.has_rule(BEST_ACCEPT) && mcgrp.count_edges(move_seq) > 0){
+//    if(false){
         // with mode refine
 
         vector<int> first_seq;
@@ -829,6 +830,7 @@ XPreInsert::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,co
 
 
     if(ns.policy.has_rule(BEST_ACCEPT) && mcgrp.count_edges(move_seq) > 0) {
+//    if(false) {
         // with mode refine
 
         vector<int> first_seq;

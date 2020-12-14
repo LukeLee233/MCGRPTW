@@ -10,6 +10,6 @@
     "significant_search": 5,
     "local_ratio": 0.8,
     "local_minimum_threshold": 3,
-    "tabu_step": 250,
+    "tabu_step": 100,
     "infeasible_distance": 0.3
 }

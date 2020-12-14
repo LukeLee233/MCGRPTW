@@ -29,14 +29,21 @@ bool Policy::check_move(const MCGRP& mcgrp, HighSpeedNeighBorSearch& ns, const M
             return move_result.delta <= 0;
         else if (has_rule(TOLERANCE)) {
             if (move_result.delta <= tolerance * benchmark) {
-                    if(tick_time <= 0){
-                        tick_time = tabu_step_threshold;
-                        return true;
-                    }else{
-                        tick_time--;
-                        return false;
+                tabu_time--;
+                if(tabu_time <= 0){
+                    continue_time--;
+                    if(continue_time < 0){
+                        continue_time = continue_threshold;
+                        tabu_time = tabu_step_threshold;
                     }
-            }else{
+
+                    return true;
+                }
+                else{
+                    return false;
+                }
+            }
+            else{
                 return false;
             }
         }
@@ -49,17 +56,22 @@ bool Policy::check_move(const MCGRP& mcgrp, HighSpeedNeighBorSearch& ns, const M
         if ((has_rule(DOWNHILL)))
             return delta_fitness <= 0;
         else if (has_rule(TOLERANCE)) {
-            if (delta_fitness <= tolerance * benchmark) {
-                if (tick_time <= 0) {
-                    tick_time = tabu_step_threshold;
+            if (move_result.delta <= tolerance * benchmark) {
+                tabu_time--;
+                if(tabu_time <= 0){
+                    continue_time--;
+                    if(continue_time < 0){
+                        continue_time = continue_threshold;
+                        tabu_time = tabu_step_threshold;
+                    }
+
                     return true;
                 }
-                else {
-                    tick_time--;
+                else{
                     return false;
                 }
             }
-            else {
+            else{
                 return false;
             }
         }

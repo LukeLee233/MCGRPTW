@@ -77,7 +77,9 @@ public:
     bool check_time_window(const MCGRP& mcgrp,const vector<vector<RouteInfo::TimeTable>>& time_table);
 
     // oscillation parameters
-    int tick_time = 0;
+    int tabu_time = 0;
+    int continue_time = 0;
+    int continue_threshold = 3;
     int tabu_step_threshold;
     double tolerance = 0;
     double benchmark = 0;

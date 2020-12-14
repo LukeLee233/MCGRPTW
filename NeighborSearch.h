@@ -270,8 +270,10 @@ public:
     //move operator
     unique_ptr<class XPreInsert> single_pre_insert;
     unique_ptr<class XPreInsert> double_pre_insert;
+    unique_ptr<class XPreInsert> tribe_pre_insert;
     unique_ptr<class XPostInsert> single_post_insert;
     unique_ptr<class XPostInsert> double_post_insert;
+    unique_ptr<class XPostInsert> tribe_post_insert;
     unique_ptr<class Invert> invert;
     unique_ptr<class NewSwap> swap;
     unique_ptr<class NewTwoOpt> two_opt;

@@ -52,7 +52,8 @@ HighSpeedNeighBorSearch::HighSpeedNeighBorSearch(const MCGRP &mcgrp,int tabu_ste
     : solution(mcgrp.actual_task_num), routes(mcgrp.actual_task_num),policy(Policy(tabu_step_)),
     task_set(mcgrp.actual_task_num), single_pre_insert(new XPreInsert(1)),
     single_post_insert(new XPostInsert(1)), double_pre_insert(new XPreInsert(2)),
-    double_post_insert(new XPostInsert(2)),two_opt(new NewTwoOpt),
+    double_post_insert(new XPostInsert(2)),tribe_post_insert(new XPostInsert(3)),
+    tribe_pre_insert(new XPreInsert(3)), two_opt(new NewTwoOpt),
     invert(new Invert), swap(new NewSwap), extraction(new Extraction), slice(new Slice),attraction(new Attraction) {
     cur_solution_cost = numeric_limits<decltype(best_solution_cost)>::max();
     best_solution_neg.clear();
@@ -401,7 +402,7 @@ void HighSpeedNeighBorSearch::create_search_neighborhood(const MCGRP &mcgrp, con
 
         while(search_space.size() < neigh_size){
             int task_id = neighbor_info.basic_neighbor[loc].task_id;
-            if(solution.tasks[task_id].next != nullptr && check_tbl.find(task_id) == check_tbl.end())
+            if((task_id == DUMMY) || (solution.tasks[task_id].next != nullptr && check_tbl.find(task_id) == check_tbl.end()))
                 search_space.push_back(task_id);
             loc++;
             loc %= neighbor_info.basic_neighbor.size();
@@ -417,8 +418,7 @@ void HighSpeedNeighBorSearch::create_search_neighborhood(const MCGRP &mcgrp, con
 
         while(search_space.size() < neigh_size){
             int task_id = predecessor_seq[loc].task_id;
-            if(task_id == DUMMY) search_space.push_back(task_id);
-            if(solution.tasks[task_id].next != nullptr && check_tbl.find(task_id) == check_tbl.end())
+            if((task_id == DUMMY) || (solution.tasks[task_id].next != nullptr && check_tbl.find(task_id) == check_tbl.end()))
                 search_space.push_back(task_id);
             loc++;
             loc %= predecessor_seq.size();
@@ -435,8 +435,7 @@ void HighSpeedNeighBorSearch::create_search_neighborhood(const MCGRP &mcgrp, con
         while(search_space.size() < neigh_size){
             loc %= successor_seq.size();
             int task_id = successor_seq[loc].task_id;
-            if(task_id == DUMMY) search_space.push_back(task_id);
-            if(solution.tasks[task_id].next != nullptr && check_tbl.find(task_id) == check_tbl.end())
+            if((task_id == DUMMY) || (solution.tasks[task_id].next != nullptr && check_tbl.find(task_id) == check_tbl.end()))
                 search_space.push_back(task_id);
             loc++;
             loc %= successor_seq.size();
@@ -452,8 +451,7 @@ void HighSpeedNeighBorSearch::create_search_neighborhood(const MCGRP &mcgrp, con
 
         while(search_space.size() < neigh_size){
             int task_id = neighbor_info.coverage_neighbor[loc].task_id;
-            if(task_id == DUMMY) search_space.push_back(task_id);
-            if(solution.tasks[task_id].next != nullptr && check_tbl.find(task_id) == check_tbl.end())
+            if((task_id == DUMMY) || (solution.tasks[task_id].next != nullptr && check_tbl.find(task_id) == check_tbl.end()))
                 search_space.push_back(task_id);
             loc++;
             loc %= neighbor_info.coverage_neighbor.size();
@@ -465,7 +463,7 @@ void HighSpeedNeighBorSearch::create_search_neighborhood(const MCGRP &mcgrp, con
     }
 
 
-    mcgrp._rng.RandPerm(search_space);
+//    mcgrp._rng.RandPerm(search_space);
 }
 
 bool HighSpeedNeighBorSearch::valid_sol(const MCGRP &mcgrp)
@@ -526,8 +524,8 @@ void HighSpeedNeighBorSearch::threshold_exploration(const MCGRP &mcgrp)
     policy.tolerance = sel_ratio(prob, ratios, mcgrp._rng);
     const auto original_policy = policy.getCurrent_policy();
 
-    if(mcgrp._rng.Randint(0,1)) policy.setCurrent_policy(BEST_ACCEPT | TOLERANCE | FEASIBLE);
-    else policy.setCurrent_policy(FIRST_ACCEPT | TOLERANCE | FEASIBLE);;
+//    if(mcgrp._rng.Randint(0,1)) policy.setCurrent_policy(BEST_ACCEPT | TOLERANCE | FEASIBLE);
+    policy.setCurrent_policy(FIRST_ACCEPT | TOLERANCE | FEASIBLE);
 
     //you need to decide the dynamic neighbor size when you search based on different policy
 //    neigh_size = min(10,mcgrp.neigh_size);
@@ -537,6 +535,7 @@ void HighSpeedNeighBorSearch::threshold_exploration(const MCGRP &mcgrp)
     vector<NeighborOperator> neighbor_operator{
         NeighborOperator::SINGLE_INSERT,
         NeighborOperator::DOUBLE_INSERT,
+        NeighborOperator::TRIBE_INSERT,
         NeighborOperator::SWAP,
         NeighborOperator::INVERT,
         NeighborOperator::SLICE,
@@ -582,6 +581,13 @@ void HighSpeedNeighBorSearch::threshold_exploration(const MCGRP &mcgrp)
                             double_post_insert->search(*this, mcgrp, chosen_task);
                         }
                         break;
+                    case TRIBE_INSERT:
+                        if (mcgrp._rng.Randint(0,1)){
+                            tribe_pre_insert->search(*this, mcgrp, chosen_task);
+                        }else{
+                            tribe_post_insert->search(*this, mcgrp, chosen_task);
+                        }
+                        break;
                     case SWAP:swap->search(*this, mcgrp, chosen_task);
                         break;
                     case INVERT:
@@ -616,14 +622,17 @@ void HighSpeedNeighBorSearch::descent_exploration(const MCGRP &mcgrp)
 
     const auto original_policy = policy.getCurrent_policy();
 
-    if(mcgrp._rng.Randint(0,1)) policy.setCurrent_policy(BEST_ACCEPT | DOWNHILL | FEASIBLE);
-    else policy.setCurrent_policy(FIRST_ACCEPT | DOWNHILL | FEASIBLE);
+//    if(mcgrp._rng.Randint(0,1)) policy.setCurrent_policy(BEST_ACCEPT | DOWNHILL | FEASIBLE);
+//    else policy.setCurrent_policy(FIRST_ACCEPT | DOWNHILL | FEASIBLE);
+    policy.setCurrent_policy(BEST_ACCEPT | DOWNHILL | FEASIBLE);
+
 
     neigh_size = mcgrp.neigh_size;
 
     vector<NeighborOperator> neighbor_operator{
         NeighborOperator::SINGLE_INSERT,
         NeighborOperator::DOUBLE_INSERT,
+        NeighborOperator::TRIBE_INSERT,
         NeighborOperator::INVERT,
         NeighborOperator::SWAP,
         NeighborOperator::TWO_OPT,
@@ -663,6 +672,13 @@ void HighSpeedNeighBorSearch::descent_exploration(const MCGRP &mcgrp)
                             double_pre_insert->search(*this, mcgrp, chosen_task);
                         }else{
                             double_post_insert->search(*this, mcgrp, chosen_task);
+                        }
+                        break;
+                    case TRIBE_INSERT:
+                        if (mcgrp._rng.Randint(0,1)){
+                            tribe_pre_insert->search(*this, mcgrp, chosen_task);
+                        }else{
+                            tribe_post_insert->search(*this, mcgrp, chosen_task);
                         }
                         break;
                     case SWAP:swap->search(*this, mcgrp, chosen_task);
@@ -715,10 +731,11 @@ void HighSpeedNeighBorSearch::infeasible_search(const MCGRP &mcgrp)
             descent_start = getFitness(mcgrp,policy);
             small_step_infeasible_descent_exploration(mcgrp);
         }while(getFitness(mcgrp,policy) < descent_start);
+    }else{
+        //Here used to break the local minimum with merge-split operator
+        large_step_infeasible_exploration(mcgrp);
     }
 
-    //Here used to break the local minimum with merge-split operator
-    large_step_infeasible_exploration(mcgrp);
 
     repair_solution(mcgrp);
 
@@ -756,10 +773,13 @@ void HighSpeedNeighBorSearch::small_step_infeasible_descent_exploration(const MC
 
     const auto original_policy = policy.getCurrent_policy();
 
-    if(mcgrp._rng.Randint(0,1)) policy.setCurrent_policy(BEST_ACCEPT | DOWNHILL | INFEASIBLE);
-    else policy.setCurrent_policy(FIRST_ACCEPT | DOWNHILL | INFEASIBLE);
+//    if(mcgrp._rng.Randint(0,1)) policy.setCurrent_policy(BEST_ACCEPT | DOWNHILL | INFEASIBLE);
+//    else policy.setCurrent_policy(FIRST_ACCEPT | DOWNHILL | INFEASIBLE);
+    policy.setCurrent_policy(FIRST_ACCEPT | DOWNHILL | INFEASIBLE);
 
-    neigh_size = 10;
+
+//    neigh_size = 10;
+    neigh_size = mcgrp.neigh_size;
 
     vector<NeighborOperator> neighbor_operator{
         NeighborOperator::SINGLE_INSERT,
@@ -836,10 +856,13 @@ void HighSpeedNeighBorSearch::small_step_infeasible_tabu_exploration(const MCGRP
     policy.tolerance = sel_ratio(prob, ratios, mcgrp._rng);
     auto original_policy = policy.getCurrent_policy();
 
-    if(mcgrp._rng.Randint(0,1)) policy.setCurrent_policy(BEST_ACCEPT | TOLERANCE | INFEASIBLE);
-    else policy.setCurrent_policy(FIRST_ACCEPT | TOLERANCE | INFEASIBLE);;
+//    if(mcgrp._rng.Randint(0,1)) policy.setCurrent_policy(BEST_ACCEPT | TOLERANCE | INFEASIBLE);
+//    else policy.setCurrent_policy(FIRST_ACCEPT | TOLERANCE | INFEASIBLE);;
+    policy.setCurrent_policy(FIRST_ACCEPT | TOLERANCE | INFEASIBLE);
 
-    neigh_size = 10;
+//    neigh_size = 10;
+    neigh_size = mcgrp.neigh_size;
+
 
     vector<NeighborOperator> neighbor_operator{
         NeighborOperator::SINGLE_INSERT,
@@ -912,8 +935,8 @@ void HighSpeedNeighBorSearch::large_step_infeasible_exploration(const MCGRP &mcg
 {
     DEBUG_PRINT("Trigger large step break movement");
     // decide how many routes need to be merged, self-adaptive
-//    int merge_size = routes.size() / 3;
-    int merge_size = 10;
+    int merge_size = routes.activated_route_id.size() / 3;
+//    int merge_size = 10;
 
     // enlarge the capacity for infeasible search to decide whether use infeasible consideration
     merge_split(*this, mcgrp, merge_size);

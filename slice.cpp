@@ -9,7 +9,9 @@ using namespace std;
 bool Slice::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_task)
 {
     //No search space in Slice operator, No accept rule for invert operator
+    return false;
     if(ns.policy.has_rule(INFEASIBLE)) return false;
+    if(ns.policy.has_rule(TOLERANCE)) return false;
     if(ns.policy.has_rule(DOWNHILL)) return false;
 
 #ifdef DEBUG

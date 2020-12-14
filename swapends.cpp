@@ -195,6 +195,7 @@ NewSwapEnds::considerable_move(HighSpeedNeighBorSearch &ns,
     }
 
     if(ns.policy.has_rule(BEST_ACCEPT) && (mcgrp.count_edges(input_a_seq) + mcgrp.count_edges(input_v_seq) > 0)){
+//    if(false){
         vector<int> first_seq_a;
         vector<int> first_seq_v;
 

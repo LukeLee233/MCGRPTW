@@ -23,6 +23,7 @@ bool NewFlip::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
     const int route_id = ns.solution[move_seq.front()]->route_id;
 
     if(ns.policy.has_rule(BEST_ACCEPT) && mcgrp.count_edges(move_seq) > 0){
+//    if(false){
         // with mode refine
         vector<int> first_seq;
         vector<int> last_seq;

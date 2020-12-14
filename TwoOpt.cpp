@@ -113,7 +113,7 @@ bool NewTwoOpt::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chos
             //total 4 x route_nums cases
             int current_start = ns.solution.very_start->next->ID;
 
-            while (current_start != DUMMY){
+            while (ns.solution[current_start]->next != ns.solution.very_end){
 
 #ifdef DEBUG
                 attempt_count += 4;
