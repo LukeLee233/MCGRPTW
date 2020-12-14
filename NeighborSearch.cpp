@@ -1819,5 +1819,33 @@ bool HighSpeedNeighBorSearch::compress_empty_route(const int route_id)
 }
 
 
+void HighSpeedNeighBorSearch::parse_solution(const MCGRP &mcgrp)
+{
+    for(int route_id : routes.activated_route_id){
+        cout << "route "<< route_id << endl;
+        vector<int> task_seq{DUMMY};
+        const auto& route = routes[route_id];
+        cout << "route length: " << route->length << endl;
+        cout << "route load: " << route->load << endl;
+        cout << "task seq:";
+        for(const auto item : route->time_table){
+            cout << item.task << "->";
+            task_seq.push_back(item.task);
+        }
+        cout << endl;
+
+        task_seq.push_back(DUMMY);
+
+        for(int i = 1; i < task_seq.size() ;i++){
+            cout << task_seq[i-1] << "->" << task_seq[i]<<":"<<endl;
+            cout << "travel cost: " << mcgrp.min_cost[mcgrp.inst_tasks[task_seq[i-1]].tail_node][mcgrp.inst_tasks[task_seq[i]].head_node]<<endl;
+            cout << "travel time: " << mcgrp.min_time[mcgrp.inst_tasks[task_seq[i-1]].tail_node][mcgrp.inst_tasks[task_seq[i]].head_node]<<endl;
+        }
+
+        cout <<endl;
+
+    }
+}
+
 
 

@@ -143,6 +143,7 @@ private:
 public:
     void register_distance(string name, unique_ptr<Distance> distance_);
 
+    vector<int> parse_task(const vector<vector<vector<int>>>& input);
 
     /*!
      * 获得任务序列的总成本

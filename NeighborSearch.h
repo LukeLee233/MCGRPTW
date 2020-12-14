@@ -443,7 +443,7 @@ public:
 
     bool compress_empty_route(const int route_id);
 
-
+    void parse_solution(const MCGRP& mcgrp);
 
 #ifdef DEBUG
     int success_viterbi = 0;

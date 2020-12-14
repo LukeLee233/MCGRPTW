@@ -1250,6 +1250,31 @@ double MCGRP::get_average_task_distance() const
     return average_task_distance;
 }
 
+vector<int> MCGRP::parse_task(const vector<vector<vector<int>>>& input)
+{
+    vector<int> task_seq;
+
+    for(const auto &seq : input){
+        int sign = -1;
+        int cnt = 0;
+        for(const auto& service_pair: seq){
+            int head = service_pair[0];
+            int tail = service_pair[1];
+            for(int task_id = 1; task_id <= actual_task_num;task_id++){
+                if(inst_tasks[task_id].head_node == head && inst_tasks[task_id].tail_node == tail){
+                    task_seq.push_back(sign * task_id);
+                    sign = 1;
+                    cnt++;
+                    break;
+                }
+            }
+        }
+        My_Assert(cnt == seq.size(),"error, wrong decoding");
+    }
+
+    return task_seq;
+}
+
 Distance::Distance(const MCGRP& mcgrp, const string &name)
     : name(name)
 {
