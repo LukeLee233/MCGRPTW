@@ -761,9 +761,7 @@ void HighSpeedNeighBorSearch::trace(const MCGRP &mcgrp)
             this->best_solution_neg = get_current_sol("negative");
         }
 
-        if (this->cur_solution_cost < mcgrp.best_total_route_length) {
-            mcgrp.check_best_solution(this->cur_solution_cost, this->best_solution_neg);
-        }
+        mcgrp.check_best_solution(this->cur_solution_cost, this->best_solution_neg);
     }
 }
 

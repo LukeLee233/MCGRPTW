@@ -28,6 +28,8 @@ bool Policy::check_move(const MCGRP& mcgrp, HighSpeedNeighBorSearch& ns, const M
         if ((has_rule(DOWNHILL)))
             return move_result.delta <= 0;
         else if (has_rule(TOLERANCE)) {
+//            if(move_result.delta <= 0) return false;
+
             if (move_result.delta <= tolerance * benchmark) {
                 tabu_time--;
                 if(tabu_time <= 0){
@@ -56,7 +58,10 @@ bool Policy::check_move(const MCGRP& mcgrp, HighSpeedNeighBorSearch& ns, const M
         if ((has_rule(DOWNHILL)))
             return delta_fitness <= 0;
         else if (has_rule(TOLERANCE)) {
-            if (move_result.delta <= tolerance * benchmark) {
+//            if(delta_fitness <= 0) return false;
+
+
+            if (delta_fitness <= tolerance * benchmark) {
                 tabu_time--;
                 if(tabu_time <= 0){
                     continue_time--;

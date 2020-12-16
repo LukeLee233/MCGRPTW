@@ -79,7 +79,7 @@ public:
     // oscillation parameters
     int tabu_time = 0;
     int continue_time = 0;
-    int continue_threshold = 3;
+    int continue_threshold = 15;
     int tabu_step_threshold;
     double tolerance = 0;
     double benchmark = 0;

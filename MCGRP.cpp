@@ -584,7 +584,12 @@ bool MCGRP::check_best_solution(const double total_route_length, const vector<in
 
 //        My_Assert(print(log_out, to_string((int) total_route_length)),"Wrong print");
 #ifdef DEBUG
-        print(log_out, to_string((int) total_route_length));
+//        print(log_out, to_string((int) total_route_length));
+        int cnt = 0;
+        for(const auto task : sol_seq){
+            if(task < 0) cnt++;
+        }
+        print(log_out, to_string((int) cnt));
 #endif
         return true;
     }
@@ -592,7 +597,12 @@ bool MCGRP::check_best_solution(const double total_route_length, const vector<in
 
 //        My_Assert(print(log_out, to_string((int) total_route_length)),"Wrong print");
 #ifdef DEBUG
-        print(log_out, to_string((int) total_route_length));
+//        print(log_out, to_string((int) total_route_length));
+        int cnt = 0;
+        for(const auto task : sol_seq){
+            if(task < 0) cnt++;
+        }
+        print(log_out, to_string((int) cnt));
 #endif
         return false;
     }
