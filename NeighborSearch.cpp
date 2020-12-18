@@ -128,6 +128,23 @@ void HighSpeedNeighBorSearch::_neigh_search(const MCGRP &mcgrp, int mode)
     else {
         My_Assert(false, "Unknown search policy");
     }
+
+    vector<int> task_set_bak;
+    task_set_bak.swap(task_set);
+    auto route_stables = get_route_stables(mcgrp);
+    for(int ii = 0; ii < routes.activated_route_id.size() / 3;ii++){
+        for(const auto& task : routes[route_stables[ii].route_id]->time_table){
+            task_set.push_back(task.task);
+            if(mcgrp.is_edge(task.task)) task_set.push_back(mcgrp.inst_tasks[task.task].inverse);
+        }
+    }
+
+    feasible_search(mcgrp);
+    infeasible_search(mcgrp);
+    feasible_search(mcgrp);
+
+    task_set.swap(task_set_bak);
+
 }
 
 void HighSpeedNeighBorSearch::unpack_seq(const std::vector<int> &dummy_seq, const MCGRP &mcgrp)
@@ -390,10 +407,18 @@ void HighSpeedNeighBorSearch::create_search_neighborhood(const MCGRP &mcgrp, con
 
     const NeighborInfo& neighbor_info = mcgrp.neighbor[start_node][end_node];
 
-    unordered_set<int> check_tbl;
+    unordered_set<int> inner_check_tbl;
     for(const auto task_id : chosen_seq){
-        if(mcgrp.is_edge(task_id)) check_tbl.insert(mcgrp.inst_tasks[task_id].inverse);
-        check_tbl.insert(task_id);
+        if(mcgrp.is_edge(task_id)) inner_check_tbl.insert(mcgrp.inst_tasks[task_id].inverse);
+        inner_check_tbl.insert(task_id);
+    }
+
+    unordered_set<int> outer_check_tbl;
+    for(const auto task_id : task_set){
+        outer_check_tbl.insert(task_id);
+        if(mcgrp.is_edge(task_id)){
+            outer_check_tbl.insert(mcgrp.inst_tasks[task_id].inverse);
+        }
     }
 
     if(mode == "basic"){
@@ -402,8 +427,12 @@ void HighSpeedNeighBorSearch::create_search_neighborhood(const MCGRP &mcgrp, con
 
         while(search_space.size() < neigh_size){
             int task_id = neighbor_info.basic_neighbor[loc].task_id;
-            if((task_id == DUMMY) || (solution.tasks[task_id].next != nullptr && check_tbl.find(task_id) == check_tbl.end()))
+            if((task_id == DUMMY)
+            || (solution.tasks[task_id].next != nullptr
+                && inner_check_tbl.find(task_id) == inner_check_tbl.end()
+                && outer_check_tbl.find(task_id) != outer_check_tbl.end())){
                 search_space.push_back(task_id);
+            }
             loc++;
             loc %= neighbor_info.basic_neighbor.size();
             if(loc == offset) break;
@@ -418,8 +447,12 @@ void HighSpeedNeighBorSearch::create_search_neighborhood(const MCGRP &mcgrp, con
 
         while(search_space.size() < neigh_size){
             int task_id = predecessor_seq[loc].task_id;
-            if((task_id == DUMMY) || (solution.tasks[task_id].next != nullptr && check_tbl.find(task_id) == check_tbl.end()))
+            if((task_id == DUMMY)
+                || (solution.tasks[task_id].next != nullptr
+                    && inner_check_tbl.find(task_id) == inner_check_tbl.end()
+                    && outer_check_tbl.find(task_id) != outer_check_tbl.end())){
                 search_space.push_back(task_id);
+            }
             loc++;
             loc %= predecessor_seq.size();
             if(loc == offset) break;
@@ -435,8 +468,12 @@ void HighSpeedNeighBorSearch::create_search_neighborhood(const MCGRP &mcgrp, con
         while(search_space.size() < neigh_size){
             loc %= successor_seq.size();
             int task_id = successor_seq[loc].task_id;
-            if((task_id == DUMMY) || (solution.tasks[task_id].next != nullptr && check_tbl.find(task_id) == check_tbl.end()))
+            if((task_id == DUMMY)
+                || (solution.tasks[task_id].next != nullptr
+                    && inner_check_tbl.find(task_id) == inner_check_tbl.end()
+                    && outer_check_tbl.find(task_id) != outer_check_tbl.end())){
                 search_space.push_back(task_id);
+            }
             loc++;
             loc %= successor_seq.size();
             if(loc == offset) break;
@@ -451,8 +488,12 @@ void HighSpeedNeighBorSearch::create_search_neighborhood(const MCGRP &mcgrp, con
 
         while(search_space.size() < neigh_size){
             int task_id = neighbor_info.coverage_neighbor[loc].task_id;
-            if((task_id == DUMMY) || (solution.tasks[task_id].next != nullptr && check_tbl.find(task_id) == check_tbl.end()))
+            if((task_id == DUMMY)
+                || (solution.tasks[task_id].next != nullptr
+                    && inner_check_tbl.find(task_id) == inner_check_tbl.end()
+                    && outer_check_tbl.find(task_id) != outer_check_tbl.end())){
                 search_space.push_back(task_id);
+            }
             loc++;
             loc %= neighbor_info.coverage_neighbor.size();
             if(loc == offset) break;
@@ -544,18 +585,16 @@ void HighSpeedNeighBorSearch::threshold_exploration(const MCGRP &mcgrp)
         NeighborOperator::ATTRACTION
     };
 
+
     int L = mcgrp._rng.Randint(28, 33);
 
     for (int k = 1; k < L; k++) {
         mcgrp._rng.RandPerm(neighbor_operator);
 
-        int chosen_task = -1;
-
         for (auto cur_operator:neighbor_operator) {
             mcgrp._rng.RandPerm(task_set);
 
-            for (int i = 0; i < mcgrp.actual_task_num; i++) {
-                chosen_task = task_set[i];
+            for (int chosen_task : task_set) {
                 if (solution[chosen_task]->next == nullptr) {
                     if (mcgrp.is_edge(chosen_task)) {
                         chosen_task = mcgrp.inst_tasks[chosen_task].inverse;
@@ -639,7 +678,6 @@ void HighSpeedNeighBorSearch::descent_exploration(const MCGRP &mcgrp)
         NeighborOperator::ATTRACTION
     };
 
-    int chosen_task = -1;
     mcgrp._rng.RandPerm(neighbor_operator);
     for (auto cur_operator : neighbor_operator) {
         double start_val = 0;
@@ -647,8 +685,7 @@ void HighSpeedNeighBorSearch::descent_exploration(const MCGRP &mcgrp)
             start_val = cur_solution_cost;
             mcgrp._rng.RandPerm(task_set);
 
-            for (int i = 0; i < mcgrp.actual_task_num; i++) {
-                chosen_task = task_set[i];
+            for (int chosen_task : task_set) {
                 if (solution[chosen_task]->next == nullptr) {
                     if (mcgrp.is_edge(chosen_task)) {
                         chosen_task = mcgrp.inst_tasks[chosen_task].inverse;
@@ -787,7 +824,6 @@ void HighSpeedNeighBorSearch::small_step_infeasible_descent_exploration(const MC
         NeighborOperator::INVERT
     };
 
-    int chosen_task = -1;
     mcgrp._rng.RandPerm(neighbor_operator);
     for (auto cur_operator:neighbor_operator) {
         double start_val = 0;
@@ -799,8 +835,7 @@ void HighSpeedNeighBorSearch::small_step_infeasible_descent_exploration(const MC
             start_val = cur_solution_cost;
             mcgrp._rng.RandPerm(task_set);
 
-            for (int i = 0; i < mcgrp.actual_task_num; i++) {
-                chosen_task = task_set[i];
+            for (int chosen_task : task_set) {
                 if (solution[chosen_task]->next == nullptr) {
                     if (mcgrp.is_edge(chosen_task)) {
                         chosen_task = mcgrp.inst_tasks[chosen_task].inverse;
@@ -876,13 +911,10 @@ void HighSpeedNeighBorSearch::small_step_infeasible_tabu_exploration(const MCGRP
     for (int k = 1; k < L; k++) {
         mcgrp._rng.RandPerm(neighbor_operator);
 
-        int chosen_task = -1;
-
         for (auto cur_operator:neighbor_operator) {
             mcgrp._rng.RandPerm(task_set);
 
-            for (int i = 0; i < mcgrp.actual_task_num; i++) {
-                chosen_task = task_set[i];
+            for (int chosen_task : task_set) {
                 if (solution[chosen_task]->next == nullptr) {
                     if (mcgrp.is_edge(chosen_task)) {
                         chosen_task = mcgrp.inst_tasks[chosen_task].inverse;
@@ -933,7 +965,7 @@ void HighSpeedNeighBorSearch::large_step_infeasible_exploration(const MCGRP &mcg
 {
     DEBUG_PRINT("Trigger large step break movement");
     // decide how many routes need to be merged, self-adaptive
-    int merge_size = routes.activated_route_id.size() / 3;
+    int merge_size = routes.activated_route_id.size() - 1;
 //    int merge_size = 10;
 
     // enlarge the capacity for infeasible search to decide whether use infeasible consideration
@@ -1814,6 +1846,34 @@ bool HighSpeedNeighBorSearch::compress_empty_route(const int route_id)
     // release this route resource
     routes.free_route(route_id);
     return true;
+}
+
+vector<RouteStable> HighSpeedNeighBorSearch::get_route_stables(const MCGRP &mcgrp)
+{
+    vector<RouteStable> stable_scores;
+    for (const int route_id : routes.activated_route_id) {
+        stable_scores.push_back(RouteStable(route_id,0));
+
+        for(const auto& task : routes[route_id]->time_table){
+//            stable_scores.back().stable_score += mcgrp.inst_tasks[task.task].move_time.down_time;
+//            stable_scores.back().stable_score -= mcgrp.inst_tasks[task.task].move_time.up_time;
+            stable_scores.back().stable_score += mcgrp.inst_tasks[task.task].move_time.total_time;
+        }
+        stable_scores.back().stable_score /= routes[route_id]->time_table.size();
+    }
+
+    sort(stable_scores.begin(),stable_scores.end(),RouteStable::cmp);
+
+    return stable_scores;
+}
+
+void HighSpeedNeighBorSearch::clear_stability(const MCGRP &mcgrp,const vector<int>& task_set)
+{
+    for(int task_id : task_set){
+        mcgrp.inst_tasks[task_id].move_time.up_time = 0;
+        mcgrp.inst_tasks[task_id].move_time.down_time = 0;
+    }
+
 }
 
 

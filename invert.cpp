@@ -148,6 +148,8 @@ void Invert::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
     My_Assert(ns.valid_sol(mcgrp),"Prediction wrong!");
 
 
+    update_stable_likelihood(mcgrp,ns,{u_tilde},move_result);
+
     update_score(ns);
 
     ns.trace(mcgrp);

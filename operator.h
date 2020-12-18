@@ -68,6 +68,7 @@ public:
     vector<int> getHitInfo();
     vector<vector<int>> generate_possible_seq(const MCGRP &mcgrp,const vector<int>& seq);
 
+    void update_stable_likelihood(const MCGRP& mcgrp, HighSpeedNeighBorSearch& ns,const vector<int>& output_seq, const MoveResult& move_result);
 };
 
 void unit_test(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, MoveOperator& move_operator);

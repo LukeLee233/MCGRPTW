@@ -60,7 +60,6 @@ public:
     std::vector<Task> inst_tasks;
     int sentinel;
 
-
     vector<vector<double> > task_dist;
     vector<vector<NeighborInfo>> neighbor;
 

@@ -147,6 +147,11 @@ public:
 
 struct Task
 {
+    struct MoveTime{
+        int up_time = 0;
+        int down_time = 0;
+        int total_time = 0;
+    };
     typedef pair<int,int> Window;
     string task_name;
     int task_id;
@@ -159,6 +164,7 @@ struct Task
     int trave_time;
     int serve_time;
     Window time_window;
+    mutable MoveTime move_time;
 
     Task() = default;
 };
@@ -252,6 +258,16 @@ vector<int> get_negative_coding(const vector<int> &sequence);
  */
 vector<int> get_delimiter_coding(const vector<int> &negative_coding);
 
+struct RouteStable{
+    int route_id = -1;
+    double stable_score = 0;
+
+    RouteStable(int routeId, int stableScore);
+
+    static bool cmp(const RouteStable& a, const RouteStable& b){
+        return a.stable_score <= b.stable_score;
+    }
+};
 
 class MoveResult
 {

@@ -129,6 +129,7 @@ merge_split(HighSpeedNeighBorSearch &ns,
         ns.clear();
 
         auto candidate_tasks = ns.get_tasks_set();
+        ns.clear_stability(mcgrp,candidate_tasks);
         auto seq_buffer = split_task(mcgrp,ns, candidate_tasks, ns.policy);
 
         ns.unpack_seq(seq_buffer, mcgrp);
@@ -140,6 +141,7 @@ merge_split(HighSpeedNeighBorSearch &ns,
 
 
     //generate tasks distribution in routes
+
     unordered_map<int, vector<int>> task_routes;
     for (auto route_id : ns.routes.activated_route_id) {
         int cur_task = ns.solution[ns.routes[route_id]->start]->next->ID;
@@ -149,59 +151,51 @@ merge_split(HighSpeedNeighBorSearch &ns,
             cur_task = ns.solution[cur_task]->next->ID;
         }
         buffer.push_back(cur_task);
+
         task_routes.emplace(route_id, buffer);
     }
 
-
-    vector<int> total_routes_id;
-    for (auto i:ns.routes.activated_route_id) {
-        total_routes_id.push_back(i);
+    auto stable_scores = ns.get_route_stables(mcgrp);
+    vector<int> routes_id;
+    for (int i = 0; i < merge_size;i++) {
+        routes_id.push_back(stable_scores[i].route_id);
     }
-    COMB combination_manager(ns.routes.activated_route_id.size(), merge_size);
-    vector<int> permutation;
 
     double best_choice = MAX(best_choice);
     vector<int> best_buffer;
     vector<int> best_routes;
 
-    int count = 0;
-    while (count < max_merge_set_num && combination_manager.get_combinations(permutation)) {
-        count++;
-        My_Assert(permutation.size() == merge_size, "Wrong state!");
-
-        vector<int> chosen_routes_id;
-        for (auto i: permutation) {
-            chosen_routes_id.push_back(total_routes_id[i]);
-        }
-
-        //extract chosen tasks
-        vector<int> candidate_tasks;
-        for (auto route_id : chosen_routes_id) {
-            My_Assert(ns.routes.activated_route_id.find(route_id) != ns.routes.activated_route_id.end(),
-                      "Invalid route");
+    My_Assert(routes_id.size() == merge_size, "Wrong state!");
 
 
-            for (auto task : task_routes.at(route_id)) {
-                candidate_tasks.push_back(task);
+    //extract chosen tasks
+    vector<int> candidate_tasks;
+    for (auto route_id : routes_id) {
+        My_Assert(ns.routes.activated_route_id.find(route_id) != ns.routes.activated_route_id.end(),
+                  "Invalid route");
 
-                if (mcgrp.is_edge(task)) {
-                    candidate_tasks.push_back(mcgrp.inst_tasks[task].inverse);
-                }
+
+        for (auto task : task_routes.at(route_id)) {
+            candidate_tasks.push_back(task);
+
+            if (mcgrp.is_edge(task)) {
+                candidate_tasks.push_back(mcgrp.inst_tasks[task].inverse);
             }
         }
+    }
 
+    ns.clear_stability(mcgrp, candidate_tasks);
 
-        vector<int> seq_buffer = split_task(mcgrp,ns, candidate_tasks, ns.policy);
-        My_Assert(seq_buffer.front() == DUMMY && seq_buffer.back() == DUMMY, "Incorrect sequence!");
+    vector<int> seq_buffer = split_task(mcgrp,ns, candidate_tasks, ns.policy);
+    My_Assert(seq_buffer.front() == DUMMY && seq_buffer.back() == DUMMY, "Incorrect sequence!");
 
-        //Best Accept
-        Individual res = mcgrp.parse_delimiter_seq(seq_buffer);
-        double fitness = ns.getFitness(mcgrp,ns.policy,res);
-        if (fitness < best_choice) {
-            best_choice = fitness;
-            best_buffer = seq_buffer;
-            best_routes = chosen_routes_id;
-        }
+    //Best Accept
+    Individual res = mcgrp.parse_delimiter_seq(seq_buffer);
+    double fitness = ns.getFitness(mcgrp,ns.policy,res);
+    if (fitness < best_choice) {
+        best_choice = fitness;
+        best_buffer = seq_buffer;
+        best_routes = routes_id;
     }
 
     //Update neighbor search info

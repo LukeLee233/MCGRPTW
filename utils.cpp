@@ -215,3 +215,7 @@ RouteInfo::TimeTable::unzip(const vector<TimeTable> &time_tbl)
 
     return ans;
 }
+
+RouteStable::RouteStable(int routeId, int stableScore)
+    : route_id(routeId), stable_score(stableScore)
+{}

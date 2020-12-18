@@ -506,7 +506,10 @@ void XPostInsert::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
     ns.total_vio_time += move_result.vio_time_delta;
     My_Assert(ns.valid_sol(mcgrp),"Prediction wrong!");
 
+    update_stable_likelihood(mcgrp,ns,output_move_seq,move_result );
+
     update_score(ns);
+
 
     ns.trace(mcgrp);
     move_result.reset();
@@ -1228,7 +1231,7 @@ void XPreInsert::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
     ns.total_vio_time += move_result.vio_time_delta;
     My_Assert(ns.valid_sol(mcgrp),"Prediction wrong!");
 
-
+    update_stable_likelihood(mcgrp,ns,output_move_seq,move_result);
 
     update_score(ns);
 

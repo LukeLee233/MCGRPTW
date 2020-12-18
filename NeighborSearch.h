@@ -443,7 +443,8 @@ public:
 
     bool compress_empty_route(const int route_id);
 
-
+    vector<RouteStable> get_route_stables(const MCGRP& mcgrp);
+    void clear_stability(const MCGRP& mcgrp,const vector<int>& task_set);
 
 #ifdef DEBUG
     int success_viterbi = 0;

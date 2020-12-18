@@ -135,6 +135,41 @@ vector<int> MoveOperator::_seq_regularization(const vector<int> seq)
     return res;
 }
 
+void MoveOperator::update_stable_likelihood(const MCGRP &mcgrp, HighSpeedNeighBorSearch &ns ,const vector<int>& output_seq,const MoveResult& move_result)
+{
+    if(ns.total_vio_load == 0 && ns.total_vio_time == 0 && ns.policy.has_rule(FEASIBLE)){
+        int sign = 1;
+        if(move_result.delta < 0){
+            sign = -1;
+        }
+
+        for(const auto& task_id : output_seq){
+            My_Assert(task_id > 0, "error, wrong state!");
+            mcgrp.inst_tasks[task_id].move_time.total_time -= move_result.delta;
+//            if(sign == 1) mcgrp.inst_tasks[task_id].move_time.up_time += 1;
+//            else mcgrp.inst_tasks[task_id].move_time.down_time += 1;
+        }
+
+        if(!output_seq.empty()){
+            int before = max(ns.solution[output_seq.front()]->pre->ID,0);
+            int after = max(ns.solution[output_seq.back()]->next->ID,0);
+//            if(sign == 1){
+//                if(before > 0)  mcgrp.inst_tasks[before].move_time.up_time += 1;
+//                if(after > 0)  mcgrp.inst_tasks[after].move_time.up_time += 1;
+//            }
+//            else{
+//                if(before > 0)  mcgrp.inst_tasks[before].move_time.down_time += 1;
+//                if(after > 0)  mcgrp.inst_tasks[after].move_time.down_time += 1;
+//            }
+
+            if(before > 0)  mcgrp.inst_tasks[before].move_time.total_time -= move_result.delta;
+            if(after > 0)  mcgrp.inst_tasks[after].move_time.up_time -= move_result.delta;
+
+        }
+    }
+
+}
+
 viterbi::BestDecode viterbi::viterbi_decode(const viterbi::PseudoTask* first,
                                             const viterbi::PseudoTask* last,
                                             const vector<int> &move_seq,
