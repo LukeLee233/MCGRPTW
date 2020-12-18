@@ -38,30 +38,25 @@ int main(int argc, char *argv[])
         ("help", "MCGRP program")
         ("directory,dir", bpo::value<std::string>(&instance_directory), "the instance directory")
         ("config_file,config", bpo::value<string>(&config_file)->default_value(""), "parameter_file")
-        ("freeze_config", bpo::value<bool>(&freeze_config)->default_value(false), "whether to record the parameters")
-        ("search_time", bpo::value<int>(&search_time)->default_value(60), "total search time")
+        ("search_time", bpo::value<int>(&search_time), "total search time")
         ("neighbor_search_mode",
-         bpo::value<std::string>(&neighbor_search_mode)->default_value("random"),
+         bpo::value<std::string>(&neighbor_search_mode),
          "select mode in neighbor search")
-        ("significant_search",
-         bpo::value<int>(&significant_search)->default_value(5),
-         "if valid move steps doesn't less than this, descent search will be terminated")
-        ("local_ratio",
-         bpo::value<double>(&local_ratio)->default_value(0.8),
-         "if the percentage of equal move larger than this number, descent search will be terminated")
         ("local_minimum_threshold",
-         bpo::value<int>(&local_minimum_threshold)->default_value(40),
+         bpo::value<int>(&local_minimum_threshold),
          "determine whether we arrived at a local optimal")
-        ("tabu_step", bpo::value<int>(&tabu_step)->default_value(500), "tabu steps in the ascent search")
-        ("infeasible_distance",
-         bpo::value<double>(&infeasible_distance)->default_value(0.3),
+        ("tabu_step", bpo::value<int>(&tabu_step), "tabu steps in the ascent search")
+        ("infeasible_distance_threshold",
+         bpo::value<double>(&infeasible_distance_threshold),
          "the parameter determine the distance between infeasible region and feasible region")
-        ("pool_size,ps", bpo::value<int>(&pool_size)->default_value(5), "size of population")
-        ("evolve_step,es", bpo::value<int>(&evolve_steps)->default_value(5), "number of evolving step")
-        ("phase_number,np", bpo::value<int>(&phase_number)->default_value(1))
-        ("random_seed,rs", bpo::value<int>(&random_seed)->default_value(0), "number of evolving step")
-        ("neighbor_size,ns", bpo::value<int>(&neighbor_size)->default_value(25), "neighbor size of the local search")
-        ("qndf_weights,qs", bpo::value<double>(&QNDF_weights)->default_value(0.6), "weight of solution distance");
+        ("pool_size,ps", bpo::value<int>(&pool_size), "size of population")
+        ("evolve_step,es", bpo::value<int>(&evolve_steps), "number of evolving step")
+        ("phase_number,np", bpo::value<int>(&phase_number))
+        ("intensive_local_search_portion", bpo::value<double>(&intensive_local_search_portion))
+        ("merge_split_portion", bpo::value<double>(&merge_split_portion))
+        ("random_seed,rs", bpo::value<int>(&random_seed), "number of evolving step")
+        ("neighbor_size,ns", bpo::value<int>(&neighbor_size), "neighbor size of the local search")
+        ("qndf_weights,qs", bpo::value<double>(&QNDF_weights)->default_value(0), "weight of solution distance");
 
     bpo::store(bpo::parse_command_line(argc, argv, opts), vm);
     bpo::notify(vm);
@@ -87,32 +82,12 @@ int main(int argc, char *argv[])
         j.at("random_seed").get_to(random_seed);
         j.at("neighbor_size").get_to(neighbor_size);
         j.at("search_time").get_to(search_time);
-        j.at("QNDF_weights").get_to(QNDF_weights);
         j.at("neighbor_search_mode").get_to(neighbor_search_mode);
-        j.at("significant_search").get_to(significant_search);
-        j.at("local_ratio").get_to(local_ratio);
         j.at("local_minimum_threshold").get_to(local_minimum_threshold);
         j.at("tabu_step").get_to(tabu_step);
-        j.at("infeasible_distance").get_to(infeasible_distance);
-    }
-
-    if (random_seed < 0 || random_seed > 100) {
-        std::cerr << "Incorrect random seed base address!\n";
-        return -1;
-    }
-
-    if (freeze_config) {
-        json j;
-        j["pool_size"] = pool_size;
-        j["evolve_steps"] = evolve_steps;
-        j["phase_number"] = phase_number;
-        j["random_seed"] = random_seed;
-        j["neighbor_size"] = neighbor_size;
-        j["QNDF_weights"] = QNDF_weights;
-
-        config_file = config_file.empty() ? "demo.json" : config_file;
-        ofstream fout(config_file);
-        fout << setw(4) << j << endl;
+        j.at("infeasible_distance_threshold").get_to(infeasible_distance_threshold);
+        j.at("intensive_local_search_portion").get_to(intensive_local_search_portion);
+        j.at("merge_split_portion").get_to(merge_split_portion);
     }
 
     phase_number = (phase_number == -1) ? 1e6 : phase_number;
@@ -166,16 +141,24 @@ int main(int argc, char *argv[])
 
 /*----------------------Create parameter logger----------------------*/
 //  record searching parameters
-    log_out.open(date_folder + "/parameters.txt", ios::out);
-    print(cout, log_out, "Parameters settings:");
-    print(cout, log_out, "directory " + instance_directory);
-    print(cout, log_out, "base address of seeds: " + to_string(random_seed));
-    print(cout, log_out, "search times: " + to_string(phase_number));
-    print(cout, log_out, "evolution times: " + to_string(evolve_steps));
-    print(cout, log_out, "pool size: " + to_string(pool_size));
-    print(cout, log_out, "neighbor_size: " + to_string(neighbor_size));
-    print(cout, log_out, "QNDF weights: " + to_string(QNDF_weights));
-    log_out.close();
+    json j;
+    j["pool_size"] = pool_size;
+    j["evolve_steps"] = evolve_steps;
+    j["phase_number"] = phase_number;
+    j["random_seed"] = random_seed;
+    j["neighbor_size"] = neighbor_size;
+    j["search_time"] = search_time;
+    j["neighbor_search_mode"] = neighbor_search_mode;
+    j["local_minimum_threshold"] = local_minimum_threshold;
+    j["tabu_step"] = tabu_step;
+    j["infeasible_distance_threshold"] = infeasible_distance_threshold;
+    j["intensive_local_search_portion"] = intensive_local_search_portion;
+    j["merge_split_portion"] = merge_split_portion;
+
+
+    ofstream fout(date_folder + + "/parameters.json");
+    fout << setw(4) << j << endl;
+    fout.close();
 /*----------------------------------------------------------------*/
 
 

@@ -46,7 +46,6 @@ class Policy{
     double beta = DBL_MAX;
 
 private:
-    double infeasible_distance_threshold;
     double time_window_multiplier = 1.5;
     double capacity_multiplier = 1.5;
 public:

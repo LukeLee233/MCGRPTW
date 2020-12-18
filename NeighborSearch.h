@@ -247,10 +247,6 @@ public:
     Policy policy;
 
 
-    const int significant_search_delta = significant_search;
-    const double local_ratio_threshold = local_ratio;
-    const double infeasible_distance_threshold = infeasible_distance;
-
     const int local_threshold = local_minimum_threshold;
 
 

@@ -132,7 +132,8 @@ void HighSpeedNeighBorSearch::_neigh_search(const MCGRP &mcgrp, int mode)
     vector<int> task_set_bak;
     task_set_bak.swap(task_set);
     auto route_stables = get_route_stables(mcgrp);
-    for(int ii = 0; ii < routes.activated_route_id.size() / 3;ii++){
+    int intensive_size = routes.activated_route_id.size() * intensive_local_search_portion;
+    for(int ii = 0; ii < intensive_size;ii++){
         for(const auto& task : routes[route_stables[ii].route_id]->time_table){
             task_set.push_back(task.task);
             if(mcgrp.is_edge(task.task)) task_set.push_back(mcgrp.inst_tasks[task.task].inverse);
@@ -908,6 +909,9 @@ void HighSpeedNeighBorSearch::small_step_infeasible_tabu_exploration(const MCGRP
 
     int L = mcgrp._rng.Randint(28, 33);
 
+    double distance_to_feasible_zone = distance_to_feasible(mcgrp);
+    policy.update_beta(distance_to_feasible_zone);
+
     for (int k = 1; k < L; k++) {
         mcgrp._rng.RandPerm(neighbor_operator);
 
@@ -965,9 +969,10 @@ void HighSpeedNeighBorSearch::large_step_infeasible_exploration(const MCGRP &mcg
 {
     DEBUG_PRINT("Trigger large step break movement");
     // decide how many routes need to be merged, self-adaptive
-    int merge_size = routes.activated_route_id.size() - 1;
-//    int merge_size = 10;
+    int merge_size = min((int)routes.activated_route_id.size() - 1,
+                         int(routes.activated_route_id.size() * merge_split_portion));
 
+    merge_size = max(merge_size, 0);
     // enlarge the capacity for infeasible search to decide whether use infeasible consideration
     merge_split(*this, mcgrp, merge_size);
 
