@@ -35,17 +35,17 @@ public:
  * @return
  */
     bool
-    considerable_move(HighSpeedNeighBorSearch &ns,
-                      const MCGRP &mcgrp,
+    considerable_move(LocalSearch &ns,
+                      const MCGRPTW &mcgrp,
                       const int a,
                       const int u);
 
 
-    void move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp);
+    void move(LocalSearch &ns, const MCGRPTW &mcgrp);
 
-    bool search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_task) override;
+    bool search(LocalSearch &ns, const MCGRPTW &mcgrp, int chosen_task) override;
 
-    bool update_score(HighSpeedNeighBorSearch &ns) override{
+    bool update_score(LocalSearch &ns) override{
         // This action will be executed by post slice and post insert operator
         return true;
     };

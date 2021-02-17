@@ -5,7 +5,7 @@
 #include "Similarity.h"
 #include <algorithm>
 
-double hamming_dist(const MCGRP &mcgrp, const vector<int> &neg_a, const vector<int> &neg_b)
+double hamming_dist(const MCGRPTW &mcgrp, const vector<int> &neg_a, const vector<int> &neg_b)
 {
     vector<vector<int>> atom_link;
     //include offset 1

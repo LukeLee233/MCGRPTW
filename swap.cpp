@@ -9,14 +9,9 @@ using namespace std;
  * High speed
  */
 
-bool NewSwap::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_task)
+bool Swap::search(LocalSearch &ns, const MCGRPTW &mcgrp, int chosen_task)
 {
     My_Assert(chosen_task >= 1 && chosen_task <= mcgrp.actual_task_num,"Wrong Task");
-
-#ifdef DEBUG
-    attempt_count = 0;
-    hit_count = 0;
-#endif
 
     MoveResult BestM;
 
@@ -34,10 +29,6 @@ bool NewSwap::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen
 
         if (neighbor_task != DUMMY) {
             //j can't be dummy and b can't be dummy neither here
-
-#ifdef DEBUG
-            attempt_count++;
-#endif
 
             int j = neighbor_task;
             if (considerable_move(ns, mcgrp, b, j) && ns.policy.check_move(mcgrp,ns,move_result)) {
@@ -63,10 +54,6 @@ bool NewSwap::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen
             int current_start = ns.solution.very_start->next->ID;
 
             while (ns.solution[current_start]->next != ns.solution.very_end) {
-
-#ifdef DEBUG
-                attempt_count += 2;
-#endif
 
                 // Consider the start location
                 int j = current_start;
@@ -138,10 +125,13 @@ bool NewSwap::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen
     }
 }
 
-bool NewSwap::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int i, int u)
+bool Swap::considerable_move(LocalSearch &ns, const MCGRPTW &mcgrp, int i, int u)
 {
     // This move used to swap the task `i` and the task `u`
     // best mode choice
+
+    call_times++;
+    move_result.reset();
 
     My_Assert(u != i, "two Task need to be different!");
     My_Assert(i >= 1 && i <= mcgrp.actual_task_num,"Wrong Task");
@@ -167,24 +157,20 @@ bool NewSwap::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
 
         if (ns.policy.has_rule(FEASIBLE)) {
             if (ns.routes[u_route]->load + u_load_delta > mcgrp.capacity) {
-                move_result.reset();
                 return false;
             }
 
             if (ns.routes[i_route]->load + i_load_delta > mcgrp.capacity) {
-                move_result.reset();
                 return false;
             }
         }
         else if (ns.policy.has_rule(INFEASIBLE)) {
             int pseudo_capacity = ns.policy.get_pseudo_capacity(mcgrp.capacity);
             if (ns.routes[u_route]->load + u_load_delta > pseudo_capacity) {
-                move_result.reset();
                 return false;
             }
 
             if (ns.routes[i_route]->load + i_load_delta > pseudo_capacity) {
-                move_result.reset();
                 return false;
             }
 
@@ -862,21 +848,19 @@ bool NewSwap::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
     }
 
     if(delta == 1e20){
-        move_result.reset();
         return false;
     }
 
     if(allow_infeasible){
         if(ns.policy.check_time_window(mcgrp,new_time_tbl)){
-            move_result.reset();
             return false;
         }
     }
 
     move_result.choose_tasks(original_u, original_i);
 
-    move_result.move_arguments_bak["input_task_u"] = {original_u};
-    move_result.move_arguments_bak["input_task_i"] = {original_i};
+    move_result.move_arguments["input_task_u"] = {original_u};
+    move_result.move_arguments["input_task_i"] = {original_i};
 
     if (u_route == i_route) {
 
@@ -893,8 +877,8 @@ bool NewSwap::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
 
         move_result.new_total_route_length = ns.cur_solution_cost + move_result.delta;
 
-        move_result.move_arguments_bak["output_task_u"] = {u};
-        move_result.move_arguments_bak["output_task_i"] = {i};
+        move_result.move_arguments["output_task_u"] = {u};
+        move_result.move_arguments["output_task_i"] = {i};
 
         move_result.considerable = true;
 
@@ -938,8 +922,8 @@ bool NewSwap::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
 
         move_result.new_total_route_length = ns.cur_solution_cost + move_result.delta;
 
-        move_result.move_arguments_bak["output_task_u"] = {u};
-        move_result.move_arguments_bak["output_task_i"] = {i};
+        move_result.move_arguments["output_task_u"] = {u};
+        move_result.move_arguments["output_task_i"] = {i};
 
         move_result.vio_load_delta = vio_load_delta;
 
@@ -972,21 +956,17 @@ bool NewSwap::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
 
 }
 
-void NewSwap::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
+void Swap::move(LocalSearch &ns, const MCGRPTW &mcgrp)
 {
-
-#ifdef DEBUG
-    hit_count++;
-#endif
 
     DEBUG_PRINT("execute a swap move");
 
     My_Assert(move_result.considerable,"Invalid predictions");
 
-    const int original_u = move_result.move_arguments_bak.at("input_task_u").front();
-    const int original_i = move_result.move_arguments_bak.at("input_task_i").front();
-    const int actual_u = move_result.move_arguments_bak.at("output_task_u").front();
-    const int actual_i = move_result.move_arguments_bak.at("output_task_i").front();
+    const int original_u = move_result.move_arguments.at("input_task_u").front();
+    const int original_i = move_result.move_arguments.at("input_task_i").front();
+    const int actual_u = move_result.move_arguments.at("output_task_u").front();
+    const int actual_i = move_result.move_arguments.at("output_task_i").front();
 
     My_Assert(original_u >= 1 && original_u <= mcgrp.actual_task_num,"Wrong arguments");
     My_Assert(actual_u >= 1 && actual_u <= mcgrp.actual_task_num,"Wrong arguments");
@@ -1368,21 +1348,19 @@ void NewSwap::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
     ns.total_vio_time += move_result.vio_time_delta;
     My_Assert(ns.valid_sol(mcgrp),"Prediction wrong!");
 
-    update_stable_likelihood(mcgrp,ns,{actual_u},move_result);
-    update_stable_likelihood(mcgrp,ns,{actual_i},move_result);
+    update_score(ns);
 
     ns.trace(mcgrp);
-
     move_result.reset();
 }
 
-vector<vector<RouteInfo::TimeTable>> NewSwap::expected_time_table(HighSpeedNeighBorSearch &ns,
-                                                                  const MCGRP &mcgrp,
-                                                                  int u,
-                                                                  int u_tilde,
-                                                                  int i,
-                                                                  int i_tilde,
-                                                                  bool allow_infeasible)
+vector<vector<RouteInfo::TimeTable>> Swap::expected_time_table(LocalSearch &ns,
+                                                               const MCGRPTW &mcgrp,
+                                                               int u,
+                                                               int u_tilde,
+                                                               int i,
+                                                               int i_tilde,
+                                                               bool allow_infeasible)
 {
     vector<vector<RouteInfo::TimeTable>>
         res(2,vector<RouteInfo::TimeTable>({{-1, -1}}));
@@ -1465,31 +1443,35 @@ vector<vector<RouteInfo::TimeTable>> NewSwap::expected_time_table(HighSpeedNeigh
 }
 
 
-bool NewSwap::update_score(HighSpeedNeighBorSearch &ns)
+bool Swap::update_score(LocalSearch &ns)
 {
-    if(move_result.delta > 0) return false;
+    if(move_result.delta >= 0) return false;
 
-    const int actual_u = move_result.move_arguments_bak.at("output_task_u").front();
-    const int actual_i = move_result.move_arguments_bak.at("output_task_i").front();
+    double reward = (ns.best_solution_cost / ns.cur_solution_cost) * (-move_result.delta);
 
-    double penalty = (ns.best_solution_cost / ns.cur_solution_cost) * (-move_result.delta);
+    success_times++;
 
-    if(ns.solution[actual_u]->next->ID == actual_i){
-        // two tasks are neighbor
-        ns.score_matrix[actual_u][actual_i] += penalty;
-        ns.score_matrix[max(0,ns.solution[actual_u]->pre->ID)][actual_u] += penalty;
-        ns.score_matrix[actual_i][max(0,ns.solution[actual_i]->next->ID)] += penalty;
-    }else if(ns.solution[actual_i]->next->ID == actual_u){
-        ns.score_matrix[actual_i][actual_u] += penalty;
-        ns.score_matrix[max(0,ns.solution[actual_i]->pre->ID)][actual_i] += penalty;
-        ns.score_matrix[actual_u][max(0,ns.solution[actual_u]->next->ID)] += penalty;
-    }else{
-        ns.score_matrix[max(0,ns.solution[actual_u]->pre->ID)][actual_u] += penalty;
-        ns.score_matrix[actual_u][max(0,ns.solution[actual_u]->next->ID)] += penalty;
+    const int output_u = move_result.move_arguments.at("output_task_u").front();
+    const int output_i = move_result.move_arguments.at("output_task_i").front();
+    const int input_u = move_result.move_arguments.at("input_task_u").front();
+    const int input_i = move_result.move_arguments.at("input_task_i").front();
+    const int before_input_u = max(0,ns.solution[move_result.move_arguments.at("output_task_i").front()]->pre->ID);
+    const int before_input_i = max(0,ns.solution[move_result.move_arguments.at("output_task_u").front()]->pre->ID);
+    const int after_input_u = max(0,ns.solution[move_result.move_arguments.at("output_task_i").front()]->next->ID);
+    const int after_input_i = max(0,ns.solution[move_result.move_arguments.at("output_task_u").front()]->next->ID);
 
-        ns.score_matrix[actual_i][max(0,ns.solution[actual_i]->next->ID)] += penalty;
-        ns.score_matrix[max(0,ns.solution[actual_i]->pre->ID)][actual_i] += penalty;
-    }
+    ns.score_matrix[before_input_u][input_u] -= reward;
+    ns.score_matrix[input_u][after_input_u] -= reward;
+
+    ns.score_matrix[before_input_i][input_i] -= reward;
+    ns.score_matrix[input_i][after_input_i] -= reward;
+
+    ns.score_matrix[before_input_u][output_i] += reward;
+    ns.score_matrix[output_i][after_input_u] += reward;
+
+    ns.score_matrix[before_input_i][output_u] += reward;
+    ns.score_matrix[output_u][after_input_i] += reward;
+
 
     return true;
 }

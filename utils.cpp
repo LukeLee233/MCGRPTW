@@ -3,12 +3,16 @@
 #include <boost/filesystem.hpp>
 #include "RNG.h"
 #include "utils.h"
-#include "NeighborSearch.h"
+#include "local_search.h"
 
 using namespace std;
 
 ofstream result_out;
 ofstream log_out;
+
+struct timeb cur_time;
+struct timeb iteration_start_time;
+
 
 void __My_Assert(const char *expr_str, bool expr, const char *file, int line, const char *msg)
 {
@@ -216,6 +220,6 @@ RouteInfo::TimeTable::unzip(const vector<TimeTable> &time_tbl)
     return ans;
 }
 
-RouteStable::RouteStable(int routeId, int stableScore)
-    : route_id(routeId), stable_score(stableScore)
+RouteScores::RouteScores(int routeId, int stableScore)
+    : route_id(routeId), scores(stableScore)
 {}

@@ -11,9 +11,7 @@ extern std::string config_file;
 
 extern int search_time;
 
-extern int pool_size;
-extern int evolve_steps;
-extern int phase_number;
+extern int iterations;
 extern double merge_split_portion;
 extern int random_seed;
 extern int neighbor_size;

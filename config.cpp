@@ -9,7 +9,7 @@ std::string config_file;
 int search_time;
 
 int pool_size;
-int evolve_steps;
+int iterations;
 int phase_number;
 int random_seed;
 int neighbor_size;

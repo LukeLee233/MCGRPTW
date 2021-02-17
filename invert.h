@@ -1,27 +1,28 @@
 #pragma once
+
 #include "utils.h"
-#include "MCGRP.h"
-#include "NeighborSearch.h"
+#include "instance.h"
+#include "local_search.h"
 
 
 //low level operator
 class Invert : public MoveOperator
 {
 public:
-    Invert(){
+    Invert() : MoveOperator() {
         move_result = MoveResult(NeighborOperator::INVERT);
     };
 
     /***********************************************************/
 
-    bool search(HighSpeedNeighBorSearch &ns, const class MCGRP &mcgrp, int chosen_task) override;
+    bool search(LocalSearch &ns, const class MCGRPTW &mcgrp, int chosen_task) override;
 
-    bool considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int u);
+    bool considerable_move(LocalSearch &ns, const MCGRPTW &mcgrp, int u);
 
-    void move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp);
+    void move(LocalSearch &ns, const MCGRPTW &mcgrp);
 
-    vector<RouteInfo::TimeTable> expected_time_table(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
+    vector<RouteInfo::TimeTable> expected_time_table(LocalSearch &ns, const MCGRPTW &mcgrp,
                                                      int u, int u_tilde, bool allow_infeasible);
 
-    bool update_score(HighSpeedNeighBorSearch &ns) override;
+    bool update_score(LocalSearch &ns) override;
 };

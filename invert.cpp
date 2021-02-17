@@ -4,21 +4,13 @@
 using namespace std;
 
 
-bool Invert::search(HighSpeedNeighBorSearch &ns, const class MCGRP &mcgrp, int chosen_task)
+bool Invert::search(LocalSearch &ns, const class MCGRPTW &mcgrp, int chosen_task)
 {
     //No search space in Invert operator, No accept rule for invert operator
     My_Assert(chosen_task != DUMMY, "Chosen Task can't be dummy");
 
-#ifdef DEBUG
-    attempt_count++;
-#endif
 
     if (!mcgrp.is_edge(chosen_task)) {
-
-#ifdef DEBUG
-        attempt_count--;
-#endif
-
         return false;
     }
     else if (considerable_move(ns, mcgrp, chosen_task) && ns.policy.check_move(mcgrp,ns, move_result)) {
@@ -32,8 +24,11 @@ bool Invert::search(HighSpeedNeighBorSearch &ns, const class MCGRP &mcgrp, int c
     }
 }
 
-bool Invert::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int u)
+bool Invert::considerable_move(LocalSearch &ns, const MCGRPTW &mcgrp, int u)
 {
+    call_times++;
+    move_result.reset();
+
     My_Assert(u != DUMMY, "Task u cannot be dummy Task!");
     My_Assert(mcgrp.is_edge(u), "Task u must be edge Task!");
 
@@ -59,7 +54,6 @@ bool Invert::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, 
 
     new_time_tbl = expected_time_table(ns,mcgrp,u,u_tilde,allow_infeasible);
     if(!mcgrp.isTimeTableFeasible(new_time_tbl)){
-        move_result.reset();
         return false;
     }
 
@@ -67,7 +61,6 @@ bool Invert::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, 
         vector<vector<RouteInfo::TimeTable>> pack_new_time_tbl;
         pack_new_time_tbl.push_back(new_time_tbl);
         if(ns.policy.check_time_window(mcgrp,pack_new_time_tbl)){
-            move_result.reset();
             return false;
         }
     }
@@ -78,8 +71,8 @@ bool Invert::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, 
     move_result.route_lens.push_back(ns.routes[u_route]->length + move_result.delta);
 
     move_result.new_total_route_length = ns.cur_solution_cost + move_result.delta;
-    move_result.move_arguments_bak["input"] = {u};
-    move_result.move_arguments_bak["output"] = {u_tilde};
+    move_result.move_arguments["input"] = {u};
+    move_result.move_arguments["output"] = {u_tilde};
     move_result.considerable = true;
 
     move_result.route_time_tbl.emplace_back(new_time_tbl);
@@ -100,25 +93,21 @@ bool Invert::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, 
     return true;
 }
 
-void Invert::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
+void Invert::move(LocalSearch &ns, const MCGRPTW &mcgrp)
 {
-
-#ifdef DEBUG
-    hit_count++;
-#endif
+    success_times++;
 
     DEBUG_PRINT("execute an invert move");
 
     My_Assert(move_result.considerable,"Invalid predictions");
 
-    const int u = move_result.move_arguments_bak.at("input")[0];
-    const int u_tilde = move_result.move_arguments_bak.at("output")[0];
+    const int u = move_result.move_arguments.at("input")[0];
+    const int u_tilde = move_result.move_arguments.at("output")[0];
 
     My_Assert(u != DUMMY, "Invert can't handle dummy Task!");
     My_Assert(u_tilde == mcgrp.inst_tasks[u].inverse, "Invert can't handle dummy Task!");
     My_Assert(ns.solution[u]->next != nullptr && ns.solution[u]->pre != nullptr,"Wrong arguments");
     My_Assert(ns.solution[u_tilde]->next == nullptr && ns.solution[u_tilde]->pre == nullptr,"Wrong arguments");
-
 
 
     const int route_id = move_result.route_id[0];
@@ -148,8 +137,6 @@ void Invert::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
     My_Assert(ns.valid_sol(mcgrp),"Prediction wrong!");
 
 
-    update_stable_likelihood(mcgrp,ns,{u_tilde},move_result);
-
     update_score(ns);
 
     ns.trace(mcgrp);
@@ -158,7 +145,7 @@ void Invert::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
 }
 
 vector<RouteInfo::TimeTable>
-Invert::expected_time_table(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int u, int u_tilde, bool allow_infeasible)
+Invert::expected_time_table(LocalSearch &ns, const MCGRPTW &mcgrp, int u, int u_tilde, bool allow_infeasible)
 {
     vector<RouteInfo::TimeTable> res({{-1, -1}});
 
@@ -186,15 +173,22 @@ Invert::expected_time_table(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int
     return res;
 }
 
-bool Invert::update_score(HighSpeedNeighBorSearch &ns)
+bool Invert::update_score(LocalSearch &ns)
 {
-    if(move_result.delta > 0) return false;
+    if(move_result.delta >= 0) return false;
 
-    const int actual_u = move_result.move_arguments_bak.at("output")[0];
-    double penalty = (ns.best_solution_cost / ns.cur_solution_cost) * (-move_result.delta);
+    double reward = (ns.best_solution_cost / ns.cur_solution_cost) * (-move_result.delta);
 
-    ns.score_matrix[actual_u][max(0,ns.solution[actual_u]->next->ID)] += penalty;
-    ns.score_matrix[max(0,ns.solution[actual_u]->pre->ID)][actual_u] += penalty;
+    const int input_u = move_result.move_arguments.at("input")[0];
+    const int output_u = move_result.move_arguments.at("output")[0];
+    const int before_u = max(0,ns.solution[output_u]->pre->ID);
+    const int after_u = max(0,ns.solution[output_u]->next->ID);
+
+    ns.score_matrix[before_u][input_u] -= reward;
+    ns.score_matrix[input_u][after_u] -= reward;
+
+    ns.score_matrix[before_u][output_u] += reward;
+    ns.score_matrix[output_u][after_u] += reward;
 
     return true;
 }

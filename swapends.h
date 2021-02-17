@@ -1,7 +1,9 @@
-#pragma once
+#ifndef _SWAPENDS_H_
+#define _SWAPENDS_H_
+
 #include "utils.h"
-#include "MCGRP.h"
-#include "NeighborSearch.h"
+#include "instance.h"
+#include "local_search.h"
 
 struct RouteSegment
 {
@@ -13,20 +15,22 @@ struct RouteSegment
     double len;
 };
 
-class NewSwapEnds : public MoveOperator
+class SwapEnds : public MoveOperator
 {
 public:
-    NewSwapEnds(){
+    SwapEnds():MoveOperator(){
+        call_times = 0;
+        success_times = 0;
         move_result = MoveResult(NeighborOperator::SWAP_ENDS);
     }
     
-    bool considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, const int chosen_task, const int neighbor_task,const int chosen_route,const int neighbor_route);
+    bool considerable_move(LocalSearch &ns, const MCGRPTW &mcgrp, const int chosen_task, const int neighbor_task, const int chosen_route, const int neighbor_route);
 
-    void move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp);
+    void move(LocalSearch &ns, const MCGRPTW &mcgrp);
 
     vector<vector<RouteInfo::TimeTable>>
-    expected_time_table(HighSpeedNeighBorSearch &ns,
-                        const MCGRP &mcgrp,
+    expected_time_table(LocalSearch &ns,
+                        const MCGRPTW &mcgrp,
                         int a,
                         int v,
                         int a_route,
@@ -35,9 +39,11 @@ public:
                         const struct RouteSegment& v_seg,
                         bool allow_infeasible);
 
-    bool search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_task) override;
+    bool search(LocalSearch &ns, const MCGRPTW &mcgrp, int chosen_task) override;
 
-    bool update_score(HighSpeedNeighBorSearch &ns) override;
+    bool update_score(LocalSearch &ns) override;
 };
 
-RouteSegment get_segment_info(const MCGRP &mcgrp, HighSpeedNeighBorSearch &ns, const int chosen_task);
+RouteSegment get_segment_info(const MCGRPTW &mcgrp, LocalSearch &ns, const int chosen_task);
+
+#endif

@@ -1,32 +1,26 @@
 #include <iostream>
 #include <sys/timeb.h>
-#include "file.h"
 #include "utils.h"
-#include "MCGRP.h"
+#include "instance.h"
 #include "RNG.h"
-#include "NeighborSearch.h"
-#include "Memetic.h"
+#include "local_search.h"
 #include <boost/filesystem.hpp>
 #include <boost/date_time.hpp>
 #include "slice.h"
 #include "extraction.h"
 #include "swap.h"
 #include "invert.h"
-#include "TwoOpt.h"
+#include "two_opt.h"
 #include <boost/program_options.hpp>
 #include <algorithm>
-#include <numeric>
 #include "json.hpp"
 #include "config.h"
 #include "ConstructPolicy.h"
+//#include "Memetic.h"
 
 using namespace std;
 namespace bpo = boost::program_options;
 using json = nlohmann::json;
-
-struct timeb phase_start_time;
-
-struct timeb cur_time;
 
 int main(int argc, char *argv[])
 {
@@ -35,7 +29,7 @@ int main(int argc, char *argv[])
     bpo::variables_map vm;
 
     opts.add_options()
-        ("help", "MCGRP program")
+        ("help", "MCGRPTW program")
         ("directory,dir", bpo::value<std::string>(&instance_directory), "the instance directory")
         ("config_file,config", bpo::value<string>(&config_file)->default_value(""), "parameter_file")
         ("search_time", bpo::value<int>(&search_time), "total search time")
@@ -49,9 +43,7 @@ int main(int argc, char *argv[])
         ("infeasible_distance_threshold",
          bpo::value<double>(&infeasible_distance_threshold),
          "the parameter determine the distance between infeasible region and feasible region")
-        ("pool_size,ps", bpo::value<int>(&pool_size), "size of population")
-        ("evolve_step,es", bpo::value<int>(&evolve_steps), "number of evolving step")
-        ("phase_number,np", bpo::value<int>(&phase_number))
+        ("evolve_step,es", bpo::value<int>(&iterations), "number of evolving step")
         ("intensive_local_search_portion", bpo::value<double>(&intensive_local_search_portion))
         ("merge_split_portion", bpo::value<double>(&merge_split_portion))
         ("random_seed,rs", bpo::value<int>(&random_seed), "number of evolving step")
@@ -62,12 +54,12 @@ int main(int argc, char *argv[])
     bpo::notify(vm);
 
     if (vm.count("help")) {
-        std::cout << opts << std::endl;
+        cout << opts << endl;
         return 0;
     }
 
     if (instance_directory.empty()) {
-        std::cerr << "you need to specify a directory!\n";
+        cerr << "you need to specify a directory!\n";
         return -1;
     }
 
@@ -76,9 +68,7 @@ int main(int argc, char *argv[])
         ifstream fin(config_file);
         fin >> j;
 
-        j.at("pool_size").get_to(pool_size);
-        j.at("evolve_steps").get_to(evolve_steps);
-        j.at("phase_number").get_to(phase_number);
+        j.at("iterations").get_to(iterations);
         j.at("random_seed").get_to(random_seed);
         j.at("neighbor_size").get_to(neighbor_size);
         j.at("search_time").get_to(search_time);
@@ -90,8 +80,7 @@ int main(int argc, char *argv[])
         j.at("merge_split_portion").get_to(merge_split_portion);
     }
 
-    phase_number = (phase_number == -1) ? 1e6 : phase_number;
-    evolve_steps = (evolve_steps == -1) ? 1e6 : evolve_steps;
+    iterations = (iterations == -1) ? 1e6 : iterations;
     /*----------------------------------------------------------------*/
 
     /*----------------------Create search info log----------------------*/
@@ -139,12 +128,11 @@ int main(int argc, char *argv[])
         cout << "Result directory already exists!\n\n";
     }
 
+
 /*----------------------Create parameter logger----------------------*/
 //  record searching parameters
     json j;
-    j["pool_size"] = pool_size;
-    j["evolve_steps"] = evolve_steps;
-    j["phase_number"] = phase_number;
+    j["iterations"] = iterations;
     j["random_seed"] = random_seed;
     j["neighbor_size"] = neighbor_size;
     j["search_time"] = search_time;
@@ -161,7 +149,6 @@ int main(int argc, char *argv[])
     fout.close();
 /*----------------------------------------------------------------*/
 
-
     vector<string> file_set = read_directory(instance_directory);
     for (auto file_name : file_set) {
         cout << string(2, '\n') << string(24, '-')
@@ -170,99 +157,57 @@ int main(int argc, char *argv[])
              << string(24, '-') << string(2, '\n')
              << flush;
 
-        /* global info */
-        double bestobj = numeric_limits<decltype(bestobj)>::max();
-        double best_solution_time = numeric_limits<decltype(best_solution_time)>::max();
-        int best_phase = -1;
-        vector<int> best_buffer;
-        vector<double> FitnessVec;
-        vector<double> BestTimeVec;
-        vector<double> SearchTimeVec;
-        vector<vector<int>> SolutionVec;
 
         /************************************************************************************************/
         /* initialize the instance object */
-        InstanceNumInfo instance_info;
-        GetTasksNum(instance_directory + '/' + file_name, instance_info);
-
         RNG rng = RNG();
-        MCGRP Mixed_Instance(instance_info, rng);
+        MCGRPTW instance(instance_directory + '/' + file_name, rng);
 
-        Mixed_Instance.load_file_info(instance_directory + '/' + file_name, instance_info);
-        Mixed_Instance.create_neighbor_lists(neighbor_size);
-        Mixed_Instance.register_distance("cost",unique_ptr<Distance>(new CostDistance(Mixed_Instance)));
-        Mixed_Instance.register_distance("hybrid", unique_ptr<Distance>(new HybridDistance(Mixed_Instance,0.3)));
+        instance.load_file_info();
+        instance.create_neighbor_lists(neighbor_size);
+        instance.register_distance("cost", unique_ptr<Distance>(new CostDistance(instance)));
+        instance.register_distance("hybrid", unique_ptr<Distance>(new HybridDistance(instance, 0.3)));
 
 #ifdef DEBUG
         log_out.open(date_folder + '/' + file_name + ".log", ios::out);
 #endif
         struct timeb search_start_time;
         ftime(&search_start_time);
-        ftime(&cur_time);
-        for (int start_seed = random_seed; start_seed < random_seed + phase_number
-            && get_time_difference(search_start_time, cur_time) < search_time; start_seed++) {
-            cout << string(24, '-') << "Start "
-                 << start_seed - random_seed + 1
-                 << "th times search" << string(24, '-') << endl;
 
-            Mixed_Instance._rng.change(seed[start_seed % seed_size]);
-            Mixed_Instance.best_total_route_length = DBL_MAX;
-            Mixed_Instance.best_sol_time = DBL_MAX;
+        instance._rng.change(seed[random_seed % seed_size]);
+        instance.best_total_route_length = DBL_MAX;
+        instance.best_sol_time = DBL_MAX;
 
+        LocalSearch local_search(instance, tabu_step);
+        local_search.initialize_score_matrix(instance);
+        Individual initial_solution = NearestScanner(instance, *instance.distance_look_tbl["cost"])();
+        //                Individual initial_solution = nearest_scanning(instance, vector<int>());
 
-            if(pool_size == 1){
-                HighSpeedNeighBorSearch NBS(Mixed_Instance,tabu_step);
-                NBS.initialize_score_matrix(Mixed_Instance);
-                Individual initial_solution = NearestScanner(Mixed_Instance, *Mixed_Instance.distance_look_tbl["cost"])();
+        local_search.unpack_seq(initial_solution.sequence, instance);
+        local_search.trace(instance);
+        cout << "Begin Local search..." << endl;
 
-//                Individual initial_solution = nearest_scanning(Mixed_Instance, vector<int>());
-                NBS.unpack_seq(initial_solution.sequence, Mixed_Instance);
-                NBS.trace(Mixed_Instance);
-                cout << "Begin Local search..." << endl;
-
-                for (auto iter = 1; iter <= evolve_steps
-                    && get_time_difference(search_start_time, cur_time) < search_time; iter++) {
-                    cout << start_seed - random_seed <<"-"<< iter << " th times local search\n";
-                    ftime(&phase_start_time);
-                    NBS.neighbor_search(Mixed_Instance);
-                    ftime(&cur_time);
-                    cout << "Finish " << start_seed - random_seed <<"-"<< iter  << "steps, spent: "
-                         << get_time_difference(phase_start_time, cur_time) << 's' << endl;
-                }
-
-                cout << start_seed - random_seed << "th search:\n";
-                cout << "Total spend " << get_time_difference(search_start_time, cur_time) << endl;
-
-            }else{
-                HighSpeedMemetic MA(pool_size, evolve_steps, QNDF_weights);
-
-                cout << "Begin Memetic search..." << endl;
-                ftime(&phase_start_time);
-                MA.memetic_search(Mixed_Instance);
-                ftime(&cur_time);
-                cout << "Finish " << start_seed - random_seed << "th search, spent: "
-                     << get_time_difference(phase_start_time, cur_time) << 's' << endl;
-            }
-
-            /* solution record */
+        for (auto iter = 1; iter <= iterations
+            && get_time_difference(search_start_time, cur_time) < search_time; iter++) {
+            cout << "start "<< iter << "th iterations...\n";
+            ftime(&iteration_start_time);
+            local_search.neighbor_search(instance);
             ftime(&cur_time);
-            SearchTimeVec.push_back(get_time_difference(phase_start_time, cur_time));
+            cout << "Finish " << iter << "th iterations, spent: "
+                 << get_time_difference(iteration_start_time, cur_time) << 's' << endl;
+        }
 
-            /* record the best info of each epoch */
-            FitnessVec.push_back(Mixed_Instance.best_total_route_length);
-            BestTimeVec.push_back(Mixed_Instance.best_sol_time);
-            SolutionVec.push_back(Mixed_Instance.best_sol_neg);
+        cout << "Search finish!\n"
+             << "Total spend " << get_time_difference(search_start_time, cur_time) <<"s"<< endl;
 
-            cout << "Finish " << start_seed - random_seed + 1 << "th times\n";
 
-            /* record the best solution during the whole searching process*/
-            if (Mixed_Instance.best_total_route_length < bestobj) {
-                best_solution_time = Mixed_Instance.best_sol_time;
-                bestobj = Mixed_Instance.best_total_route_length;
-                best_buffer = Mixed_Instance.best_sol_neg;
-                best_phase = start_seed - random_seed + 1;
-            }
+        Result global_best = Result(instance.best_total_route_length,
+                                           instance.best_sol_time,
+                                           instance.best_sol_neg);
 
+        if (global_best.cost == DBL_MAX) {
+            cerr << "ERROR! Can't find a solution\n";
+            return -1;
         }
 
 #ifdef DEBUG
@@ -270,47 +215,29 @@ int main(int argc, char *argv[])
 #endif
 
         /***********************************output part********************************************/
-        if (bestobj == numeric_limits<decltype(bestobj)>::max()) {
-            cerr << "ERROR! Can't find a solution\n";
-            abort();
-        }
-        double total_cost = accumulate(FitnessVec.begin(), FitnessVec.end(), 0);
-        double best_total_time = accumulate(BestTimeVec.begin(), BestTimeVec.end(), 0);
-        double total_time = accumulate(SearchTimeVec.begin(), SearchTimeVec.end(), 0);
-        double average_cost = total_cost / FitnessVec.size();
-        double average_best_time = best_total_time / BestTimeVec.size();
-        double average_search_time = total_time / SearchTimeVec.size();
-
         cout << string(2, '\n') << string(24, '*')
              << "Searching Finish!" << string(24, '*') << endl;
         cout << "Searching result:" << string(2, '\n') << flush;
-
 
         result_out.open(result_dir + '/' + file_name + ".res", ios::out);
         result_out << setprecision(2) << fixed;
 
         print(cout, result_out, "Instance: " + file_name);
-        print(cout, result_out, "Best Cost: " + to_string(bestobj));
-        print(cout, result_out, "Best Cost Epoch: " + to_string(best_phase));
-        print(cout, result_out, "Best Solution Search Time: " + to_string(best_solution_time) + 's');
+        print(cout, result_out, "Best Cost: " + to_string(global_best.cost));
+        print(cout, result_out, "Best Solution Search Time: " + to_string(global_best.time) + 's');
         print(cout, result_out, "Best Solution: ");
 
         string buff = "";
-        for (int i = 0; i < best_buffer.size(); i++) {
-            if (i == best_buffer.size() - 1)
-                buff += to_string(best_buffer[i]);
+        for (int i = 0; i < global_best.solution.size(); i++) {
+            if (i == global_best.solution.size() - 1)
+                buff += to_string(global_best.solution[i]);
             else
-                buff += (to_string(best_buffer[i]) + "->");
+                buff += (to_string(global_best.solution[i]) + "->");
         }
         print(cout, result_out, buff);
 
-        print(cout, result_out, "\n\nSearch time: " + to_string(FitnessVec.size()));
-
-
-        print(cout, result_out, "\n\nAverage cost: " + to_string(average_cost));
-        print(cout, result_out, "Average best solution search time: " + to_string(average_best_time) + 's');
-        print(cout, result_out, "Average search time: " + to_string(average_search_time) + 's');
         result_out.close();
+
     }
 
     return 0;

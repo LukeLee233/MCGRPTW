@@ -1,8 +1,8 @@
-#include "NeighborSearch.h"
+#include "local_search.h"
 #include <iostream>
 #include "swap.h"
 #include "invert.h"
-#include "TwoOpt.h"
+#include "two_opt.h"
 #include "slice.h"
 #include "extraction.h"
 #include <sys/timeb.h>
@@ -26,7 +26,7 @@ vector<double> ratios = {0.07, 0.08, 0.09, 0.10};
 vector<double> prob = {0.25, 0.25, 0.25, 0.25};
 
 
-void HighSpeedNeighBorSearch::DUMMYPOOL::extend()
+void LocalSearch::DUMMYPOOL::extend()
 {
     unsigned int new_size = pool.size() * 2;
     unsigned int old_size = pool.size();
@@ -48,13 +48,13 @@ void HighSpeedNeighBorSearch::DUMMYPOOL::extend()
     return;
 }
 
-HighSpeedNeighBorSearch::HighSpeedNeighBorSearch(const MCGRP &mcgrp,int tabu_step_)
-    : solution(mcgrp.actual_task_num), routes(mcgrp.actual_task_num),policy(Policy(tabu_step_)),
-    task_set(mcgrp.actual_task_num), single_pre_insert(new XPreInsert(1)),
-    single_post_insert(new XPostInsert(1)), double_pre_insert(new XPreInsert(2)),
-    double_post_insert(new XPostInsert(2)),tribe_post_insert(new XPostInsert(3)),
-    tribe_pre_insert(new XPreInsert(3)), two_opt(new NewTwoOpt),
-    invert(new Invert), swap(new NewSwap), extraction(new Extraction), slice(new Slice),attraction(new Attraction) {
+LocalSearch::LocalSearch(const MCGRPTW &mcgrp, int tabu_step_)
+    : solution(mcgrp.actual_task_num), routes(mcgrp.actual_task_num), policy(Policy(tabu_step_)),
+      task_set(mcgrp.actual_task_num), single_pre_insert(new XPreInsert(1)),
+      single_post_insert(new XPostInsert(1)), double_pre_insert(new XPreInsert(2)),
+      double_post_insert(new XPostInsert(2)), tribe_post_insert(new XPostInsert(3)),
+      tribe_pre_insert(new XPreInsert(3)), two_opt(new TwoOpt),
+      invert(new Invert), swap(new Swap), extraction(new Extraction), slice(new Slice), attraction(new Attraction) {
     cur_solution_cost = numeric_limits<decltype(best_solution_cost)>::max();
     best_solution_neg.clear();
     total_vio_load = 0;
@@ -65,11 +65,12 @@ HighSpeedNeighBorSearch::HighSpeedNeighBorSearch(const MCGRP &mcgrp,int tabu_ste
     solution.print();
 }
 
-HighSpeedNeighBorSearch::~HighSpeedNeighBorSearch() = default;
+LocalSearch::~LocalSearch() = default;
 
-void HighSpeedNeighBorSearch::neighbor_search(const MCGRP &mcgrp)
-{
-    mcgrp._rng.change(seed[rand() % seed_size]);
+void LocalSearch::neighbor_search(const MCGRPTW &mcgrp){
+
+    //mcgrp._rng.change(seed[rand() % seed_size]);
+
     int mode;
     if (neighbor_search_mode == "IDPRTR")
         mode = IDPRTR;
@@ -83,7 +84,7 @@ void HighSpeedNeighBorSearch::neighbor_search(const MCGRP &mcgrp)
     trace(mcgrp);
 }
 
-void HighSpeedNeighBorSearch::_neigh_search(const MCGRP &mcgrp, int mode)
+void LocalSearch::_neigh_search(const MCGRPTW &mcgrp, int mode)
 {
     if (mode == RTRIDP) {
         cout << "RTTR -> IDP\n";
@@ -131,7 +132,7 @@ void HighSpeedNeighBorSearch::_neigh_search(const MCGRP &mcgrp, int mode)
 
     vector<int> task_set_bak;
     task_set_bak.swap(task_set);
-    auto route_stables = get_route_stables(mcgrp);
+    auto route_stables = cal_route_scores(mcgrp);
     int intensive_size = routes.activated_route_id.size() * intensive_local_search_portion;
     for(int ii = 0; ii < intensive_size;ii++){
         for(const auto& task : routes[route_stables[ii].route_id]->time_table){
@@ -148,7 +149,7 @@ void HighSpeedNeighBorSearch::_neigh_search(const MCGRP &mcgrp, int mode)
 
 }
 
-void HighSpeedNeighBorSearch::unpack_seq(const std::vector<int> &dummy_seq, const MCGRP &mcgrp)
+void LocalSearch::unpack_seq(const std::vector<int> &dummy_seq, const MCGRPTW &mcgrp)
 {
 
     My_Assert(dummy_seq.size() > 2, "You can't unpack an empty sequence!");
@@ -269,7 +270,7 @@ void HighSpeedNeighBorSearch::unpack_seq(const std::vector<int> &dummy_seq, cons
     My_Assert(valid_sol(mcgrp), "Wrong state");
 }
 
-vector<int> HighSpeedNeighBorSearch::get_current_sol(string mode)
+vector<int> LocalSearch::get_current_sol(string mode)
 {
     My_Assert(solution.very_start != nullptr, "Empty solution");
     vector<int> buffer;
@@ -310,7 +311,7 @@ vector<int> HighSpeedNeighBorSearch::get_current_sol(string mode)
     return buffer;
 }
 
-void HighSpeedNeighBorSearch::clear()
+void LocalSearch::clear()
 {
     total_vio_load = 0;
     best_solution_cost = numeric_limits<decltype(best_solution_cost)>::max();
@@ -320,7 +321,7 @@ void HighSpeedNeighBorSearch::clear()
     routes.clear();
 }
 
-void HighSpeedNeighBorSearch::dump_to_individual(const MCGRP &mcgrp, Individual &p)
+void LocalSearch::dump_to_individual(const MCGRPTW &mcgrp, Individual &p)
 {
     p.sequence = get_current_sol();
 
@@ -336,7 +337,7 @@ void HighSpeedNeighBorSearch::dump_to_individual(const MCGRP &mcgrp, Individual 
     p.total_cost = cur_solution_cost;
 }
 
-void HighSpeedNeighBorSearch::feasible_search(const MCGRP &mcgrp)
+void LocalSearch::feasible_search(const MCGRPTW &mcgrp)
 {
     _stage = "feasible search";
     int local_minimum_likelihood = 1;
@@ -393,12 +394,12 @@ void HighSpeedNeighBorSearch::feasible_search(const MCGRP &mcgrp)
     _stage = "unknown";
 }
 
-void HighSpeedNeighBorSearch::descent_search(const MCGRP &mcgrp)
+void LocalSearch::descent_search(const MCGRPTW &mcgrp)
 {
     descent_exploration(mcgrp);
 }
 
-void HighSpeedNeighBorSearch::create_search_neighborhood(const MCGRP &mcgrp, const vector<int>& chosen_seq,string mode, int offset)
+void LocalSearch::create_search_neighborhood(const MCGRPTW &mcgrp, const vector<int>& chosen_seq, string mode, int offset)
 {
     search_space.clear();
     if(mode.empty() || chosen_seq.empty()) return;
@@ -508,7 +509,7 @@ void HighSpeedNeighBorSearch::create_search_neighborhood(const MCGRP &mcgrp, con
 //    mcgrp._rng.RandPerm(search_space);
 }
 
-bool HighSpeedNeighBorSearch::valid_sol(const MCGRP &mcgrp)
+bool LocalSearch::valid_sol(const MCGRPTW &mcgrp)
 {
     if (solution.very_start->ID >= 0 || solution.very_end->ID >= 0) {
         return false;
@@ -553,7 +554,7 @@ bool HighSpeedNeighBorSearch::valid_sol(const MCGRP &mcgrp)
         && vio_load == total_vio_load && vio_time == total_vio_time;
 }
 
-void HighSpeedNeighBorSearch::threshold_exploration(const MCGRP &mcgrp)
+void LocalSearch::threshold_exploration(const MCGRPTW &mcgrp)
 {
     DEBUG_PRINT("Trigger Feasible Oscillation Search");
 
@@ -656,7 +657,7 @@ void HighSpeedNeighBorSearch::threshold_exploration(const MCGRP &mcgrp)
     neigh_size = 0;
 }
 
-void HighSpeedNeighBorSearch::descent_exploration(const MCGRP &mcgrp)
+void LocalSearch::descent_exploration(const MCGRPTW &mcgrp)
 {
     DEBUG_PRINT("Trigger descent feasible search...");
 
@@ -742,7 +743,7 @@ void HighSpeedNeighBorSearch::descent_exploration(const MCGRP &mcgrp)
     neigh_size = 0;
 }
 
-void HighSpeedNeighBorSearch::infeasible_search(const MCGRP &mcgrp)
+void LocalSearch::infeasible_search(const MCGRPTW &mcgrp)
 {
     _stage = "infeasible search";
     // Based on the best solution find so far, experiment shows this is better than the policy
@@ -782,28 +783,30 @@ void HighSpeedNeighBorSearch::infeasible_search(const MCGRP &mcgrp)
     _stage = "unknown";
 }
 
-void HighSpeedNeighBorSearch::trace(const MCGRP &mcgrp)
-{
+void LocalSearch::trace(const MCGRPTW &mcgrp){
+
+#ifdef DEBUG
     for (int i : routes.activated_route_id) {
         My_Assert(routes[i]->time_table.size() == routes[i]->num_customers, "Wrong size");
     }
+#endif
 
-    if(this->cur_solution_cost < _search_route_best){
-        _search_route_best = this->cur_solution_cost;
+    if(cur_solution_cost < _search_route_best){
+        _search_route_best = cur_solution_cost;
         _search_route_best_solution_neg = get_current_sol("negative");
     }
 
     if (total_vio_load == 0 && total_vio_time == 0) {
-        if (this->cur_solution_cost < this->best_solution_cost) {
-            this->best_solution_cost = cur_solution_cost;
-            this->best_solution_neg = get_current_sol("negative");
+        if (cur_solution_cost < best_solution_cost) {
+            best_solution_cost = cur_solution_cost;
+            best_solution_neg = get_current_sol("negative");
         }
 
-        mcgrp.check_best_solution(this->cur_solution_cost, this->best_solution_neg);
+        mcgrp.check_best_solution(cur_solution_cost, best_solution_neg);
     }
 }
 
-void HighSpeedNeighBorSearch::small_step_infeasible_descent_exploration(const MCGRP &mcgrp)
+void LocalSearch::small_step_infeasible_descent_exploration(const MCGRPTW &mcgrp)
 {
     DEBUG_PRINT("Trigger descent infeasible search...");
 
@@ -881,7 +884,7 @@ void HighSpeedNeighBorSearch::small_step_infeasible_descent_exploration(const MC
     neigh_size = 0;
 }
 
-void HighSpeedNeighBorSearch::small_step_infeasible_tabu_exploration(const MCGRP &mcgrp)
+void LocalSearch::small_step_infeasible_tabu_exploration(const MCGRPTW &mcgrp)
 {
     DEBUG_PRINT("Trigger Infeasible Oscillation Search");
 
@@ -965,7 +968,7 @@ void HighSpeedNeighBorSearch::small_step_infeasible_tabu_exploration(const MCGRP
     neigh_size = 0;
 }
 
-void HighSpeedNeighBorSearch::large_step_infeasible_exploration(const MCGRP &mcgrp)
+void LocalSearch::large_step_infeasible_exploration(const MCGRPTW &mcgrp)
 {
     DEBUG_PRINT("Trigger large step break movement");
     // decide how many routes need to be merged, self-adaptive
@@ -979,9 +982,9 @@ void HighSpeedNeighBorSearch::large_step_infeasible_exploration(const MCGRP &mcg
     trace(mcgrp);
 }
 
-void HighSpeedNeighBorSearch::update(const MCGRP &mcgrp,
-                                     const vector<int> &best_buffer,
-                                     const vector<int> &best_routes)
+void LocalSearch::update(const MCGRPTW &mcgrp,
+                         const vector<int> &best_buffer,
+                         const vector<int> &best_routes)
 {
     My_Assert(valid_sol(mcgrp), "Wrong state!");
 
@@ -1040,7 +1043,7 @@ void HighSpeedNeighBorSearch::update(const MCGRP &mcgrp,
     My_Assert(valid_sol(mcgrp), "Wrong state!");
 }
 
-void HighSpeedNeighBorSearch::repair_solution(const MCGRP &mcgrp)
+void LocalSearch::repair_solution(const MCGRPTW &mcgrp)
 {
     // Repair infeasible solution
     // Only violated load and time window here
@@ -1073,7 +1076,7 @@ void HighSpeedNeighBorSearch::repair_solution(const MCGRP &mcgrp)
     trace(mcgrp);
 }
 
-void HighSpeedNeighBorSearch::_repair_load(const MCGRP &mcgrp)
+void LocalSearch::_repair_load(const MCGRPTW &mcgrp)
 {
     if(total_vio_load == 0) return;
     DEBUG_PRINT("Repair Load infeasible solution...");
@@ -1126,8 +1129,8 @@ void HighSpeedNeighBorSearch::_repair_load(const MCGRP &mcgrp)
     My_Assert(valid_sol(mcgrp), "Wrong validation");
 
     //insert Task to repair
-    HighSpeedNeighBorSearch::TASK_NODE *left_task;
-    HighSpeedNeighBorSearch::TASK_NODE *right_task;
+    LocalSearch::TASK_NODE *left_task;
+    LocalSearch::TASK_NODE *right_task;
     int chosen_route = -1;
     int best_delta = numeric_limits<decltype(best_delta)>::max();
     int delta = numeric_limits<decltype(delta)>::max();
@@ -1273,7 +1276,7 @@ void HighSpeedNeighBorSearch::_repair_load(const MCGRP &mcgrp)
     My_Assert(valid_sol(mcgrp), "Repair method doesn't work properly!");
 }
 
-void HighSpeedNeighBorSearch::_repair_time_window(const MCGRP &mcgrp)
+void LocalSearch::_repair_time_window(const MCGRPTW &mcgrp)
 {
     DEBUG_PRINT("Repair Time window infeasible solution...");
 
@@ -1325,7 +1328,7 @@ void HighSpeedNeighBorSearch::_repair_time_window(const MCGRP &mcgrp)
     My_Assert(valid_sol(mcgrp), "Repair method doesn't work properly!");
 }
 
-void HighSpeedNeighBorSearch::_tour_splitting_repair(const MCGRP &mcgrp)
+void LocalSearch::_tour_splitting_repair(const MCGRPTW &mcgrp)
 {
     DEBUG_PRINT("Tour splitting repair infeasible solution...");
 
@@ -1384,7 +1387,7 @@ void HighSpeedNeighBorSearch::_tour_splitting_repair(const MCGRP &mcgrp)
     My_Assert(valid_sol(mcgrp), "Repair method doesn't work properly!");
 }
 
-void HighSpeedNeighBorSearch::_inplace_repair(const MCGRP &mcgrp)
+void LocalSearch::_inplace_repair(const MCGRPTW &mcgrp)
 {
     vector<int> task_list;
     for(auto& iter = solution.very_start; iter != solution.very_end;iter = iter->next){
@@ -1411,7 +1414,7 @@ void HighSpeedNeighBorSearch::_inplace_repair(const MCGRP &mcgrp)
 
 }
 
-bool HighSpeedNeighBorSearch::missed(const MCGRP &mcgrp)
+bool LocalSearch::missed(const MCGRPTW &mcgrp)
 {
     for (auto task_id : task_set) {
         if (solution.tasks[task_id].next == nullptr) {
@@ -1430,7 +1433,7 @@ bool HighSpeedNeighBorSearch::missed(const MCGRP &mcgrp)
     return true;
 }
 
-bool HighSpeedNeighBorSearch::check_duplicated(const MCGRP &mcgrp)
+bool LocalSearch::check_duplicated(const MCGRPTW &mcgrp)
 {
     //offset one
     vector<int> tasks(mcgrp.actual_task_num + 1, 0);
@@ -1455,7 +1458,7 @@ bool HighSpeedNeighBorSearch::check_duplicated(const MCGRP &mcgrp)
 }
 
 
-void HighSpeedNeighBorSearch::delete_route(int route_id, const vector<int> &route_seq)
+void LocalSearch::delete_route(int route_id, const vector<int> &route_seq)
 {
     My_Assert(solution[routes[route_id]->start]->next->ID == route_seq.front() && solution[routes[route_id]->end]->pre->ID == route_seq.back(),
               "Wrong route!");
@@ -1469,7 +1472,7 @@ void HighSpeedNeighBorSearch::delete_route(int route_id, const vector<int> &rout
     compress_empty_route(route_id);
 }
 
-int HighSpeedNeighBorSearch::new_route(const MCGRP &mcgrp, const vector<int> &route_seq)
+int LocalSearch::new_route(const MCGRPTW &mcgrp, const vector<int> &route_seq)
 {
     if(route_seq.empty()) return -1;
 
@@ -1519,7 +1522,7 @@ int HighSpeedNeighBorSearch::new_route(const MCGRP &mcgrp, const vector<int> &ro
 }
 
 vector<int>
-HighSpeedNeighBorSearch::get_successor_tasks(int length, const int chosen_task)
+LocalSearch::get_successor_tasks(int length, const int chosen_task)
 {
     My_Assert(chosen_task != DUMMY, "Chosen task can't be dummy");
 
@@ -1542,8 +1545,8 @@ HighSpeedNeighBorSearch::get_successor_tasks(int length, const int chosen_task)
     return buffer;
 }
 
-pair<struct HighSpeedNeighBorSearch::TASK_NODE *, struct HighSpeedNeighBorSearch::TASK_NODE *>
-HighSpeedNeighBorSearch::SOLUTION::connect_tasks(const vector<int> &route_seq)
+pair<struct LocalSearch::TASK_NODE *, struct LocalSearch::TASK_NODE *>
+LocalSearch::SOLUTION::connect_tasks(const vector<int> &route_seq)
 {
     if (route_seq.empty())
         return {nullptr, nullptr};
@@ -1568,7 +1571,7 @@ HighSpeedNeighBorSearch::SOLUTION::connect_tasks(const vector<int> &route_seq)
 }
 
 
-bool HighSpeedNeighBorSearch::before(const int a,const int b){
+bool LocalSearch::before(const int a, const int b){
     /// This function returns TRUE if a comes before b in their route
     /// and FALSE if b is before a.
 
@@ -1628,7 +1631,7 @@ bool HighSpeedNeighBorSearch::before(const int a,const int b){
     My_Assert(false,"Can't reach here!");
 }
 
-void HighSpeedNeighBorSearch::viterbi_refine(const MCGRP &mcgrp)
+void LocalSearch::viterbi_refine(const MCGRPTW &mcgrp)
 {
     My_Assert(valid_sol(mcgrp), "Wrong state!");
 
@@ -1666,19 +1669,19 @@ void HighSpeedNeighBorSearch::viterbi_refine(const MCGRP &mcgrp)
     My_Assert(valid_sol(mcgrp), "Wrong state!");
 }
 
-void HighSpeedNeighBorSearch::initialize_score_matrix(const MCGRP &mcgrp)
+void LocalSearch::initialize_score_matrix(const MCGRPTW &mcgrp)
 {
     score_matrix = vector<vector<double>>(mcgrp.actual_task_num + 1, vector<double>(mcgrp.actual_task_num + 1, 0));
     prob_matrix = vector<vector<double>>(mcgrp.actual_task_num + 1, vector<double>(mcgrp.actual_task_num + 1, 0));
 }
 
-void HighSpeedNeighBorSearch::update_prob_matrix(vector<double>(*pf)(const vector<double>&))
+void LocalSearch::update_prob_matrix(vector<double>(*pf)(const vector<double>&))
 {
     for(int row = 0; row < prob_matrix.size(); row++)
         prob_matrix[row] = pf(score_matrix[row]);
 }
 
-void HighSpeedNeighBorSearch::print_prob_matrix(const string &filename)
+void LocalSearch::print_prob_matrix(const string &filename)
 {
     for(const auto & row : prob_matrix){
         for(const auto item : row){
@@ -1705,7 +1708,7 @@ void HighSpeedNeighBorSearch::print_prob_matrix(const string &filename)
 
 }
 
-void HighSpeedNeighBorSearch::print_score_matrix(const string &filename)
+void LocalSearch::print_score_matrix(const string &filename)
 {
     for(const auto & row : score_matrix){
         for(const auto item : row){
@@ -1731,7 +1734,7 @@ void HighSpeedNeighBorSearch::print_score_matrix(const string &filename)
     }
 }
 
-int HighSpeedNeighBorSearch::get_time_window_violated_number(const MCGRP& mcgrp)
+int LocalSearch::get_time_window_violated_number(const MCGRPTW& mcgrp)
 {
     int count = 0;
     for(const auto route_id : routes.activated_route_id){
@@ -1746,21 +1749,21 @@ int HighSpeedNeighBorSearch::get_time_window_violated_number(const MCGRP& mcgrp)
 }
 
 
-double HighSpeedNeighBorSearch::distance_to_feasible(const MCGRP &mcgrp){
+double LocalSearch::distance_to_feasible(const MCGRPTW &mcgrp){
     return _distance_to_feasible(mcgrp,total_vio_load,get_time_window_violated_number(mcgrp));
 }
 
-double HighSpeedNeighBorSearch::getFitness(const MCGRP& mcgrp, Policy& policy){
+double LocalSearch::getFitness(const MCGRPTW& mcgrp, Policy& policy){
     return cur_solution_cost * (1 + policy.getBeta() * distance_to_feasible(mcgrp));
 }
 
-double HighSpeedNeighBorSearch::getFitnessDelta(const MCGRP &mcgrp, Policy& policy, const MoveResult &move_result)
+double LocalSearch::getFitnessDelta(const MCGRPTW &mcgrp, Policy& policy, const MoveResult &move_result)
 {
     return move_result.delta * (1 + policy.getBeta() * _distance_to_feasible(
         mcgrp, total_vio_load + move_result.vio_load_delta, get_time_window_violated_number(mcgrp) + move_result.vio_time_custom_num_delta));
 }
 
-double HighSpeedNeighBorSearch::_distance_to_feasible(const MCGRP &mcgrp, double vioc, double viot)
+double LocalSearch::_distance_to_feasible(const MCGRPTW &mcgrp, double vioc, double viot)
 {
     double alpha_capacity;
     if(mcgrp.capacity < mcgrp.total_demand){
@@ -1774,7 +1777,7 @@ double HighSpeedNeighBorSearch::_distance_to_feasible(const MCGRP &mcgrp, double
     return 0.5 * (alpha_time + alpha_capacity);
 }
 
-double HighSpeedNeighBorSearch::getFitness(const MCGRP &mcgrp, Policy &policy, const Individual &indi)
+double LocalSearch::getFitness(const MCGRPTW &mcgrp, Policy &policy, const Individual &indi)
 {
     int task_num = indi.sequence.size();
     int total_demand = accumulate(indi.route_seg_load.begin(), indi.route_seg_load.end(),0);
@@ -1792,13 +1795,13 @@ double HighSpeedNeighBorSearch::getFitness(const MCGRP &mcgrp, Policy &policy, c
     return fitness;
 }
 
-void HighSpeedNeighBorSearch::_two_phase_repair(const MCGRP &mcgrp)
+void LocalSearch::_two_phase_repair(const MCGRPTW &mcgrp)
 {
     _repair_load(mcgrp);
     _repair_time_window(mcgrp);
 }
 
-vector<int> HighSpeedNeighBorSearch::get_sub_seq(int start, int end)
+vector<int> LocalSearch::get_sub_seq(int start, int end)
 {
     vector<int> seq{start};
     int current = start;
@@ -1810,7 +1813,7 @@ vector<int> HighSpeedNeighBorSearch::get_sub_seq(int start, int end)
     return seq;
 }
 
-bool HighSpeedNeighBorSearch::compress_empty_route(const int route_id)
+bool LocalSearch::compress_empty_route(const int route_id)
 {
     if(routes[route_id]->num_customers != 0) return false;
     My_Assert(routes[route_id]->start != routes[route_id]->end,"error, Wrong state");
@@ -1853,34 +1856,33 @@ bool HighSpeedNeighBorSearch::compress_empty_route(const int route_id)
     return true;
 }
 
-vector<RouteStable> HighSpeedNeighBorSearch::get_route_stables(const MCGRP &mcgrp)
+vector<RouteScores> LocalSearch::cal_route_scores(const MCGRPTW &mcgrp)
 {
-    vector<RouteStable> stable_scores;
+    vector<RouteScores> stable_scores;
     for (const int route_id : routes.activated_route_id) {
-        stable_scores.push_back(RouteStable(route_id,0));
+        stable_scores.push_back(RouteScores(route_id, 0));
 
-        for(const auto& task : routes[route_id]->time_table){
-//            stable_scores.back().stable_score += mcgrp.inst_tasks[task.task].move_time.down_time;
-//            stable_scores.back().stable_score -= mcgrp.inst_tasks[task.task].move_time.up_time;
-            stable_scores.back().stable_score += mcgrp.inst_tasks[task.task].move_time.total_time;
+        const auto& route = routes[route_id]->time_table;
+        for(int idx = 0; idx < route.size();idx++){
+            if(idx == 0){
+                stable_scores.back().scores += score_matrix[DUMMY][route[idx].task];
+            }
+            else{
+                stable_scores.back().scores += score_matrix[route[idx-1].task][route[idx].task];
+            }
+
+
+            if(idx == route.size() - 1){
+                stable_scores.back().scores += score_matrix[route[idx].task][DUMMY];
+            }
         }
-        stable_scores.back().stable_score /= routes[route_id]->time_table.size();
+
+        stable_scores.back().scores /= route.size();
     }
 
-    sort(stable_scores.begin(),stable_scores.end(),RouteStable::cmp);
+    sort(stable_scores.begin(), stable_scores.end(), RouteScores::cmp);
 
     return stable_scores;
 }
-
-void HighSpeedNeighBorSearch::clear_stability(const MCGRP &mcgrp,const vector<int>& task_set)
-{
-    for(int task_id : task_set){
-        mcgrp.inst_tasks[task_id].move_time.up_time = 0;
-        mcgrp.inst_tasks[task_id].move_time.down_time = 0;
-    }
-
-}
-
-
 
 

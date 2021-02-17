@@ -1,9 +1,9 @@
-#ifndef _NEIGHBORSEARCH_
-#define _NEIGHBORSEARCH_
+#ifndef _LOCALSEARCH_
+#define _LOCALSEARCH_
 
 #include "RNG.h"
 #include "utils.h"
-#include "MCGRP.h"
+#include "instance.h"
 #include "SearchPolicy.h"
 #include "ConstructPolicy.h"
 #include "config.h"
@@ -13,7 +13,7 @@ extern vector<double> ratios;
 extern vector<double> prob;
 
 
-class HighSpeedNeighBorSearch
+class LocalSearch
 {
 public:
     double best_solution_cost;
@@ -271,8 +271,8 @@ public:
     unique_ptr<class XPostInsert> double_post_insert;
     unique_ptr<class XPostInsert> tribe_post_insert;
     unique_ptr<class Invert> invert;
-    unique_ptr<class NewSwap> swap;
-    unique_ptr<class NewTwoOpt> two_opt;
+    unique_ptr<class Swap> swap;
+    unique_ptr<class TwoOpt> two_opt;
     unique_ptr<class Extraction> extraction;
     unique_ptr<class Slice> slice;
     unique_ptr<class Attraction> attraction;
@@ -289,12 +289,12 @@ public:
 
 public:
 
-    HighSpeedNeighBorSearch(const MCGRP &mcgrp,int tabu_step_);
-    ~HighSpeedNeighBorSearch();
+    LocalSearch(const MCGRPTW &mcgrp, int tabu_step_);
+    ~LocalSearch();
 
     vector<vector<double>> score_matrix;
     vector<vector<double>> prob_matrix;
-    void initialize_score_matrix(const MCGRP &mcgrp);
+    void initialize_score_matrix(const MCGRPTW &mcgrp);
     void update_prob_matrix(vector<double>(*pf)(const vector<double>&));
     void print_prob_matrix(const string& filename="");
     void print_score_matrix(const string& filename="");
@@ -302,7 +302,7 @@ public:
     vector<int> get_current_sol(string mode= "dummy");
 
     void delete_route(int route_id,const vector<int>& route_seq);
-    int new_route(const MCGRP& mcgrp, const vector<int>& route_seq);
+    int new_route(const MCGRPTW& mcgrp, const vector<int>& route_seq);
 
     void clear();
 
@@ -322,19 +322,19 @@ public:
      * @param mcgrp
      * @param task
      */
-    void create_search_neighborhood(const MCGRP &mcgrp, const vector<int>& chosen_seq,string mode = "", int offset = 0);
+    void create_search_neighborhood(const MCGRPTW &mcgrp, const vector<int>& chosen_seq, string mode = "", int offset = 0);
 
     /*!
      * @details pack current sol info to delimiter coding format
      * @param p
      */
-    void dump_to_individual(const MCGRP &mcgrp, Individual &p);
+    void dump_to_individual(const MCGRPTW &mcgrp, Individual &p);
 
     /*!
  * @details unpack sol info to negative coding format
  * @param dummy_seq
  */
-    void unpack_seq(const std::vector<int> &dummy_seq, const MCGRP &mcgrp);
+    void unpack_seq(const std::vector<int> &dummy_seq, const MCGRPTW &mcgrp);
 
     /*!
      * @details neighbor search
@@ -342,83 +342,83 @@ public:
      * @param max non improve_times
      * @param accept [First accept | Bext accept]
      */
-    void neighbor_search(const MCGRP &mcgrp);
+    void neighbor_search(const MCGRPTW &mcgrp);
 
     /*!
      * @details downhill search
      * @param mcgrp
      */
-    void descent_search(const MCGRP &mcgrp);
+    void descent_search(const MCGRPTW &mcgrp);
 
     /*!
      * @details random threshold search
      * @param mcgrp
      */
-    void feasible_search(const MCGRP &mcgrp);
+    void feasible_search(const MCGRPTW &mcgrp);
 
     /*!
      *  @details threshold exploration
      * @param mcgrp
      */
-    void threshold_exploration(const MCGRP &mcgrp);
+    void threshold_exploration(const MCGRPTW &mcgrp);
 
     /*!
      * @details descent exploration
      * @param mcgrp
      */
-    void descent_exploration(const MCGRP &mcgrp);
+    void descent_exploration(const MCGRPTW &mcgrp);
 
     /*!
      * @details Infeasible search
      * @param mcgrp
      * @param start_point
      */
-    void infeasible_search(const MCGRP &mcgrp);
+    void infeasible_search(const MCGRPTW &mcgrp);
 
-    void small_step_infeasible_descent_exploration(const MCGRP &mcgrp);
-    void small_step_infeasible_tabu_exploration(const MCGRP &mcgrp);
+    void small_step_infeasible_descent_exploration(const MCGRPTW &mcgrp);
+    void small_step_infeasible_tabu_exploration(const MCGRPTW &mcgrp);
 
-    void large_step_infeasible_exploration(const MCGRP &mcgrp);
+    void large_step_infeasible_exploration(const MCGRPTW &mcgrp);
 
-    void update(const MCGRP &mcgrp, const vector<int>& best_buffer,const vector<int>& best_routes);
+    void update(const MCGRPTW &mcgrp, const vector<int>& best_buffer, const vector<int>& best_routes);
 
     /*!
      * @details repair overloaded solution
      * @param mcgrp
      */
-    void repair_solution(const MCGRP &mcgrp);
-    void _two_phase_repair(const MCGRP& mcgrp);
-    void _repair_load(const MCGRP &mcgrp);
-    void _repair_time_window(const MCGRP &mcgrp);
-    void _tour_splitting_repair(const MCGRP &mcgrp);
-    void _inplace_repair(const MCGRP &mcgrp);
+    void repair_solution(const MCGRPTW &mcgrp);
+    void _two_phase_repair(const MCGRPTW& mcgrp);
+    void _repair_load(const MCGRPTW &mcgrp);
+    void _repair_time_window(const MCGRPTW &mcgrp);
+    void _tour_splitting_repair(const MCGRPTW &mcgrp);
+    void _inplace_repair(const MCGRPTW &mcgrp);
 
     /*!
      * @details Check if any tasks missed.
      */
-    bool missed(const MCGRP &mcgrp);
+    bool missed(const MCGRPTW &mcgrp);
 
     /*!
      * @details check duplicate tasks
      * @param mcgrp
      * @return
      */
-    bool check_duplicated(const MCGRP &mcgrp);
+    bool check_duplicated(const MCGRPTW &mcgrp);
 
-    bool valid_sol(const MCGRP& mcgrp);
+    bool valid_sol(const MCGRPTW& mcgrp);
 
     /*!
-     * extract the searched solution to MCGRP instance
+     * extract the searched solution to MCGRPTW instance
      * @param mcgrp: the implementation of a problem
      */
-    void trace(const MCGRP &mcgrp);
+    void trace(const MCGRPTW &mcgrp);
 
     /*!
      * the implementation of the neighborhood search given a specific mode
      * @param mcgrp: the implementation of a problem
      * @param mode: search mode
      */
-    void _neigh_search(const MCGRP &mcgrp, int mode);
+    void _neigh_search(const MCGRPTW &mcgrp, int mode);
 
     /*!
  * @details get the successor of the chosen task within the same route,exclude dummy task
@@ -430,23 +430,22 @@ public:
 
     bool before(const int a,const int b);
 
-    int get_time_window_violated_number(const MCGRP& mcgrp);
-    double distance_to_feasible(const MCGRP& mcgrp);
-    double _distance_to_feasible(const MCGRP& mcgrp, double vioc, double viot);
-    double getFitness(const MCGRP& mcgrp,  Policy& policy);
-    double getFitness(const MCGRP& mcgrp,  Policy& policy,const Individual& indi);
-    double getFitnessDelta(const MCGRP& mcgrp, Policy& policy, const MoveResult &move_result);
+    int get_time_window_violated_number(const MCGRPTW& mcgrp);
+    double distance_to_feasible(const MCGRPTW& mcgrp);
+    double _distance_to_feasible(const MCGRPTW& mcgrp, double vioc, double viot);
+    double getFitness(const MCGRPTW& mcgrp, Policy& policy);
+    double getFitness(const MCGRPTW& mcgrp, Policy& policy, const Individual& indi);
+    double getFitnessDelta(const MCGRPTW& mcgrp, Policy& policy, const MoveResult &move_result);
 
     bool compress_empty_route(const int route_id);
 
-    vector<RouteStable> get_route_stables(const MCGRP& mcgrp);
-    void clear_stability(const MCGRP& mcgrp,const vector<int>& task_set);
+    vector<RouteScores> cal_route_scores(const MCGRPTW& mcgrp);
 
 #ifdef DEBUG
     int success_viterbi = 0;
 #endif
 
-    void viterbi_refine(const MCGRP &mcgrp);
+    void viterbi_refine(const MCGRPTW &mcgrp);
 };
 
 #endif

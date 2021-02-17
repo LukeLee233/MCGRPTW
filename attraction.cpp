@@ -3,19 +3,15 @@
 //
 
 #include "attraction.h"
-#include "NeighborSearch.h"
+#include "local_search.h"
 #include "swapends.h"
 
-bool Attraction::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_task)
+bool Attraction::search(LocalSearch &ns, const MCGRPTW &mcgrp, int chosen_task)
 {
     if(ns.policy.has_rule(INFEASIBLE)) return false;
 
     My_Assert(chosen_task >= 1 && chosen_task <= mcgrp.actual_task_num,"Wrong Task");
 
-#ifdef DEBUG
-    attempt_count = 0;
-    hit_count = 0;
-#endif
 
     if(!prob_valid(ns.prob_matrix[chosen_task])){
         DEBUG_PRINT("warning, probability is not available currently.");
@@ -40,9 +36,6 @@ bool Attraction::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int cho
             My_Assert(mcgrp.inst_tasks[chosen_task].inverse != neighbor_task, "error, neighbor Task can't be itself!");
         }
 
-#ifdef DEBUG
-        attempt_count++;
-#endif
 
         if (considerable_move(ns, mcgrp, chosen_task, neighbor_task) && ns.policy.check_move(mcgrp,ns,move_result)) {
             if (ns.policy.has_rule(FIRST_ACCEPT)) {
@@ -88,7 +81,7 @@ bool Attraction::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int cho
  * @param u
  * @return
  */
-bool Attraction::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, const int a, const int u)
+bool Attraction::considerable_move(LocalSearch &ns, const MCGRPTW &mcgrp, const int a, const int u)
 {
     // Task a cannot be dummy Task
     My_Assert(a >= 1 && a <= mcgrp.actual_task_num,"Wrong Task");
@@ -127,12 +120,8 @@ Attraction::Attraction(int sampleTimes)
     move_result.move_type = ATTRACTION;
 }
 
-void Attraction::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
+void Attraction::move(LocalSearch &ns, const MCGRPTW &mcgrp)
 {
-
-#ifdef DEBUG
-    hit_count++;
-#endif
 
     DEBUG_PRINT("execute a attraction move");
 

@@ -8,7 +8,7 @@ using namespace std;
  * High Speed
  */
 
-RouteSegment get_segment_info(const MCGRP &mcgrp, HighSpeedNeighBorSearch &ns, const int chosen_task)
+RouteSegment get_segment_info(const MCGRPTW &mcgrp, LocalSearch &ns, const int chosen_task)
 {
     // Calculate the length, load, and # of customers of the segment
     // after chosen Task.
@@ -62,24 +62,23 @@ RouteSegment get_segment_info(const MCGRP &mcgrp, HighSpeedNeighBorSearch &ns, c
 }
 
 bool
-NewSwapEnds::considerable_move(HighSpeedNeighBorSearch &ns,
-                               const MCGRP &mcgrp,
-                               const int chosen_task,
-                               const int neighbor_task,
-                               const int chosen_route,
-                               const int neighbor_route)
+SwapEnds::considerable_move(LocalSearch &ns,
+                            const MCGRPTW &mcgrp,
+                            const int chosen_task,
+                            const int neighbor_task,
+                            const int chosen_route,
+                            const int neighbor_route)
 {
     // Example: ( a & v input):
     // VRP_DEPOT-i-a-b-j-k-l-VRP_DEPOT and VRP_DEPOT-t-u-v-w-x-y-z-VRP_DEPOT becomes
     // VRP_DEPOT-i-a-w-x-y-z-VRP_DEPOT and VRP_DEPOT-t-u-v-b-j-k-l-VRP_DEPOT
-
+    call_times++;
     move_result.reset();
 
     if (chosen_task < 0 && chosen_task < 0) {
         //means no actual move happens
         //...-(a|0)-[...]-0
         //...-(v|0)-[...]-0
-        move_result.reset();
         return false;
     }
 
@@ -97,7 +96,6 @@ NewSwapEnds::considerable_move(HighSpeedNeighBorSearch &ns,
         //means no actual move happens
         //...-a-[]-0
         //...-v-[]-0
-        move_result.reset();
         return false;
     }
 
@@ -117,12 +115,10 @@ NewSwapEnds::considerable_move(HighSpeedNeighBorSearch &ns,
 
         int pseudo_capacity = ns.policy.get_pseudo_capacity(mcgrp.capacity);
         if (ns.routes[a_route]->load + a_load_delta > pseudo_capacity) {
-            move_result.reset();
             return false;
         }
 
         if (ns.routes[v_route]->load + v_load_delta > pseudo_capacity) {
-            move_result.reset();
             return false;
         }
 
@@ -194,13 +190,15 @@ NewSwapEnds::considerable_move(HighSpeedNeighBorSearch &ns,
         input_v_seq.push_back(cur_task);
     }
 
+
     if(ns.policy.has_rule(BEST_ACCEPT) && (mcgrp.count_edges(input_a_seq) + mcgrp.count_edges(input_v_seq) > 0)){
-//    if(false){
+
         vector<int> first_seq_a;
         vector<int> first_seq_v;
 
         vector<int> a_route_seq = ns.get_sub_seq(ns.routes[a_route]->start, ns.routes[a_route]->end);
         vector<int> v_route_seq = ns.get_sub_seq(ns.routes[v_route]->start, ns.routes[v_route]->end);
+
 
         if(input_a_seq.empty()){
             first_seq_a.insert(first_seq_a.end(),a_route_seq.begin(),a_route_seq.end() - 1);
@@ -214,6 +212,7 @@ NewSwapEnds::considerable_move(HighSpeedNeighBorSearch &ns,
 
             first_seq_a.insert(first_seq_a.end(),a_route_seq.begin(),a_route_seq.begin() + a_seq_loc);
         }
+
 
         if(input_v_seq.empty()){
             first_seq_v.insert(first_seq_v.end(),v_route_seq.begin(),v_route_seq.end() - 1);
@@ -240,7 +239,6 @@ NewSwapEnds::considerable_move(HighSpeedNeighBorSearch &ns,
 
         // use best sequence to update the move result
         if(best_sequence_a.cost == INT32_MAX || best_sequence_v.cost == INT32_MAX){
-            move_result.reset();
             return false;
         }
 
@@ -275,22 +273,23 @@ NewSwapEnds::considerable_move(HighSpeedNeighBorSearch &ns,
 
         move_result.new_total_route_length = ns.cur_solution_cost + move_result.delta;
 
-        move_result.move_arguments_bak["input_a_seq"] = input_a_seq;
-        move_result.move_arguments_bak["input_v_seq"] = input_v_seq;
-        move_result.move_arguments_bak["output_a_seq"] = vector<int>(best_sequence_v.seq.begin() + 1, best_sequence_v.seq.end());
-        move_result.move_arguments_bak["output_v_seq"] = vector<int>(best_sequence_a.seq.begin() + 1, best_sequence_a.seq.end());
+        move_result.move_arguments["input_a_seq"] = input_a_seq;
+        move_result.move_arguments["input_v_seq"] = input_v_seq;
+        move_result.move_arguments["output_a_seq"] = vector<int>(best_sequence_v.seq.begin() + 1, best_sequence_v.seq.end());
+        move_result.move_arguments["output_v_seq"] = vector<int>(best_sequence_a.seq.begin() + 1, best_sequence_a.seq.end());
 
         move_result.considerable = true;
 
         vector<int> new_a_route_seq;
         new_a_route_seq.insert(new_a_route_seq.end(), first_seq_a.begin() + 1, first_seq_a.end());
-        new_a_route_seq.insert(new_a_route_seq.end(), move_result.move_arguments_bak["output_v_seq"].begin(), move_result.move_arguments_bak["output_v_seq"].end());
+        new_a_route_seq.insert(new_a_route_seq.end(), move_result.move_arguments["output_v_seq"].begin(), move_result.move_arguments["output_v_seq"].end());
         move_result.route_time_tbl.emplace_back(RouteInfo::TimeTable::zip(new_a_route_seq, mcgrp.cal_arrive_time(new_a_route_seq)));
 
         vector<int> new_v_route_seq;
         new_v_route_seq.insert(new_v_route_seq.end(), first_seq_v.begin() + 1, first_seq_v.end());
-        new_v_route_seq.insert(new_v_route_seq.end(), move_result.move_arguments_bak["output_a_seq"].begin(), move_result.move_arguments_bak["output_a_seq"].end());
+        new_v_route_seq.insert(new_v_route_seq.end(), move_result.move_arguments["output_a_seq"].begin(), move_result.move_arguments["output_a_seq"].end());
         move_result.route_time_tbl.emplace_back(RouteInfo::TimeTable::zip(new_v_route_seq, mcgrp.cal_arrive_time(new_v_route_seq)));
+
 
         if(ns.policy.has_rule(INFEASIBLE)){
             move_result.vio_load_delta = vio_load_delta;
@@ -310,6 +309,8 @@ NewSwapEnds::considerable_move(HighSpeedNeighBorSearch &ns,
             move_result.vio_time_delta = 0;
             move_result.vio_time_custom_num_delta = 0;
         }
+
+        return true;
     }
     else {
 
@@ -323,13 +324,11 @@ NewSwapEnds::considerable_move(HighSpeedNeighBorSearch &ns,
         new_time_tbl = expected_time_table(ns,mcgrp,a,v,a_route,v_route,seg_after_a,seg_after_v,allow_infeasible);
 
         if(!mcgrp.isTimeTableFeasible(new_time_tbl[0])){
-            move_result.reset();
             return false;
         }
 
         if(allow_infeasible){
             if(ns.policy.check_time_window(mcgrp,new_time_tbl)){
-                move_result.reset();
                 return false;
             }
         }
@@ -442,10 +441,10 @@ NewSwapEnds::considerable_move(HighSpeedNeighBorSearch &ns,
         move_result.new_total_route_length = ns.cur_solution_cost + move_result.delta;
 
 
-        move_result.move_arguments_bak["input_a_seq"] = input_a_seq;
-        move_result.move_arguments_bak["input_v_seq"] = input_v_seq;
-        move_result.move_arguments_bak["output_a_seq"] = input_a_seq;
-        move_result.move_arguments_bak["output_v_seq"] = input_v_seq;
+        move_result.move_arguments["input_a_seq"] = input_a_seq;
+        move_result.move_arguments["input_v_seq"] = input_v_seq;
+        move_result.move_arguments["output_a_seq"] = input_a_seq;
+        move_result.move_arguments["output_v_seq"] = input_v_seq;
 
         move_result.considerable = true;
 
@@ -476,8 +475,9 @@ NewSwapEnds::considerable_move(HighSpeedNeighBorSearch &ns,
 
 }
 
-void NewSwapEnds::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
+void SwapEnds::move(LocalSearch &ns, const MCGRPTW &mcgrp)
 {
+    success_times++;
     DEBUG_PRINT("execute a 2-opt:swap-ends move");
 
     My_Assert(move_result.considerable, "Invalid predictions");
@@ -490,10 +490,10 @@ void NewSwapEnds::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
 
 
     //Extract the seq which needs swapped
-    vector<int> input_a_seq = move_result.move_arguments_bak.at("input_a_seq");
-    vector<int> output_a_seq = move_result.move_arguments_bak.at("output_a_seq");
-    vector<int> input_v_seq = move_result.move_arguments_bak.at("input_v_seq");
-    vector<int> output_v_seq = move_result.move_arguments_bak.at("output_v_seq");
+    vector<int> input_a_seq = move_result.move_arguments.at("input_a_seq");
+    vector<int> output_a_seq = move_result.move_arguments.at("output_a_seq");
+    vector<int> input_v_seq = move_result.move_arguments.at("input_v_seq");
+    vector<int> output_v_seq = move_result.move_arguments.at("output_v_seq");
 
 
     My_Assert(all_of(input_a_seq.begin(), input_a_seq.end(), [&](int i){ return i >= 1 && i <= mcgrp.actual_task_num; }), "Wrong Task");
@@ -618,23 +618,22 @@ void NewSwapEnds::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
     ns.total_vio_time += move_result.vio_time_delta;
     My_Assert(ns.valid_sol(mcgrp), "Prediction wrong!");
 
-    update_stable_likelihood(mcgrp,ns,output_a_seq,move_result);
-    update_stable_likelihood(mcgrp,ns,output_v_seq,move_result);
-
     update_score(ns);
+
+    ns.trace(mcgrp);
     move_result.reset();
 }
 
 vector<vector<RouteInfo::TimeTable>>
-NewSwapEnds::expected_time_table(HighSpeedNeighBorSearch &ns,
-                    const MCGRP &mcgrp,
-                    int a,
-                    int v,
-                    int a_route,
-                    int v_route,
-                    const RouteSegment& a_seg,
-                    const RouteSegment& v_seg,
-                    bool allow_infeasible)
+SwapEnds::expected_time_table(LocalSearch &ns,
+                              const MCGRPTW &mcgrp,
+                              int a,
+                              int v,
+                              int a_route,
+                              int v_route,
+                              const RouteSegment& a_seg,
+                              const RouteSegment& v_seg,
+                              bool allow_infeasible)
 {
     vector<vector<RouteInfo::TimeTable>>
         res(2, vector<RouteInfo::TimeTable>({{-1, -1}}));
@@ -717,32 +716,87 @@ NewSwapEnds::expected_time_table(HighSpeedNeighBorSearch &ns,
     return res;
 }
 
-bool NewSwapEnds::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_task)
+bool SwapEnds::search(LocalSearch &ns, const MCGRPTW &mcgrp, int chosen_task)
 {
-    // stub block
+    // TODO
     return false;
 }
 
-bool NewSwapEnds::update_score(HighSpeedNeighBorSearch &ns)
+
+bool SwapEnds::update_score(LocalSearch &ns)
 {
-    if(move_result.delta > 0) return false;
+    if(move_result.delta >= 0) return false;
+
+    double reward = (ns.best_solution_cost / ns.cur_solution_cost) * (-move_result.delta);
 
     // ...a-(seq_v)...
     // ...v-(seq_a)...
-    const int a = move_result.task1;
-    const int v = move_result.task2;
+    const int a = max(move_result.task1,0);
+    const int v = max(move_result.task2,0);
 
     //Extract the seq which needs swapped
-    vector<int> output_a_seq = move_result.move_arguments_bak["output_a_seq"];
-    vector<int> output_v_seq = move_result.move_arguments_bak["output_v_seq"];
+    const vector<int>& input_a_seq = move_result.move_arguments["input_a_seq"];
+    const vector<int>& output_a_seq = move_result.move_arguments["output_a_seq"];
+    const vector<int>& input_v_seq = move_result.move_arguments["input_v_seq"];
+    const vector<int>& output_v_seq = move_result.move_arguments["output_v_seq"];
 
-    double penalty = (ns.best_solution_cost / ns.cur_solution_cost) * (-move_result.delta);
+    if(input_a_seq.empty()){
 
-    if(!output_a_seq.empty())
-        ns.score_matrix[max(0,ns.solution[output_a_seq.front()]->pre->ID)][max(0,output_a_seq.front())] += penalty;
+        ns.score_matrix[v][input_v_seq.front()] -= reward;
+        for(int idx = 1;idx < input_v_seq.size();idx++){
+            ns.score_matrix[input_v_seq[idx-1]][input_v_seq[idx]] -= reward;
+        }
+        ns.score_matrix[input_v_seq.back()][DUMMY] -= reward;
 
-    if(!output_v_seq.empty())
-        ns.score_matrix[max(0,ns.solution[output_v_seq.front()]->pre->ID)][max(0,output_v_seq.front())] += penalty;
+        ns.score_matrix[a][output_v_seq.front()] += reward;
+        for(int idx = 1;idx < output_v_seq.size();idx++){
+            ns.score_matrix[output_v_seq[idx-1]][output_v_seq[idx]] += reward;
+        }
+        ns.score_matrix[output_v_seq.back()][DUMMY] += reward;
+
+    }
+    else if(input_v_seq.empty()){
+
+        ns.score_matrix[a][input_a_seq.front()] -= reward;
+        for(int idx = 1;idx < input_a_seq.size();idx++){
+            ns.score_matrix[input_a_seq[idx-1]][input_a_seq[idx]] -= reward;
+        }
+        ns.score_matrix[input_a_seq.back()][DUMMY] -= reward;
+
+        ns.score_matrix[v][output_a_seq.front()] += reward;
+        for(int idx = 1;idx < output_a_seq.size();idx++){
+            ns.score_matrix[output_a_seq[idx-1]][output_a_seq[idx]] += reward;
+        }
+        ns.score_matrix[output_a_seq.back()][DUMMY] += reward;
+
+    }
+    else{
+
+        ns.score_matrix[a][input_a_seq.front()] -= reward;
+        for(int idx = 1;idx < input_a_seq.size();idx++){
+            ns.score_matrix[input_a_seq[idx-1]][input_a_seq[idx]] -= reward;
+        }
+        ns.score_matrix[input_a_seq.back()][DUMMY] -= reward;
+
+        ns.score_matrix[v][input_v_seq.front()] -= reward;
+        for(int idx = 1;idx < input_v_seq.size();idx++){
+            ns.score_matrix[input_v_seq[idx-1]][input_v_seq[idx]] -= reward;
+        }
+        ns.score_matrix[input_v_seq.back()][DUMMY] -= reward;
+
+        ns.score_matrix[a][output_v_seq.front()] += reward;
+        for(int idx = 1;idx < output_v_seq.size();idx++){
+            ns.score_matrix[output_v_seq[idx-1]][output_v_seq[idx]] += reward;
+        }
+        ns.score_matrix[output_v_seq.back()][DUMMY] += reward;
+
+        ns.score_matrix[v][output_a_seq.front()] += reward;
+        for(int idx = 1;idx < output_a_seq.size();idx++){
+            ns.score_matrix[output_a_seq[idx-1]][output_a_seq[idx]] += reward;
+        }
+        ns.score_matrix[output_a_seq.back()][DUMMY] += reward;
+
+    }
 
     return true;
 }

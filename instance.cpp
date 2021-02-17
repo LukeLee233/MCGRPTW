@@ -1,4 +1,4 @@
-#include "MCGRP.h"
+#include "instance.h"
 #include "utils.h"
 #include "json.hpp"
 #include <boost/accumulators/accumulators.hpp>
@@ -12,17 +12,73 @@ namespace bacc = boost::accumulators;
 
 using json = nlohmann::json;
 
-extern timeb phase_start_time;
+extern timeb iteration_start_time;
 
-MCGRP::MCGRP(const InstanceNumInfo &instance_info, RNG &rng)
-    : _rng(rng)
+void MCGRPTW::GetTasksNum(std::string filename, InstanceNumInfo &number_info)
 {
+    FILE *infile;
+
+    infile = fopen(filename.c_str(), "r");
+    if (infile == NULL) {
+        fprintf(stderr, "Unable to open %s for reading\n", filename.c_str());
+        exit(-1);
+    }
+    if (feof(infile)) {
+        fprintf(stderr, "It's an empty file %s\nExiting...\n", filename.c_str());
+        exit(-1);
+    }
+
+    char dummy_string[50];
+    int count = 0;
+
+    while (true) {
+        fscanf(infile, "%s", dummy_string);
+        if (strcmp(dummy_string, "#Required") == 0) {
+            fscanf(infile, "%s", dummy_string);
+            if (strcmp(dummy_string, "E:") == 0) {
+                fscanf(infile, "%d", &number_info.req_edge_num);
+                count++;
+            }
+            else if (strcmp(dummy_string, "N:") == 0) {
+                fscanf(infile, "%d", &number_info.req_node_num);
+                count++;
+            }
+            else if (strcmp(dummy_string, "A:") == 0) {
+                fscanf(infile, "%d", &number_info.req_arc_num);
+                count++;
+            }
+        }
+
+        if (strcmp(dummy_string, "#Nodes:") == 0) {
+            fscanf(infile, "%d", &number_info.node_num);
+            count++;
+        }
+        if (strcmp(dummy_string, "#Edges:") == 0) {
+            fscanf(infile, "%d", &number_info.edge_num);
+            count++;
+        }
+        if (strcmp(dummy_string, "#Arcs:") == 0) {
+            fscanf(infile, "%d", &number_info.arc_num);
+            count++;
+        }
+        if (count == 6)
+            break;
+    }
+
+    fclose(infile);
+}
+
+MCGRPTW::MCGRPTW(const string& file, RNG &rng)
+    : file(file), _rng(rng)
+{
+    GetTasksNum(file, header);
+
     //include dummy Task which id is 0
-    int task_num = 2 * instance_info.req_edge_num + instance_info.req_arc_num + instance_info.req_node_num
+    int task_num = 2 * header.req_edge_num + header.req_arc_num + header.req_node_num
         + 1;        //The number of the required tasks
 
     //the first node id is 1, add an offset.
-    int offset_node_num = instance_info.node_num + 1;  //The number of the whole node
+    int offset_node_num = header.node_num + 1;  //The number of the whole node
 
     best_sol_neg.clear();
 
@@ -73,7 +129,7 @@ MCGRP::MCGRP(const InstanceNumInfo &instance_info, RNG &rng)
     best_sol_time = DBL_MAX;
 }
 
-void MCGRP::create_individual(Individual &p) const
+void MCGRPTW::create_individual(Individual &p) const
 {
     My_Assert(!best_sol_neg.empty(), "Best solution cannot be empty!");
 
@@ -107,7 +163,7 @@ void MCGRP::create_individual(Individual &p) const
     p.total_cost = total_cost;
 }
 
-void MCGRP::reset(RNG &rng)
+void MCGRPTW::reset(RNG &rng)
 {
     _rng = rng;
     best_sol_neg.clear();
@@ -115,18 +171,18 @@ void MCGRP::reset(RNG &rng)
     best_sol_time = DBL_MAX;
 }
 
-void MCGRP::load_file_info(std::string input_file, const InstanceNumInfo &instance_info)
+void MCGRPTW::load_file_info()
 {
-    std::ifstream fin(input_file);
+    std::ifstream fin(file);
 
     std::string dummy_string;
 
-    node_num = instance_info.node_num;
-    arc_num = instance_info.arc_num;
-    edge_num = instance_info.edge_num;
-    req_node_num = instance_info.req_node_num;
-    req_arc_num = instance_info.req_arc_num;
-    req_edge_num = instance_info.req_edge_num;
+    node_num = header.node_num;
+    arc_num = header.arc_num;
+    edge_num = header.edge_num;
+    req_node_num = header.req_node_num;
+    req_arc_num = header.req_arc_num;
+    req_edge_num = header.req_edge_num;
     nonreq_node_num = node_num - req_node_num;
     nonreq_arc_num = arc_num - req_arc_num;
     nonreq_edge_num = edge_num - req_edge_num;
@@ -424,7 +480,7 @@ void MCGRP::load_file_info(std::string input_file, const InstanceNumInfo &instan
 
 }
 
-void MCGRP::dijkstra()
+void MCGRPTW::dijkstra()
 {
     for (int i = 1; i <= node_num; i++) {
         for (int j = 1; j <= node_num; j++) {
@@ -527,7 +583,7 @@ void MCGRP::dijkstra()
 //    show_shortest_info("shortest_path.json");
 }
 
-void MCGRP::create_neighbor_lists(int neighbor_size)
+void MCGRPTW::create_neighbor_lists(int neighbor_size)
 {
     neigh_size = neighbor_size;
     neighbor = vector<vector<NeighborInfo>>(node_num + 1, vector<NeighborInfo>(node_num + 1));
@@ -545,7 +601,7 @@ void MCGRP::create_neighbor_lists(int neighbor_size)
     }
 }
 
-int MCGRP::get_task_seq_total_cost(const std::vector<int> &delimiter_seq) const
+int MCGRPTW::get_task_seq_total_cost(const std::vector<int> &delimiter_seq) const
 {
     int total_cost = 0;
     assert(delimiter_seq[delimiter_seq.size() - 1] == DUMMY);
@@ -557,7 +613,7 @@ int MCGRP::get_task_seq_total_cost(const std::vector<int> &delimiter_seq) const
     return total_cost;
 }
 
-int MCGRP::get_total_vio_load(const std::vector<int> &route_seg_load) const
+int MCGRPTW::get_total_vio_load(const std::vector<int> &route_seg_load) const
 {
     int total_vio_load = 0;
     for (auto load :route_seg_load) {
@@ -568,7 +624,7 @@ int MCGRP::get_total_vio_load(const std::vector<int> &route_seg_load) const
     return total_vio_load;
 }
 
-bool MCGRP::check_best_solution(const double total_route_length, const vector<int> &sol_seq) const
+bool MCGRPTW::check_best_solution(const double total_route_length, const vector<int> &sol_seq) const
 {
     lock_guard<mutex> lk(instance_mutex);
     // Determines if the current solution is the best found so far.
@@ -577,12 +633,10 @@ bool MCGRP::check_best_solution(const double total_route_length, const vector<in
 
         best_total_route_length = total_route_length;
         best_sol_neg = sol_seq;
-        struct timeb cur_time;
-        ftime(&cur_time);
-        best_sol_time =
-            (cur_time.time - phase_start_time.time) + ((cur_time.millitm - phase_start_time.millitm) * 1.0 / 1000);
 
-//        My_Assert(print(log_out, to_string((int) total_route_length)),"Wrong print");
+        ftime(&cur_time);
+        best_sol_time = get_time_difference(iteration_start_time, cur_time);
+
 #ifdef DEBUG
 //        print(log_out, to_string((int) total_route_length));
         int cnt = 0;
@@ -595,7 +649,6 @@ bool MCGRP::check_best_solution(const double total_route_length, const vector<in
     }
     else {
 
-//        My_Assert(print(log_out, to_string((int) total_route_length)),"Wrong print");
 #ifdef DEBUG
 //        print(log_out, to_string((int) total_route_length));
         int cnt = 0;
@@ -608,7 +661,7 @@ bool MCGRP::check_best_solution(const double total_route_length, const vector<in
     }
 }
 
-Individual MCGRP::parse_delimiter_seq(const vector<int> &seq) const
+Individual MCGRPTW::parse_delimiter_seq(const vector<int> &seq) const
 {
     My_Assert(!seq.empty() && seq.front() == DUMMY && seq.back() == DUMMY, "error! invalid seq");
 
@@ -649,7 +702,7 @@ Individual MCGRP::parse_delimiter_seq(const vector<int> &seq) const
     return buffer;
 }
 
-bool MCGRP::valid_sol(const vector<int> &neg_seq, const double sol_cost) const
+bool MCGRPTW::valid_sol(const vector<int> &neg_seq, const double sol_cost) const
 {
     int valid_length = 0;
     int load = 0;
@@ -711,7 +764,7 @@ bool MCGRP::valid_sol(const vector<int> &neg_seq, const double sol_cost) const
     return valid_length == sol_cost;
 }
 
-void MCGRP::get_trave_matrix()
+void MCGRPTW::get_trave_matrix()
 {
     for (int i = 1; i <= node_num; i++) {
         for (int j = 1; j <= node_num; j++) {
@@ -734,7 +787,7 @@ void MCGRP::get_trave_matrix()
 
 }
 
-vector<int> MCGRP::cal_arrive_time(const vector<int> &route) const
+vector<int> MCGRPTW::cal_arrive_time(const vector<int> &route) const
 {
     if (route.empty())
         return vector<int>();
@@ -759,7 +812,7 @@ vector<int> MCGRP::cal_arrive_time(const vector<int> &route) const
 
 
 
-int MCGRP::cal_arrive_time(int source, int sink, int start, bool head_of_source) const
+int MCGRPTW::cal_arrive_time(int source, int sink, int start, bool head_of_source) const
 {
     int t1 = 0;
     if(head_of_source){
@@ -772,11 +825,11 @@ int MCGRP::cal_arrive_time(int source, int sink, int start, bool head_of_source)
     return max(inst_tasks[sink].time_window.first, t1);
 }
 
-vector<RouteInfo::TimeTable> MCGRP::forecast_time_table(const vector<RouteInfo::TimeTable> &old_table,
-                                                        const vector<int> &tasks,
-                                                        string mode,
-                                                        int indicator_task,
-                                                        bool allow_infeasible) const
+vector<RouteInfo::TimeTable> MCGRPTW::forecast_time_table(const vector<RouteInfo::TimeTable> &old_table,
+                                                          const vector<int> &tasks,
+                                                          string mode,
+                                                          int indicator_task,
+                                                          bool allow_infeasible) const
 {
 
     if (mode == "remove") {
@@ -858,7 +911,7 @@ vector<RouteInfo::TimeTable> MCGRP::forecast_time_table(const vector<RouteInfo::
 }
 
 
-pair<int,int> MCGRP::get_vio_time(const vector<RouteInfo::TimeTable> &tbl) const
+pair<int,int> MCGRPTW::get_vio_time(const vector<RouteInfo::TimeTable> &tbl) const
 {
     int ans = 0;
     int vio_num = 0;
@@ -871,7 +924,7 @@ pair<int,int> MCGRP::get_vio_time(const vector<RouteInfo::TimeTable> &tbl) const
     return {vio_num,ans};
 }
 
-void MCGRP::time_window_sort(vector<int> &sequence) const
+void MCGRPTW::time_window_sort(vector<int> &sequence) const
 {
     function<bool(const int,const int)> comp = [this](const int a,const int b){
         if(this->inst_tasks[a].time_window.second == inst_tasks[b].time_window.second)
@@ -911,7 +964,7 @@ void MCGRP::time_window_sort(vector<int> &sequence) const
     quickSort(0,(int)sequence.size() - 1);
 }
 
-bool MCGRP::isTimeTableFeasible(const vector<RouteInfo::TimeTable>& tbl, bool meta) const {
+bool MCGRPTW::isTimeTableFeasible(const vector<RouteInfo::TimeTable>& tbl, bool meta) const {
     if(meta)
         return tbl.empty() || tbl.front().task != -1;
     else{
@@ -923,7 +976,7 @@ bool MCGRP::isTimeTableFeasible(const vector<RouteInfo::TimeTable>& tbl, bool me
     }
 }
 
-vector<vector<RouteInfo::TimeTable>> MCGRP::get_time_tbl(const vector<int> &sequence, string mode) const
+vector<vector<RouteInfo::TimeTable>> MCGRPTW::get_time_tbl(const vector<int> &sequence, string mode) const
 {
     vector<vector<int>> route_tasks;
     if(mode == "delimiter"){
@@ -957,7 +1010,7 @@ vector<vector<RouteInfo::TimeTable>> MCGRP::get_time_tbl(const vector<int> &sequ
     return res;
 }
 
-int MCGRP::count_edges(const vector<int> &seq) const
+int MCGRPTW::count_edges(const vector<int> &seq) const
 {
     int ans = 0;
     for(const auto & task : seq)
@@ -965,7 +1018,7 @@ int MCGRP::count_edges(const vector<int> &seq) const
     return ans;
 }
 
-void MCGRP::show_shortest_info(string output_file)
+void MCGRPTW::show_shortest_info(string output_file)
 {
     if(!output_file.empty()){
         json js;
@@ -1024,7 +1077,7 @@ void MCGRP::show_shortest_info(string output_file)
     }
 }
 
-void MCGRP::_build_neighbor_task(const Task &task, NeighborInfo &neighbor_info)
+void MCGRPTW::_build_neighbor_task(const Task &task, NeighborInfo &neighbor_info)
 {
     if(neighbor_info.start != -1) return;
 
@@ -1079,7 +1132,7 @@ void MCGRP::_build_neighbor_task(const Task &task, NeighborInfo &neighbor_info)
 //    show_neighbor(neighbor_info.start,neighbor_info.end);
 }
 
-double MCGRP::_coverage(int task_a, int task_b)
+double MCGRPTW::_coverage(int task_a, int task_b)
 {
     int a_s = inst_tasks[task_a].time_window.first;
     int a_e = inst_tasks[task_a].time_window.second;
@@ -1102,7 +1155,7 @@ double MCGRP::_coverage(int task_a, int task_b)
 
 }
 
-void MCGRP::_build_neighbor_node(int start, int end, NeighborInfo &neighbor_info)
+void MCGRPTW::_build_neighbor_node(int start, int end, NeighborInfo &neighbor_info)
 {
     if(neighbor_info.start == -1){
         neighbor_info.start = start;
@@ -1165,7 +1218,7 @@ void MCGRP::_build_neighbor_node(int start, int end, NeighborInfo &neighbor_info
 }
 
 
-void MCGRP::show_neighbor(int start, int end)
+void MCGRPTW::show_neighbor(int start, int end)
 {
     const NeighborInfo& task = neighbor[start][end];
 
@@ -1202,7 +1255,7 @@ void MCGRP::show_neighbor(int start, int end)
 
 }
 
-const vector<int>& MCGRP::_same_end_task(int end_node)
+const vector<int>& MCGRPTW::_same_end_task(int end_node)
 {
     if(!end_task_lookup_tbl[end_node].empty()){
         return end_task_lookup_tbl[end_node];
@@ -1215,7 +1268,7 @@ const vector<int>& MCGRP::_same_end_task(int end_node)
     return end_task_lookup_tbl[end_node];
 }
 
-const vector<int> &MCGRP::_same_start_task(int start_node)
+const vector<int> &MCGRPTW::_same_start_task(int start_node)
 {
     if(!start_task_lookup_tbl[start_node].empty()){
         return start_task_lookup_tbl[start_node];
@@ -1228,7 +1281,7 @@ const vector<int> &MCGRP::_same_start_task(int start_node)
     return start_task_lookup_tbl[start_node];
 }
 
-void MCGRP::register_distance(string name, unique_ptr<Distance> distance_)
+void MCGRPTW::register_distance(string name, unique_ptr<Distance> distance_)
 {
     if(distance_look_tbl.find(name) != distance_look_tbl.end())
         return;
@@ -1236,7 +1289,7 @@ void MCGRP::register_distance(string name, unique_ptr<Distance> distance_)
     distance_look_tbl[name] = move(distance_);
 }
 
-double MCGRP::get_average_task_distance() const
+double MCGRPTW::get_average_task_distance() const
 {
     if(average_task_distance != 0) return average_task_distance;
     double numerator = 0;
@@ -1260,18 +1313,18 @@ double MCGRP::get_average_task_distance() const
     return average_task_distance;
 }
 
-Distance::Distance(const MCGRP& mcgrp, const string &name)
+Distance::Distance(const MCGRPTW& mcgrp, const string &name)
     : name(name)
 {
     distance_matrix = vector<vector<double>>
         (mcgrp.actual_task_num+1,vector<double>(mcgrp.actual_task_num + 1, -1));
 }
 
-CostDistance::CostDistance(const MCGRP& mcgrp)
+CostDistance::CostDistance(const MCGRPTW& mcgrp)
     : Distance(mcgrp, "cost distance")
 {}
 
-double CostDistance::operator()(const MCGRP& mcgrp, const int task_a, const int task_b)
+double CostDistance::operator()(const MCGRPTW& mcgrp, const int task_a, const int task_b)
 {
     if(distance_matrix[task_a][task_b] != -1) return distance_matrix[task_a][task_b];
 
@@ -1289,7 +1342,7 @@ double CostDistance::operator()(const MCGRP& mcgrp, const int task_a, const int 
     return distance_matrix[task_a][task_b];
 }
 
-HybridDistance::HybridDistance(const MCGRP &mcgrp, double beta_)
+HybridDistance::HybridDistance(const MCGRPTW &mcgrp, double beta_)
     : Distance(mcgrp, "hybrid distance") , beta(beta_)
 {
     bacc::accumulator_set<double, bacc::stats<bacc::tag::variance(bacc::lazy)> > cost_acc;
@@ -1354,7 +1407,7 @@ HybridDistance::HybridDistance(const MCGRP &mcgrp, double beta_)
     deviation_waiting_time = sqrt(bacc::variance(waiting_time_acc));
 }
 
-double HybridDistance::operator()(const MCGRP &mcgrp, const int task_a, const int task_b)
+double HybridDistance::operator()(const MCGRPTW &mcgrp, const int task_a, const int task_b)
 {
     if(distance_matrix[task_a][task_b] != -1) return distance_matrix[task_a][task_b];
 
@@ -1379,14 +1432,14 @@ double HybridDistance::operator()(const MCGRP &mcgrp, const int task_a, const in
     return distance_matrix[task_a][task_b];
 }
 
-LearningDistance::LearningDistance(const MCGRP &mcgrp, const vector<vector<double>> &probMatrix)
+LearningDistance::LearningDistance(const MCGRPTW &mcgrp, const vector<vector<double>> &probMatrix)
     : Distance(mcgrp, "Learning Distance"), prob_matrix(probMatrix)
 {
     distance_matrix = vector<vector<double>>
         (mcgrp.actual_task_num+1,vector<double>(mcgrp.actual_task_num + 1, -1));
 }
 
-double LearningDistance::operator()(const MCGRP &mcgrp, const int task_a, const int task_b)
+double LearningDistance::operator()(const MCGRPTW &mcgrp, const int task_a, const int task_b)
 {
     if(distance_matrix[task_a][task_b] != -1) return distance_matrix[task_a][task_b];
 

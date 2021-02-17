@@ -6,7 +6,7 @@
 #define SEARCHPOLICY_H
 
 #include <bitset>
-#include "MCGRP.h"
+#include "instance.h"
 #include "config.h"
 
 
@@ -31,7 +31,7 @@ extern const bitset<RULES> INFEASIBLE;
 extern const bitset<RULES> FIRST_ACCEPT;
 extern const bitset<RULES> BEST_ACCEPT;
 
-class HighSpeedNeighBorSearch;
+class LocalSearch;
 
 class Policy{
     bitset<RULES> current_policy;    //the policy used by improvement search
@@ -73,7 +73,7 @@ public:
         return int(timestamp * time_window_multiplier);
     }
 
-    bool check_time_window(const MCGRP& mcgrp,const vector<vector<RouteInfo::TimeTable>>& time_table);
+    bool check_time_window(const MCGRPTW& mcgrp, const vector<vector<RouteInfo::TimeTable>>& time_table);
 
     // oscillation parameters
     int tabu_time = 0;
@@ -108,7 +108,7 @@ public:
     * @param policy
     * @return
     */
-    bool check_move(const MCGRP& mcgrp, HighSpeedNeighBorSearch& ns,const MoveResult &move_result);
+    bool check_move(const MCGRPTW& mcgrp, LocalSearch& ns, const MoveResult &move_result);
 
     /*!
      * @details check if moveresult M1 is better than moveresult M2
@@ -117,7 +117,7 @@ public:
      * @param M2
      * @return
      */
-    bool check_result(const MCGRP& mcgrp, HighSpeedNeighBorSearch& ns, const MoveResult &M1, const MoveResult &M2);
+    bool check_result(const MCGRPTW& mcgrp, LocalSearch& ns, const MoveResult &M1, const MoveResult &M2);
 };
 
 #endif //SEARCHPOLICY_H

@@ -5,7 +5,7 @@
 #include "ConstructPolicy.h"
 #include "RNG.h"
 #include <bits/stdc++.h>
-#include "NeighborSearch.h"
+#include "local_search.h"
 #include "SearchPolicy.h"
 
 
@@ -15,7 +15,7 @@ using namespace std;
 const int max_merge_set_num = 20;
 
 
-NearestScanner::NearestScanner(const MCGRP &mcgrp, Distance& distance_)
+NearestScanner::NearestScanner(const MCGRPTW &mcgrp, Distance& distance_)
     : PathConstructor(mcgrp,"nearest scanning"), distance(distance_)
 {}
 
@@ -117,8 +117,8 @@ Individual NearestScanner::operator()(const vector<int> &taskList, const string&
 }
 
 void
-merge_split(HighSpeedNeighBorSearch &ns,
-    const MCGRP &mcgrp, const int merge_size)
+merge_split(LocalSearch &ns,
+            const MCGRPTW &mcgrp, const int merge_size)
 {
     if (ns.routes.activated_route_id.size() < merge_size) {
         DEBUG_PRINT("Too few routes to merge!");
@@ -129,7 +129,6 @@ merge_split(HighSpeedNeighBorSearch &ns,
         ns.clear();
 
         auto candidate_tasks = ns.get_tasks_set();
-        ns.clear_stability(mcgrp,candidate_tasks);
         auto seq_buffer = split_task(mcgrp,ns, candidate_tasks, ns.policy);
 
         ns.unpack_seq(seq_buffer, mcgrp);
@@ -155,7 +154,7 @@ merge_split(HighSpeedNeighBorSearch &ns,
         task_routes.emplace(route_id, buffer);
     }
 
-    auto stable_scores = ns.get_route_stables(mcgrp);
+    auto stable_scores = ns.cal_route_scores(mcgrp);
     vector<int> routes_id;
     for (int i = 0; i < merge_size;i++) {
         routes_id.push_back(stable_scores[i].route_id);
@@ -184,8 +183,6 @@ merge_split(HighSpeedNeighBorSearch &ns,
         }
     }
 
-    ns.clear_stability(mcgrp, candidate_tasks);
-
     vector<int> seq_buffer = split_task(mcgrp,ns, candidate_tasks, ns.policy);
     My_Assert(seq_buffer.front() == DUMMY && seq_buffer.back() == DUMMY, "Incorrect sequence!");
 
@@ -204,7 +201,7 @@ merge_split(HighSpeedNeighBorSearch &ns,
 
 }
 
-vector<int> split_task( const MCGRP &mcgrp,HighSpeedNeighBorSearch& ns, const vector<int> &tasks, Policy &policy)
+vector<int> split_task(const MCGRPTW &mcgrp, LocalSearch& ns, const vector<int> &tasks, Policy &policy)
 {
     vector<int> merge_sequence;
 
@@ -269,7 +266,7 @@ vector<int> split_task( const MCGRP &mcgrp,HighSpeedNeighBorSearch& ns, const ve
 
 }
 
-vector<int> nearest_growing(const MCGRP &mcgrp, vector<int> tasks, Policy& policy)
+vector<int> nearest_growing(const MCGRPTW &mcgrp, vector<int> tasks, Policy& policy)
 {
     vector<int> sequence;
 
@@ -343,7 +340,7 @@ vector<int> nearest_growing(const MCGRP &mcgrp, vector<int> tasks, Policy& polic
     return sequence;
 }
 
-vector<int> nearest_depot_growing(const MCGRP &mcgrp, vector<int> tasks, Policy& policy)
+vector<int> nearest_depot_growing(const MCGRPTW &mcgrp, vector<int> tasks, Policy& policy)
 {
     vector<int> sequence;
 
@@ -415,7 +412,7 @@ vector<int> nearest_depot_growing(const MCGRP &mcgrp, vector<int> tasks, Policy&
     return sequence;
 }
 
-vector<int> maximum_yield_growing(const MCGRP &mcgrp, vector<int> tasks, Policy& policy)
+vector<int> maximum_yield_growing(const MCGRPTW &mcgrp, vector<int> tasks, Policy& policy)
 {
     vector<int> sequence;
 
@@ -487,7 +484,7 @@ vector<int> maximum_yield_growing(const MCGRP &mcgrp, vector<int> tasks, Policy&
     return sequence;
 }
 
-vector<int> minimum_yield_growing(const MCGRP &mcgrp, vector<int> tasks, Policy& policy)
+vector<int> minimum_yield_growing(const MCGRPTW &mcgrp, vector<int> tasks, Policy& policy)
 {
     vector<int> sequence;
 
@@ -559,7 +556,7 @@ vector<int> minimum_yield_growing(const MCGRP &mcgrp, vector<int> tasks, Policy&
     return sequence;
 }
 
-vector<int> mixture_growing(const MCGRP &mcgrp, vector<int> tasks, Policy& policy)
+vector<int> mixture_growing(const MCGRPTW &mcgrp, vector<int> tasks, Policy& policy)
 {
     vector<int> sequence;
 
@@ -670,7 +667,7 @@ vector<int> mixture_growing(const MCGRP &mcgrp, vector<int> tasks, Policy& polic
     return sequence;
 }
 
-vector<vector<int>> tour_splitting(const MCGRP &mcgrp,vector<int>& task_list)
+vector<vector<int>> tour_splitting(const MCGRPTW &mcgrp, vector<int>& task_list)
 {
     task_list.insert(task_list.begin(),DUMMY);
     int nsize = task_list.size();
@@ -732,7 +729,7 @@ vector<vector<int>> tour_splitting(const MCGRP &mcgrp,vector<int>& task_list)
     return routes;
 }
 
-BestServeSeq viterbi_decoding(const MCGRP &mcgrp, const vector<int>& task_list, bool allow_infeasible)
+BestServeSeq viterbi_decoding(const MCGRPTW &mcgrp, const vector<int>& task_list, bool allow_infeasible)
 {
     BestServeSeq ans;
 
@@ -838,7 +835,7 @@ BestServeSeq viterbi_decoding(const MCGRP &mcgrp, const vector<int>& task_list, 
     return ans;
 }
 
-PathConstructor::PathConstructor(const MCGRP &mcgrp_,const string& name_) : mcgrp(mcgrp_)
+PathConstructor::PathConstructor(const MCGRPTW &mcgrp_, const string& name_) : mcgrp(mcgrp_)
 {
     name = name_;
 }
@@ -956,11 +953,11 @@ Individual RTFScanner::operator()(const vector<int> &taskList, const string &mod
     return mcgrp.parse_delimiter_seq(solution);
 }
 
-RTFScanner::RTFScanner(const MCGRP &mcgrp, Distance &distance_)
+RTFScanner::RTFScanner(const MCGRPTW &mcgrp, Distance &distance_)
     : PathConstructor(mcgrp, "RTF scanner"), distance(distance_)
 {}
 
-SampleScanner::SampleScanner(const MCGRP &mcgrp, LearningDistance &distance_, int sample_times_)
+SampleScanner::SampleScanner(const MCGRPTW &mcgrp, LearningDistance &distance_, int sample_times_)
     : PathConstructor(mcgrp, "sample scanner"), distance(distance_), sample_times(sample_times_)
 {}
 

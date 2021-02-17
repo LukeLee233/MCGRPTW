@@ -8,7 +8,7 @@
 
 using namespace std;
 
-bool Extraction::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_task)
+bool Extraction::search(LocalSearch &ns, const MCGRPTW &mcgrp, int chosen_task)
 {
     // No search space in Extraction operator, No accept rule for invert operator
     return false;
@@ -16,9 +16,6 @@ bool Extraction::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int cho
     if(ns.policy.has_rule(TOLERANCE)) return false;
     if(ns.policy.has_rule(DOWNHILL)) return false;
 
-#ifdef DEBUG
-    attempt_count++;
-#endif
 
     My_Assert(chosen_task != DUMMY, "Chosen Task can't be dummy");
 
@@ -41,7 +38,7 @@ struct seg_info
     int num_custs = 0;
 };
 
-seg_info get_seg_info(const MCGRP &mcgrp, HighSpeedNeighBorSearch &ns, const int start_task, const int end_task)
+seg_info get_seg_info(const MCGRPTW &mcgrp, LocalSearch &ns, const int start_task, const int end_task)
 {
     My_Assert(start_task >= 1 && start_task <= mcgrp.actual_task_num, "Wrong Task");
     My_Assert(end_task >= 1 && end_task <= mcgrp.actual_task_num, "Wrong Task");
@@ -71,7 +68,7 @@ seg_info get_seg_info(const MCGRP &mcgrp, HighSpeedNeighBorSearch &ns, const int
     return buffer;
 }
 
-bool Extraction::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, const int b)
+bool Extraction::considerable_move(LocalSearch &ns, const MCGRPTW &mcgrp, const int b)
 {
     My_Assert(b >= 1 && b <= mcgrp.actual_task_num, "Wrong Task");
 
@@ -120,12 +117,12 @@ bool Extraction::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcg
                       + old_route_end_dummy == ns.routes[old_route_id]->length, "Wrong tasks");
 
         move_result.task1 = b;
-        move_result.move_arguments_bak["cut_position"] = vector<int>();
-        move_result.move_arguments_bak["cut_position"].push_back(old_route_start);
-        move_result.move_arguments_bak["cut_position"].push_back(a);
-        move_result.move_arguments_bak["cut_position"].push_back(b);
-        move_result.move_arguments_bak["cut_position"].push_back(c);
-        move_result.move_arguments_bak["cut_position"].push_back(old_route_end);
+        move_result.move_arguments["cut_position"] = vector<int>();
+        move_result.move_arguments["cut_position"].push_back(old_route_start);
+        move_result.move_arguments["cut_position"].push_back(a);
+        move_result.move_arguments["cut_position"].push_back(b);
+        move_result.move_arguments["cut_position"].push_back(c);
+        move_result.move_arguments["cut_position"].push_back(old_route_end);
 
         move_result.route_id.push_back(old_route_id);
 
@@ -162,23 +159,19 @@ bool Extraction::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcg
     My_Assert(false, "Cannot reach here!");
 }
 
-void Extraction::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
+void Extraction::move(LocalSearch &ns, const MCGRPTW &mcgrp)
 {
-
-#ifdef DEBUG
-    hit_count++;
-#endif
 
     DEBUG_PRINT("execute a extraction move");
 
     My_Assert(move_result.considerable, "Invalid predictions");
 
     //phase 0: extract move arguments
-    const int a_route_start = move_result.move_arguments_bak.at("cut_position")[0];
-    const int a_route_end = move_result.move_arguments_bak.at("cut_position")[1];
-    const int b = move_result.move_arguments_bak.at("cut_position")[2];
-    const int c_route_start = move_result.move_arguments_bak.at("cut_position")[3];
-    const int c_route_end = move_result.move_arguments_bak.at("cut_position")[4];
+    const int a_route_start = move_result.move_arguments.at("cut_position")[0];
+    const int a_route_end = move_result.move_arguments.at("cut_position")[1];
+    const int b = move_result.move_arguments.at("cut_position")[2];
+    const int c_route_start = move_result.move_arguments.at("cut_position")[3];
+    const int c_route_end = move_result.move_arguments.at("cut_position")[4];
 
     My_Assert(a_route_start >= 1 && a_route_start <= mcgrp.actual_task_num, "Wrong arguments");
     My_Assert(a_route_end >= 1 && a_route_end <= mcgrp.actual_task_num, "Wrong arguments");
@@ -266,7 +259,7 @@ void Extraction::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
 }
 
 vector<vector<RouteInfo::TimeTable>>
-Extraction::expected_time_table(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, const int b)
+Extraction::expected_time_table(LocalSearch &ns, const MCGRPTW &mcgrp, const int b)
 {
     vector<vector<RouteInfo::TimeTable>> res;
 
@@ -310,7 +303,7 @@ Extraction::expected_time_table(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
     return res;
 }
 
-bool Extraction::update_score(HighSpeedNeighBorSearch &ns)
+bool Extraction::update_score(LocalSearch &ns)
 {
     My_Assert(move_result.delta >= 0, "error, wrong outcome!");
     return false;

@@ -7,8 +7,8 @@
 
 #include "utils.h"
 
-class MCGRP;
-class HighSpeedNeighBorSearch;
+class MCGRPTW;
+class LocalSearch;
 class Policy;
 
 namespace viterbi{
@@ -45,33 +45,31 @@ struct PseudoTask: public Task{
 
 
 BestDecode viterbi_decode(const PseudoTask* first, const PseudoTask* last,
-                          const vector<int>& move_seq, const MCGRP& mcgrp,Policy& policy);
+                          const vector<int>& move_seq, const MCGRPTW& mcgrp, Policy& policy);
 
 }
 
 class MoveOperator{
 protected:
     vector<int> _seq_regularization(const vector<int> seq);
+
 public:
     MoveResult move_result;
 
-    int hit_count;
-    int attempt_count;
+    int call_times;
+    int success_times;
 
-    MoveOperator();
+    MoveOperator(): call_times(0),success_times(0){};
 
-    virtual bool search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_task) = 0;
-    virtual bool update_score(HighSpeedNeighBorSearch &ns) = 0;
+    virtual bool search(LocalSearch &ns, const MCGRPTW &mcgrp, int chosen_task) = 0;
+    virtual bool update_score(LocalSearch &ns) = 0;
 
+    viterbi::PseudoTask Seq2Pseudo(const MCGRPTW &mcgrp, const vector<int>& seq, int phase);
 
-    viterbi::PseudoTask Seq2Pseudo(const MCGRP &mcgrp,const vector<int>& seq, int phase);
-    vector<int> getHitInfo();
-    vector<vector<int>> generate_possible_seq(const MCGRP &mcgrp,const vector<int>& seq);
-
-    void update_stable_likelihood(const MCGRP& mcgrp, HighSpeedNeighBorSearch& ns,const vector<int>& output_seq, const MoveResult& move_result);
+    vector<vector<int>> generate_possible_seq(const MCGRPTW &mcgrp, const vector<int>& seq);
 };
 
-void unit_test(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, MoveOperator& move_operator);
+void unit_test(LocalSearch &ns, const MCGRPTW &mcgrp, MoveOperator& move_operator);
 
 
 #endif //OPERATOR_H

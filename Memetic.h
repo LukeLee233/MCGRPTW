@@ -1,6 +1,6 @@
 #pragma once
-#include "NeighborSearch.h"
-#include "MCGRP.h"
+#include "local_search.h"
+#include "instance.h"
 #include <vector>
 #include <thread>
 #include <future>

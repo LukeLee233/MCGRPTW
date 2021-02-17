@@ -6,19 +6,13 @@
 
 using namespace std;
 
-bool Slice::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_task)
+bool Slice::search(LocalSearch &ns, const MCGRPTW &mcgrp, int chosen_task)
 {
     //No search space in Slice operator, No accept rule for invert operator
     return false;
     if(ns.policy.has_rule(INFEASIBLE)) return false;
     if(ns.policy.has_rule(TOLERANCE)) return false;
     if(ns.policy.has_rule(DOWNHILL)) return false;
-
-#ifdef DEBUG
-    pre_slice_times = 0;
-    post_slice_times = 0;
-    attempt_count++;
-#endif
 
     My_Assert(chosen_task != DUMMY, "Chosen Task can't be dummy");
 
@@ -32,7 +26,7 @@ bool Slice::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_t
     }
 }
 
-bool Slice::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, const int b)
+bool Slice::considerable_move(LocalSearch &ns, const MCGRPTW &mcgrp, const int b)
 {
     My_Assert(b >= 1 && b <= mcgrp.actual_task_num, "Wrong Task");
 
@@ -143,12 +137,9 @@ bool Slice::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, c
     My_Assert(false, "Cannot reach here!");
 }
 
-void Slice::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
+void Slice::move(LocalSearch &ns, const MCGRPTW &mcgrp)
 {
 
-#ifdef DEBUG
-    hit_count++;
-#endif
 
     DEBUG_PRINT("execute a slice move");
 
@@ -173,7 +164,7 @@ void Slice::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
     move_result.move_type = NeighborOperator::SLICE;
 }
 
-bool Slice::update_score(HighSpeedNeighBorSearch &ns){
+bool Slice::update_score(LocalSearch &ns){
     return false;
 }
 
@@ -192,9 +183,9 @@ struct RouteSegment
     double len;
 };
 
-RouteSegment get_segment_info(const MCGRP &mcgrp, HighSpeedNeighBorSearch &ns, const int chosen_task);
+RouteSegment get_segment_info(const MCGRPTW &mcgrp, LocalSearch &ns, const int chosen_task);
 
-bool Preslice::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, const int b)
+bool Preslice::considerable_move(LocalSearch &ns, const MCGRPTW &mcgrp, const int b)
 {
     My_Assert(b >= 1 && b <= mcgrp.actual_task_num, "Wrong Task");
     My_Assert(ns.solution[b]->pre->ID > 0, "Wrong Task");
@@ -212,8 +203,8 @@ bool Preslice::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp
 
     move_result.task1 = b;
     if (seg_after_b.num_custs != 0) {
-        move_result.move_arguments_bak["seg_start"] = {b};
-        move_result.move_arguments_bak["seg_end"] = {seg_after_b.segment_end};
+        move_result.move_arguments["seg_start"] = {b};
+        move_result.move_arguments["seg_end"] = {seg_after_b.segment_end};
 
         double new_load_delta = seg_after_b.load + mcgrp.inst_tasks[b].demand;
         My_Assert(new_load_delta <= mcgrp.capacity, "Wrong tasks");
@@ -256,8 +247,8 @@ bool Preslice::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp
         return true;
     }
     else {
-        move_result.move_arguments_bak["seg_start"] = {b};
-        move_result.move_arguments_bak["seg_end"] = {b};
+        move_result.move_arguments["seg_start"] = {b};
+        move_result.move_arguments["seg_end"] = {b};
 
         double new_load_delta = mcgrp.inst_tasks[b].demand;
         My_Assert(new_load_delta <= mcgrp.capacity, "Wrong tasks");
@@ -298,19 +289,16 @@ bool Preslice::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp
 
 }
 
-void Preslice::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
+void Preslice::move(LocalSearch &ns, const MCGRPTW &mcgrp)
 {
 
-#ifdef DEBUG
-    hit_count++;
-#endif
 
     DEBUG_PRINT("execute a slice : pre-slice move");
     My_Assert(move_result.considerable, "Invalid predictions");
 
     //phase 0: extract move arguments
-    int new_route_start = move_result.move_arguments_bak.at("seg_start")[0];
-    int new_route_end = move_result.move_arguments_bak.at("seg_end")[0];
+    int new_route_start = move_result.move_arguments.at("seg_start")[0];
+    int new_route_end = move_result.move_arguments.at("seg_end")[0];
 
     My_Assert(new_route_start >= 1 && new_route_start <= mcgrp.actual_task_num, "Wrong Task");
     My_Assert(new_route_end >= 1 && new_route_end <= mcgrp.actual_task_num, "Wrong Task");
@@ -369,7 +357,7 @@ void Preslice::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
 }
 
 vector<vector<RouteInfo::TimeTable>>
-Preslice::expected_time_table(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, const int b)
+Preslice::expected_time_table(LocalSearch &ns, const MCGRPTW &mcgrp, const int b)
 {
     vector<vector<RouteInfo::TimeTable>>
         res(2, vector<RouteInfo::TimeTable>({{-1, -1}}));
@@ -408,12 +396,9 @@ Preslice::expected_time_table(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, c
     return res;
 }
 
-bool Preslice::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_task)
+bool Preslice::search(LocalSearch &ns, const MCGRPTW &mcgrp, int chosen_task)
 {
 
-#ifdef DEBUG
-    attempt_count++;
-#endif
 
     //No search space in Slice operator, No accept rule for invert operator
     My_Assert(chosen_task != DUMMY, "Chosen Task can't be dummy");
@@ -428,7 +413,7 @@ bool Preslice::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chose
     }
 }
 
-bool Preslice::update_score(HighSpeedNeighBorSearch &ns)
+bool Preslice::update_score(LocalSearch &ns)
 {
     My_Assert(move_result.delta >= 0, "error, wrong outcome!");
     return false;
@@ -439,7 +424,7 @@ bool Preslice::update_score(HighSpeedNeighBorSearch &ns)
  */
 
 
-bool Postslice::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, const int b)
+bool Postslice::considerable_move(LocalSearch &ns, const MCGRPTW &mcgrp, const int b)
 {
     My_Assert(b >= 1 && b <= mcgrp.actual_task_num, "Wrong Task");
     My_Assert(ns.solution[b]->next->ID > 0, "Wrong Task");
@@ -452,8 +437,8 @@ bool Postslice::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgr
 
     move_result.task1 = b;
 
-    move_result.move_arguments_bak["seg_start"] = {seg_after_b.segment_start};
-    move_result.move_arguments_bak["seg_end"] = {seg_after_b.segment_end};
+    move_result.move_arguments["seg_start"] = {seg_after_b.segment_start};
+    move_result.move_arguments["seg_end"] = {seg_after_b.segment_end};
 
     auto new_time_tbl = expected_time_table(ns, mcgrp, b);
 
@@ -499,19 +484,15 @@ bool Postslice::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgr
     return true;
 }
 
-void Postslice::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
+void Postslice::move(LocalSearch &ns, const MCGRPTW &mcgrp)
 {
-
-#ifdef DEBUG
-    hit_count++;
-#endif
 
     DEBUG_PRINT("execute a slice : post-slice move");
     My_Assert(move_result.considerable, "Invalid predictions");
 
     //phase 0: extract move arguments
-    const int new_route_start = move_result.move_arguments_bak.at("seg_start")[0];
-    const int new_route_end = move_result.move_arguments_bak.at("seg_end")[0];
+    const int new_route_start = move_result.move_arguments.at("seg_start")[0];
+    const int new_route_end = move_result.move_arguments.at("seg_end")[0];
 
     My_Assert(new_route_start >= 1 && new_route_start <= mcgrp.actual_task_num, "Wrong Task");
     My_Assert(new_route_end >= 1 && new_route_end <= mcgrp.actual_task_num, "Wrong Task");
@@ -570,8 +551,8 @@ void Postslice::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
 }
 
 vector<vector<RouteInfo::TimeTable>>
-Postslice::expected_time_table(HighSpeedNeighBorSearch &ns,
-                               const MCGRP &mcgrp,
+Postslice::expected_time_table(LocalSearch &ns,
+                               const MCGRPTW &mcgrp,
                                const int b)
 {
     vector<vector<RouteInfo::TimeTable>>
@@ -611,12 +592,9 @@ Postslice::expected_time_table(HighSpeedNeighBorSearch &ns,
     return res;
 }
 
-bool Postslice::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_task)
+bool Postslice::search(LocalSearch &ns, const MCGRPTW &mcgrp, int chosen_task)
 {
 
-#ifdef DEBUG
-    attempt_count++;
-#endif
 
     //No search space in Slice operator, No accept rule for invert operator
     My_Assert(chosen_task != DUMMY, "Chosen Task can't be dummy");
@@ -631,7 +609,7 @@ bool Postslice::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chos
     }
 }
 
-bool Postslice::update_score(HighSpeedNeighBorSearch &ns)
+bool Postslice::update_score(LocalSearch &ns)
 {
     My_Assert(move_result.delta >= 0, "error, wrong outcome!");
     return false;

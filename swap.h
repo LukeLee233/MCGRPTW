@@ -1,18 +1,18 @@
 #pragma once
 #include "utils.h"
-#include "MCGRP.h"
-#include "NeighborSearch.h"
+#include "instance.h"
+#include "local_search.h"
 
 //low level operator
-class NewSwap : public MoveOperator
+class Swap : public MoveOperator
 {
 public:
 
-    NewSwap(){
+    Swap() : MoveOperator(){
         move_result = MoveResult(NeighborOperator::SWAP);
     };
 
-    bool search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_task) override;
+    bool search(LocalSearch &ns, const MCGRPTW &mcgrp, int chosen_task) override;
 
     /*!
      * @details swap Task j and Task b
@@ -23,12 +23,12 @@ public:
      * @param rules
      * @return
      */
-    bool considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &C, int i,int u);
+    bool considerable_move(LocalSearch &ns, const MCGRPTW &C, int i, int u);
 
-    void move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp);
+    void move(LocalSearch &ns, const MCGRPTW &mcgrp);
 
-    vector<vector<RouteInfo::TimeTable>> expected_time_table(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
+    vector<vector<RouteInfo::TimeTable>> expected_time_table(LocalSearch &ns, const MCGRPTW &mcgrp,
                                                              int u, int u_tilde, int i, int i_tilde, bool allow_infeasible);
 
-    bool update_score(HighSpeedNeighBorSearch &ns) override;
+    bool update_score(LocalSearch &ns) override;
 };

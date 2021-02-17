@@ -1,21 +1,10 @@
-#include "TwoOpt.h"
+#include "two_opt.h"
 
 using namespace std;
 
-/*
- * High Speed
- */
-
-bool NewTwoOpt::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_task){
+bool TwoOpt::search(LocalSearch &ns, const MCGRPTW &mcgrp, int chosen_task){
 
     My_Assert(chosen_task >= 1 && chosen_task <= mcgrp.actual_task_num,"error, Wrong Task");
-
-#ifdef DEBUG
-    flip_times = 0;
-    swapends_times = 0;
-    attempt_count = 0;
-    hit_count = 0;
-#endif
 
     MoveResult BestM;
 
@@ -33,10 +22,6 @@ bool NewTwoOpt::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chos
         My_Assert(neighbor_task != b,"Neighbor Task can't be itself at all!");
 
         if(neighbor_task != DUMMY){
-
-#ifdef DEBUG
-            attempt_count += 4;
-#endif
 
             //j can't be dummy and b can't be dummy neither here
             int j = neighbor_task;
@@ -115,9 +100,6 @@ bool NewTwoOpt::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chos
 
             while (ns.solution[current_start]->next != ns.solution.very_end){
 
-#ifdef DEBUG
-                attempt_count += 4;
-#endif
 
                 // Consider the start location
                 int j = current_start;
@@ -226,13 +208,15 @@ bool NewTwoOpt::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chos
 
 
 bool
-NewTwoOpt::considerable_move(
-    HighSpeedNeighBorSearch &ns,
-    const MCGRP &mcgrp,
+TwoOpt::considerable_move(
+    LocalSearch &ns,
+    const MCGRPTW &mcgrp,
     int a,
     int b,
     int c,
     int d){
+
+    call_times++;
     // A easy prediction for overlapping
     if ((a == c) || (a == d) || (b == c) || (b == d)) {
         return false;
@@ -243,8 +227,7 @@ NewTwoOpt::considerable_move(
 
     if (a > 0)
         a_route = ns.solution[a]->route_id;
-    else
-    {
+    else{
         My_Assert(b > 0,"Task A is dummy and Task B is dummy too? Come on! ");
         a_route = ns.solution[b]->route_id;
     }
@@ -317,11 +300,7 @@ NewTwoOpt::considerable_move(
 }
 
 
-void NewTwoOpt::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp){
-
-#ifdef DEBUG
-    hit_count++;
-#endif
+void TwoOpt::move(LocalSearch &ns, const MCGRPTW &mcgrp){
 
     DEBUG_PRINT("execute a 2-opt move");
 
@@ -340,12 +319,11 @@ void NewTwoOpt::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp){
     }
 
 
-    ns.trace(mcgrp);
     move_result.reset();
     move_result.move_type = NeighborOperator::TWO_OPT;
 }
 
-bool NewTwoOpt::update_score(HighSpeedNeighBorSearch &ns)
+bool TwoOpt::update_score(LocalSearch &ns)
 {
     return false;
 }

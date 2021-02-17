@@ -1,4 +1,7 @@
-#pragma once
+#ifndef _INSTANCE_
+#define _INSTANCE_
+
+
 #include "RNG.h"
 #include "utils.h"
 #include <bits/stdc++.h>
@@ -9,11 +12,7 @@
 #define ARC_NO_INVERSE -1
 #define NODE_NO_INVERSE -2
 
-
-/*Global static info used by problem*/
-
-class MCGRP
-{
+class MCGRPTW{
 public:
     std::string instance_name;
 
@@ -75,8 +74,9 @@ public:
 
     mutable mutex instance_mutex;
 
-
-    MCGRP(const InstanceNumInfo &instance_info, RNG &rng);
+    InstanceNumInfo header;
+    string file;
+    MCGRPTW(const string& file, RNG &rng);
 
     /*!
      * convert a delimiter format solution into individual style
@@ -84,6 +84,8 @@ public:
      * @return
      */
     Individual parse_delimiter_seq(const vector<int> &seq) const;
+
+    void GetTasksNum(std::string filename, InstanceNumInfo &number_info);
 
     inline double get_yield(int task_num) const
     {
@@ -115,7 +117,7 @@ public:
      * @param input_file
      * @param instance_info
      */
-    void load_file_info(std::string input_file, const InstanceNumInfo &instance_info);
+    void load_file_info();
 
     /*!
      * 使用dijkstra算法求解各点之间的最短路径及路径序列
@@ -130,7 +132,6 @@ public:
     double get_average_task_distance() const;
 
 
-private:
     void _build_neighbor_task(const Task& task, NeighborInfo& neighbor_info);
     void _build_neighbor_node(int start, int end, NeighborInfo& neighbor_info);
     unordered_map<int, vector<int>> end_task_lookup_tbl;
@@ -139,7 +140,6 @@ private:
     const vector<int>& _same_start_task(int start_node);
     double _coverage(int task_a, int task_b);
 
-public:
     void register_distance(string name, unique_ptr<Distance> distance_);
 
 
@@ -236,7 +236,7 @@ public:
     void show_neighbor(int start, int end);
 };
 
-inline int MCGRP::get_travel_time(int source_task, int sink_task) const {
+inline int MCGRPTW::get_travel_time(int source_task, int sink_task) const {
         return min_time[inst_tasks[source_task].tail_node][inst_tasks[sink_task].head_node];
 }
 
@@ -248,17 +248,17 @@ protected:
 
     vector<vector<double>> distance_matrix;
 public:
-    Distance(const MCGRP& mcgrp, const string &name);
+    Distance(const MCGRPTW& mcgrp, const string &name);
 
-    virtual double operator()(const MCGRP& mcgrp, const int task_a, const int task_b) = 0;
+    virtual double operator()(const MCGRPTW& mcgrp, const int task_a, const int task_b) = 0;
 };
 
 class CostDistance: public Distance{
 
 public:
-    CostDistance(const MCGRP& mcgrp);
+    CostDistance(const MCGRPTW& mcgrp);
 
-    double operator()(const MCGRP& mcgrp, const int task_a, const int task_b) override;
+    double operator()(const MCGRPTW& mcgrp, const int task_a, const int task_b) override;
 };
 
 class HybridDistance: public Distance{
@@ -274,9 +274,9 @@ private:
     double beta;
 
 public:
-    HybridDistance(const MCGRP &mcgrp,double beta_);
+    HybridDistance(const MCGRPTW &mcgrp, double beta_);
 
-    double operator()(const MCGRP& mcgrp, const int task_a, const int task_b) override;
+    double operator()(const MCGRPTW& mcgrp, const int task_a, const int task_b) override;
 };
 
 
@@ -285,9 +285,11 @@ private:
     vector<vector<double>> prob_matrix;
 
 public:
-    LearningDistance(const MCGRP &mcgrp, const vector<vector<double>> &probMatrix);
+    LearningDistance(const MCGRPTW &mcgrp, const vector<vector<double>> &probMatrix);
 
-    double operator()(const MCGRP& mcgrp, const int task_a, const int task_b) override;
+    double operator()(const MCGRPTW& mcgrp, const int task_a, const int task_b) override;
 
     const vector<double>& get_prob_vector(int task);
 };
+
+#endif

@@ -51,7 +51,7 @@ void HighSpeedMemetic::memetic_search(const MCGRP &mcgrp)
 
     if (population.size() == 1) {
         DEBUG_PRINT("Pop Size is 1\nToggle to Local Search...");
-        HighSpeedNeighBorSearch ns(mcgrp, tabu_step);
+        LocalSearch ns(mcgrp, tabu_step);
         for (auto iter = 1; iter <= evolve_num
             && get_time_difference(search_start_time, cur_time) < search_time; iter++) {
             ftime(&cur_time);
@@ -885,7 +885,7 @@ void HighSpeedMemetic::create_citizen(const MCGRP &mcgrp)
     My_Assert(mcgrp.valid_sol(get_negative_coding(buffer.sequence), buffer.total_cost), "Wrong outcome!\n");
 
 
-    HighSpeedNeighBorSearch ns_(mcgrp,tabu_step);
+    LocalSearch ns_(mcgrp, tabu_step);
     ns_.unpack_seq(buffer.sequence, mcgrp);
     ns_.trace(mcgrp);
 
@@ -907,7 +907,7 @@ void HighSpeedMemetic::educate(const MCGRP &mcgrp, vector<int> child)
     DEBUG_PRINT("A new thread has been created!\n");
     cout << this_thread::get_id() << endl;
 
-    HighSpeedNeighBorSearch ns_(mcgrp,tabu_step);
+    LocalSearch ns_(mcgrp, tabu_step);
     ns_.unpack_seq(get_delimiter_coding(child), mcgrp);
     ns_.trace(mcgrp);
 

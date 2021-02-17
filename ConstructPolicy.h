@@ -6,20 +6,20 @@
 #ifndef MCGRP_SEARCHPOLICY_H
 #define MCGRP_SEARCHPOLICY_H
 
-#include "MCGRP.h"
+#include "instance.h"
 #include "utils.h"
 
 
-class HighSpeedNeighBorSearch;
+class LocalSearch;
 class Policy;
 
 class PathConstructor{
 protected:
     string name;
-    const MCGRP& mcgrp;
+    const MCGRPTW& mcgrp;
 
 public:
-    PathConstructor(const MCGRP& mcgrp_,const string& name_);
+    PathConstructor(const MCGRPTW& mcgrp_, const string& name_);
 
     // mode : [allow_infeasible, feasible]
     virtual Individual
@@ -30,7 +30,7 @@ class NearestScanner: public PathConstructor{
 private:
     Distance& distance;
 public:
-    NearestScanner(const MCGRP &mcgrp, Distance& distance_);
+    NearestScanner(const MCGRPTW &mcgrp, Distance& distance_);
 
     Individual
     operator()(const vector<int> &taskList = vector<int>(), const string& mode="feasible") override;
@@ -40,7 +40,7 @@ class RTFScanner: public PathConstructor{
 private:
     Distance& distance;
 public:
-    RTFScanner(const MCGRP &mcgrp, Distance &distance_);
+    RTFScanner(const MCGRPTW &mcgrp, Distance &distance_);
 
     Individual
     operator()(const vector<int> &taskList = vector<int>(), const string& mode="feasible") override;
@@ -51,7 +51,7 @@ private:
     LearningDistance& distance;
     int sample_times;
 public:
-    SampleScanner(const MCGRP &mcgrp,LearningDistance &distance_, int sample_times_ = 50);
+    SampleScanner(const MCGRPTW &mcgrp, LearningDistance &distance_, int sample_times_ = 50);
 
     Individual
     operator()(const vector<int> &taskList = vector<int>(), const string& mode="feasible") override;
@@ -63,8 +63,8 @@ public:
  * @param ns
  * @param mcgrp
  */
-void merge_split(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
-    const int merge_size);
+void merge_split(LocalSearch &ns, const MCGRPTW &mcgrp,
+                 const int merge_size);
 
 /*!
  * @details use different policies to merge Task
@@ -72,7 +72,7 @@ void merge_split(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
  * @param tasks
  * @return
  */
-vector<int> split_task(const MCGRP &mcgrp,HighSpeedNeighBorSearch& ns, const vector<int> &tasks, Policy& policy);
+vector<int> split_task(const MCGRPTW &mcgrp, LocalSearch& ns, const vector<int> &tasks, Policy& policy);
 
 /*!
  * @details use nearest L2 distance policy to merge tasks
@@ -80,7 +80,7 @@ vector<int> split_task(const MCGRP &mcgrp,HighSpeedNeighBorSearch& ns, const vec
  * @param tasks
  * @return
  */
-vector<int> nearest_growing(const MCGRP &mcgrp, vector<int> tasks, Policy& policy);
+vector<int> nearest_growing(const MCGRPTW &mcgrp, vector<int> tasks, Policy& policy);
 
 /*!
  * @details use nearest L2 distance to depot policy to merge tasks
@@ -88,7 +88,7 @@ vector<int> nearest_growing(const MCGRP &mcgrp, vector<int> tasks, Policy& polic
  * @param tasks
  * @return
  */
-vector<int> nearest_depot_growing(const MCGRP &mcgrp, vector<int> tasks, Policy& policy);
+vector<int> nearest_depot_growing(const MCGRPTW &mcgrp, vector<int> tasks, Policy& policy);
 
 /*!
  * @details use max yield  policy to merge tasks
@@ -96,7 +96,7 @@ vector<int> nearest_depot_growing(const MCGRP &mcgrp, vector<int> tasks, Policy&
  * @param tasks
  * @return
  */
-vector<int> maximum_yield_growing(const MCGRP &mcgrp, vector<int> tasks, Policy& policy);
+vector<int> maximum_yield_growing(const MCGRPTW &mcgrp, vector<int> tasks, Policy& policy);
 
 /*!
  * @details use min yield  policy to merge tasks
@@ -104,7 +104,7 @@ vector<int> maximum_yield_growing(const MCGRP &mcgrp, vector<int> tasks, Policy&
  * @param tasks
  * @return
  */
-vector<int> minimum_yield_growing(const MCGRP &mcgrp, vector<int> tasks, Policy& policy);
+vector<int> minimum_yield_growing(const MCGRPTW &mcgrp, vector<int> tasks, Policy& policy);
 
 /*!
  * @details use mixture policy to merge tasks
@@ -112,9 +112,9 @@ vector<int> minimum_yield_growing(const MCGRP &mcgrp, vector<int> tasks, Policy&
  * @param tasks
  * @return
  */
-vector<int> mixture_growing(const MCGRP &mcgrp, vector<int> tasks, Policy& policy);
+vector<int> mixture_growing(const MCGRPTW &mcgrp, vector<int> tasks, Policy& policy);
 
-vector<vector<int>> tour_splitting(const MCGRP &mcgrp, vector<int>& task_list);
+vector<vector<int>> tour_splitting(const MCGRPTW &mcgrp, vector<int>& task_list);
 
 
 struct BestServeSeq{
@@ -123,6 +123,6 @@ struct BestServeSeq{
     int cost = INT32_MAX;
 };
 
-BestServeSeq viterbi_decoding(const MCGRP &mcgrp, const vector<int>& task_list, bool allow_infeasible);
+BestServeSeq viterbi_decoding(const MCGRPTW &mcgrp, const vector<int>& task_list, bool allow_infeasible);
 
 #endif //MCGRP_SEARCHPOLICY_H

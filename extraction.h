@@ -6,8 +6,8 @@
 #ifndef EXTRACTION_H
 #define EXTRACTION_H
 
-#include "MCGRP.h"
-#include "NeighborSearch.h"
+#include "instance.h"
+#include "local_search.h"
 #include "utils.h"
 
 /*
@@ -27,7 +27,7 @@ public:
     };
 
     /*----------------High speed neighbor search---------------------*/
-    bool search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_task) override;
+    bool search(LocalSearch &ns, const MCGRPTW &mcgrp, int chosen_task) override;
 
     /*!
      * @details insert Task b to Task j
@@ -39,15 +39,15 @@ public:
      * @param policy
      * @return
      */
-    bool considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, const int b);
+    bool considerable_move(LocalSearch &ns, const MCGRPTW &mcgrp, const int b);
 
-    void move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp);
+    void move(LocalSearch &ns, const MCGRPTW &mcgrp);
 
     vector<vector<RouteInfo::TimeTable>>
-    expected_time_table(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,
+    expected_time_table(LocalSearch &ns, const MCGRPTW &mcgrp,
                         const int b);
 
-    bool update_score(HighSpeedNeighBorSearch &ns) override;
+    bool update_score(LocalSearch &ns) override;
 
 };
 

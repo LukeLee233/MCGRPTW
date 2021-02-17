@@ -2,11 +2,11 @@
 // Created by luke on 2020/11/5.
 //
 
-#ifndef INSERT_H
-#define INSERT_H
+#ifndef _INSERT_H_
+#define _INSERT_H_
 
 #include "operator.h"
-#include "NeighborSearch.h"
+#include "local_search.h"
 
 class XPreInsert : public MoveOperator
 {
@@ -28,16 +28,16 @@ public:
      * @return
      */
     bool
-    considerable_move(HighSpeedNeighBorSearch &ns,
-                      const MCGRP &mcgrp,
+    considerable_move(LocalSearch &ns,
+                      const MCGRPTW &mcgrp,
                       const vector<int>& move_seq,
                       const int u);
 
 
-    pair<double,double> cost_delta(HighSpeedNeighBorSearch &ns,
-                   const MCGRP &mcgrp,
-                   const vector<int>& move_seq,
-                   const int u);
+    pair<double,double> cost_delta(LocalSearch &ns,
+                                   const MCGRPTW &mcgrp,
+                                   const vector<int>& move_seq,
+                                   const int u);
 
     /*!
  *
@@ -50,16 +50,16 @@ public:
  * @return
  */
     vector<vector<RouteInfo::TimeTable>>
-    expected_time_table(HighSpeedNeighBorSearch &ns,
-                        const MCGRP &mcgrp,
+    expected_time_table(LocalSearch &ns,
+                        const MCGRPTW &mcgrp,
                         const vector<int> &move_sequence,
                         const int i, bool allow_infeasible);
 
-    void move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp);
+    void move(LocalSearch &ns, const MCGRPTW &mcgrp);
 
-    bool search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_task) override;
+    bool search(LocalSearch &ns, const MCGRPTW &mcgrp, int chosen_task) override;
 
-    bool update_score(HighSpeedNeighBorSearch &ns) override;
+    bool update_score(LocalSearch &ns) override;
 
 };
 
@@ -83,8 +83,8 @@ public:
      * @return
      */
     bool
-    considerable_move(HighSpeedNeighBorSearch &ns,
-                      const MCGRP &mcgrp,
+    considerable_move(LocalSearch &ns,
+                      const MCGRPTW &mcgrp,
                       vector<int> move_seq,
                       const int u);
 
@@ -99,20 +99,20 @@ public:
  * @return
  */
     vector<vector<RouteInfo::TimeTable>>
-    expected_time_table(HighSpeedNeighBorSearch &ns,
-                        const MCGRP &mcgrp,
+    expected_time_table(LocalSearch &ns,
+                        const MCGRPTW &mcgrp,
                         vector<int> &disturbance_seq,
                         const int i, bool allow_infeasible);
 
-    void move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp);
+    void move(LocalSearch &ns, const MCGRPTW &mcgrp);
 
-    bool search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_task) override;
+    bool search(LocalSearch &ns, const MCGRPTW &mcgrp, int chosen_task) override;
 
-    bool update_score(HighSpeedNeighBorSearch &ns) override;
+    bool update_score(LocalSearch &ns) override;
 
 
-    pair<double,double> cost_delta(HighSpeedNeighBorSearch &ns,
-                                   const MCGRP &mcgrp,
+    pair<double,double> cost_delta(LocalSearch &ns,
+                                   const MCGRPTW &mcgrp,
                                    const vector<int>& move_seq,
                                    const int u);
 };

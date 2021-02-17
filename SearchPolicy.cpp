@@ -3,8 +3,8 @@
 //
 
 #include "SearchPolicy.h"
-#include "NeighborSearch.h"
-#include "MCGRP.h"
+#include "local_search.h"
+#include "instance.h"
 
 //Search Rule
 const bitset<RULES> UNDEFINE("00000000");                                //undefined policy
@@ -21,7 +21,7 @@ const bitset<RULES> BEST_ACCEPT("00100000");
 
 
 
-bool Policy::check_move(const MCGRP& mcgrp, HighSpeedNeighBorSearch& ns, const MoveResult &move_result)
+bool Policy::check_move(const MCGRPTW& mcgrp, LocalSearch& ns, const MoveResult &move_result)
 {
     /*----------------------------Feasible search policy------------------------------------*/
     if (has_rule(FEASIBLE)) {
@@ -88,7 +88,7 @@ bool Policy::check_move(const MCGRP& mcgrp, HighSpeedNeighBorSearch& ns, const M
     }
 }
 
-bool Policy::check_result(const MCGRP& mcgrp, HighSpeedNeighBorSearch& ns, const MoveResult &M1, const MoveResult &M2)
+bool Policy::check_result(const MCGRPTW& mcgrp, LocalSearch& ns, const MoveResult &M1, const MoveResult &M2)
 {
     // We are only concerned about the savings (increase/decrease) in total length
     // This is the default approach
@@ -131,7 +131,7 @@ void Policy::update_beta(double infeasible_distance)
 }
 
 
-bool Policy::check_time_window(const MCGRP &mcgrp, const vector<vector<RouteInfo::TimeTable>> &time_table)
+bool Policy::check_time_window(const MCGRPTW &mcgrp, const vector<vector<RouteInfo::TimeTable>> &time_table)
 {
     for(const auto& tbl : time_table){
         for(const auto & node : tbl){

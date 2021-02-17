@@ -3,10 +3,10 @@
 //
 
 #include "operator.h"
-#include "NeighborSearch.h"
+#include "local_search.h"
 #include "SearchPolicy.h"
 
-void unit_test(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, MoveOperator &move_operator)
+void unit_test(LocalSearch &ns, const MCGRPTW &mcgrp, MoveOperator &move_operator)
 {
     vector<int> task_set(mcgrp.actual_task_num);
     std::generate(task_set.begin(), task_set.end(), Generator());
@@ -20,10 +20,8 @@ void unit_test(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, MoveOperator &mo
 
     int chosen_task = -1;
 
-#ifdef DEBUG
-    move_operator.attempt_count = 0;
-    move_operator.hit_count = 0;
-#endif
+    move_operator.call_times = 0;
+    move_operator.success_times = 0;
 
     for (int i = 0; i < mcgrp.actual_task_num; i++) {
         chosen_task = task_set[i];
@@ -47,16 +45,7 @@ void unit_test(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, MoveOperator &mo
     ns.policy.tolerance = 0;
 }
 
-MoveOperator::MoveOperator()
-    : hit_count(0), attempt_count(0){}
-
-
-vector<int> MoveOperator::getHitInfo()
-{
-    return {attempt_count, hit_count};
-}
-
-vector<vector<int>> MoveOperator::generate_possible_seq(const MCGRP &mcgrp, const vector<int>& seq)
+vector<vector<int>> MoveOperator::generate_possible_seq(const MCGRPTW &mcgrp, const vector<int>& seq)
 {
     vector<vector<int>> total_sequence{{}};
     vector<int> candidate_serve_mode;
@@ -83,7 +72,7 @@ vector<vector<int>> MoveOperator::generate_possible_seq(const MCGRP &mcgrp, cons
     return total_sequence;
 }
 
-viterbi::PseudoTask MoveOperator::Seq2Pseudo(const MCGRP &mcgrp, const vector<int> &seq, int phase)
+viterbi::PseudoTask MoveOperator::Seq2Pseudo(const MCGRPTW &mcgrp, const vector<int> &seq, int phase)
 {
     vector<int> regularized_seq = _seq_regularization(seq);
     int head_node = mcgrp.inst_tasks[regularized_seq.front()].head_node;
@@ -135,45 +124,10 @@ vector<int> MoveOperator::_seq_regularization(const vector<int> seq)
     return res;
 }
 
-void MoveOperator::update_stable_likelihood(const MCGRP &mcgrp, HighSpeedNeighBorSearch &ns ,const vector<int>& output_seq,const MoveResult& move_result)
-{
-    if(ns.total_vio_load == 0 && ns.total_vio_time == 0 && ns.policy.has_rule(FEASIBLE)){
-        int sign = 1;
-        if(move_result.delta < 0){
-            sign = -1;
-        }
-
-        for(const auto& task_id : output_seq){
-            My_Assert(task_id > 0, "error, wrong state!");
-            mcgrp.inst_tasks[task_id].move_time.total_time -= move_result.delta;
-//            if(sign == 1) mcgrp.inst_tasks[task_id].move_time.up_time += 1;
-//            else mcgrp.inst_tasks[task_id].move_time.down_time += 1;
-        }
-
-        if(!output_seq.empty()){
-            int before = max(ns.solution[output_seq.front()]->pre->ID,0);
-            int after = max(ns.solution[output_seq.back()]->next->ID,0);
-//            if(sign == 1){
-//                if(before > 0)  mcgrp.inst_tasks[before].move_time.up_time += 1;
-//                if(after > 0)  mcgrp.inst_tasks[after].move_time.up_time += 1;
-//            }
-//            else{
-//                if(before > 0)  mcgrp.inst_tasks[before].move_time.down_time += 1;
-//                if(after > 0)  mcgrp.inst_tasks[after].move_time.down_time += 1;
-//            }
-
-            if(before > 0)  mcgrp.inst_tasks[before].move_time.total_time -= move_result.delta;
-            if(after > 0)  mcgrp.inst_tasks[after].move_time.up_time -= move_result.delta;
-
-        }
-    }
-
-}
-
 viterbi::BestDecode viterbi::viterbi_decode(const viterbi::PseudoTask* first,
                                             const viterbi::PseudoTask* last,
                                             const vector<int> &move_seq,
-                                            const MCGRP &mcgrp,
+                                            const MCGRPTW &mcgrp,
                                             Policy &policy)
 {
 

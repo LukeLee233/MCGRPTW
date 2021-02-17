@@ -1,10 +1,16 @@
-#pragma once
+#ifndef _UTILS_
+#define _UTILS_
+
 #include <bits/stdc++.h>
 #include <sys/timeb.h>
 
 using namespace std;
 
-#define seed_size 100
+extern struct timeb cur_time;
+extern struct timeb iteration_start_time;
+
+const int seed_size = 100;
+
 
 #ifdef DEBUG
 #   define My_Assert(Expr, Msg) \
@@ -25,6 +31,20 @@ class RNG;
 extern ofstream result_out;
 
 extern ofstream log_out;
+
+struct Result{
+    double cost;
+    double time;
+    vector<int> solution;
+
+    Result(double cost, double time, const vector<int> &solution)
+        : cost(cost), time(time), solution(solution)
+    {}
+
+    Result(){
+        cost = DBL_MAX;
+    }
+};
 
 static std::array<int, seed_size>
     seed = {12345678, 23456781, 34567812, 45678123, 56781234, 67812345, 78123456, 81234567,
@@ -55,7 +75,6 @@ bool print(std::ostream &os1, std::ostream &os2, const std::string &str);
 bool print(std::ostream &os1, const std::string &str);
 
 extern std::array<int, seed_size> seed;
-
 
 struct InstanceNumInfo
 {
@@ -147,11 +166,6 @@ public:
 
 struct Task
 {
-    struct MoveTime{
-        int up_time = 0;
-        int down_time = 0;
-        int total_time = 0;
-    };
     typedef pair<int,int> Window;
     string task_name;
     int task_id;
@@ -164,7 +178,6 @@ struct Task
     int trave_time;
     int serve_time;
     Window time_window;
-    mutable MoveTime move_time;
 
     Task() = default;
 };
@@ -258,14 +271,14 @@ vector<int> get_negative_coding(const vector<int> &sequence);
  */
 vector<int> get_delimiter_coding(const vector<int> &negative_coding);
 
-struct RouteStable{
+struct RouteScores{
     int route_id = -1;
-    double stable_score = 0;
+    double scores = 0;
 
-    RouteStable(int routeId, int stableScore);
+    RouteScores(int routeId, int stableScore);
 
-    static bool cmp(const RouteStable& a, const RouteStable& b){
-        return a.stable_score <= b.stable_score;
+    static bool cmp(const RouteScores& a, const RouteScores& b){
+        return a.scores < b.scores;
     }
 };
 
@@ -287,7 +300,7 @@ public:
     double vio_load_delta;
     int vio_time_delta;
     int vio_time_custom_num_delta;
-    unordered_map<string, vector<int>> move_arguments_bak;
+    unordered_map<string, vector<int>> move_arguments;
 
     int num_affected_routes;
     vector<int> route_loads;
@@ -347,7 +360,7 @@ public:
         vio_time_delta = 0;
         new_total_route_length =
             std::numeric_limits<identity<decltype(MoveResult::new_total_route_length)>::type>::max();
-        move_arguments_bak.clear();
+        move_arguments.clear();
 
         num_affected_routes = -1;
         route_loads.clear();
@@ -373,3 +386,5 @@ vector<int> sort_solution(const vector<int>& negative_sol);
 vector<double> stable_softmax(const vector<double>&);
 
 vector<double> stable_uniform(const vector<double>&);
+
+#endif

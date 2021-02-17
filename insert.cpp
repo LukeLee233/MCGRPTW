@@ -4,8 +4,8 @@
 
 #include "insert.h"
 
-vector<vector<RouteInfo::TimeTable>> XPostInsert::expected_time_table(HighSpeedNeighBorSearch &ns,
-                                                                      const MCGRP &mcgrp,
+vector<vector<RouteInfo::TimeTable>> XPostInsert::expected_time_table(LocalSearch &ns,
+                                                                      const MCGRPTW &mcgrp,
                                                                       vector<int> &disturbance_seq,
                                                                       const int i,
                                                                       bool allow_infeasible)
@@ -44,13 +44,16 @@ vector<vector<RouteInfo::TimeTable>> XPostInsert::expected_time_table(HighSpeedN
     return res;
 }
 
-bool XPostInsert::considerable_move(HighSpeedNeighBorSearch &ns,
-                                    const MCGRP &mcgrp,
+bool XPostInsert::considerable_move(LocalSearch &ns,
+                                    const MCGRPTW &mcgrp,
                                     vector<int> move_seq,
                                     const int u)
 {
     // This move used to move the `move_seq` to the back of the task `u`
     // Two policy are contained, 1: no mode choice 2: best mode choice
+
+    move_result.reset();
+    call_times++;
 
     // Task u cannot be dummy Task
     My_Assert(u >= 1 && u <= mcgrp.actual_task_num,"Wrong Task");
@@ -59,7 +62,6 @@ bool XPostInsert::considerable_move(HighSpeedNeighBorSearch &ns,
 
     if(u == ns.solution[move_seq.front()]->pre->ID){
         // Nothing to do
-        move_result.reset();
         return false;
     }
 
@@ -76,14 +78,12 @@ bool XPostInsert::considerable_move(HighSpeedNeighBorSearch &ns,
 
         if (ns.policy.has_rule(FEASIBLE)) {
             if (ns.routes[u_route]->load + load_delta > mcgrp.capacity) {
-                move_result.reset();
                 return false;
             }
         }
         else if (ns.policy.has_rule(INFEASIBLE)) {
             int pseudo_capacity = ns.policy.get_pseudo_capacity(mcgrp.capacity);
             if (ns.routes[u_route]->load + load_delta > pseudo_capacity) {
-                move_result.reset();
                 return false;
             }
 
@@ -163,7 +163,6 @@ bool XPostInsert::considerable_move(HighSpeedNeighBorSearch &ns,
 
         // use best sequence to update the move result
         if(best_sequence.cost == INT32_MAX){
-            move_result.reset();
             return false;
         }
 
@@ -171,9 +170,9 @@ bool XPostInsert::considerable_move(HighSpeedNeighBorSearch &ns,
 
         move_result.choose_tasks(move_seq.front(), u);
 
-        move_result.move_arguments_bak["input_seq"] = move_seq;
-        move_result.move_arguments_bak["output_seq"] = vector<int>(best_sequence.seq.begin() + 1, best_sequence.seq.end() - 1);
-        move_result.move_arguments_bak["insert_pos"] = {u};
+        move_result.move_arguments["input_seq"] = move_seq;
+        move_result.move_arguments["output_seq"] = vector<int>(best_sequence.seq.begin() + 1, best_sequence.seq.end() - 1);
+        move_result.move_arguments["insert_pos"] = {u};
 
         double u_route_length_delta = best_sequence.cost - ns.routes[u_route]->length;
         double i_route_length_delta = 0;
@@ -201,7 +200,7 @@ bool XPostInsert::considerable_move(HighSpeedNeighBorSearch &ns,
 
             vector<int> u_route_seq;
             u_route_seq.insert(u_route_seq.end(), first_seq.begin() + 1, first_seq.end());
-            u_route_seq.insert(u_route_seq.end(), move_result.move_arguments_bak["output_seq"].begin(), move_result.move_arguments_bak["output_seq"].end());
+            u_route_seq.insert(u_route_seq.end(), move_result.move_arguments["output_seq"].begin(), move_result.move_arguments["output_seq"].end());
             u_route_seq.insert(u_route_seq.end(), last_seq.begin(), last_seq.end() - 1);
 
             move_result.route_time_tbl.emplace_back(RouteInfo::TimeTable::zip(u_route_seq, mcgrp.cal_arrive_time(u_route_seq)));
@@ -258,7 +257,7 @@ bool XPostInsert::considerable_move(HighSpeedNeighBorSearch &ns,
 
             vector<int> u_route_seq;
             u_route_seq.insert(u_route_seq.end(), first_seq.begin() + 1, first_seq.end());
-            u_route_seq.insert(u_route_seq.end(), move_result.move_arguments_bak["output_seq"].begin(), move_result.move_arguments_bak["output_seq"].end());
+            u_route_seq.insert(u_route_seq.end(), move_result.move_arguments["output_seq"].begin(), move_result.move_arguments["output_seq"].end());
             u_route_seq.insert(u_route_seq.end(), last_seq.begin(), last_seq.end() - 1);
 
             move_result.route_time_tbl.emplace_back(RouteInfo::TimeTable::zip(u_route_seq, mcgrp.cal_arrive_time(u_route_seq)));
@@ -295,13 +294,11 @@ bool XPostInsert::considerable_move(HighSpeedNeighBorSearch &ns,
         new_time_tbl = expected_time_table(ns, mcgrp, move_seq, u, allow_infeasible);
 
         if(!mcgrp.isTimeTableFeasible(new_time_tbl[0])){
-            move_result.reset();
             return false;
         }
 
         if(allow_infeasible){
             if(ns.policy.check_time_window(mcgrp,new_time_tbl)){
-                move_result.reset();
                 return false;
             }
         }
@@ -312,9 +309,9 @@ bool XPostInsert::considerable_move(HighSpeedNeighBorSearch &ns,
 
         move_result.choose_tasks(move_seq.front(), u);
 
-        move_result.move_arguments_bak["input_seq"] = move_seq;
-        move_result.move_arguments_bak["output_seq"] = move_seq;
-        move_result.move_arguments_bak["insert_pos"] = {u};
+        move_result.move_arguments["input_seq"] = move_seq;
+        move_result.move_arguments["output_seq"] = move_seq;
+        move_result.move_arguments["insert_pos"] = {u};
 
         if (i_route == u_route) {
 
@@ -403,20 +400,15 @@ bool XPostInsert::considerable_move(HighSpeedNeighBorSearch &ns,
 
 }
 
-void XPostInsert::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
+void XPostInsert::move(LocalSearch &ns, const MCGRPTW &mcgrp)
 {
-
-#ifdef DEBUG
-    hit_count++;
-#endif
-
     DEBUG_PRINT("execute a " + to_string(length) + "-insert:postsert move");
     My_Assert(move_result.considerable,"Invalid predictions");
 
     //phase 0: extract move arguments
-    const int u = move_result.move_arguments_bak.at("insert_pos").front();
-    const vector<int>& input_move_seq = move_result.move_arguments_bak.at("input_seq");
-    const vector<int>& output_move_seq = move_result.move_arguments_bak.at("output_seq");
+    const int u = move_result.move_arguments.at("insert_pos").front();
+    const vector<int>& input_move_seq = move_result.move_arguments.at("input_seq");
+    const vector<int>& output_move_seq = move_result.move_arguments.at("output_seq");
 
     My_Assert(u >= 1 && u <= mcgrp.actual_task_num,"Wrong arguments");
     My_Assert(all_of(input_move_seq.begin(),input_move_seq.end(),[&](int i){return i>=1 && i<=mcgrp.actual_task_num;}),"Wrong arguments");
@@ -464,6 +456,8 @@ void XPostInsert::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
 
     // phase 3: update the sequence level info
 
+    move_result.move_arguments["pre_input"] = {ns.solution[input_move_seq.front()]->pre->ID};
+
     // remove from the i route
     ns.solution[input_move_seq.front()]->pre->next = ns.solution[input_move_seq.back()]->next;
     ns.solution[input_move_seq.back()]->next->pre = ns.solution[input_move_seq.front()]->pre;
@@ -497,6 +491,7 @@ void XPostInsert::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
 
     // phase 4: compress the empty routes
     if(ns.routes[i_route]->num_customers == 0){
+        move_result.move_arguments["empty_route"] = {1};
         ns.compress_empty_route(i_route);
     }
 
@@ -506,8 +501,6 @@ void XPostInsert::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
     ns.total_vio_time += move_result.vio_time_delta;
     My_Assert(ns.valid_sol(mcgrp),"Prediction wrong!");
 
-    update_stable_likelihood(mcgrp,ns,output_move_seq,move_result );
-
     update_score(ns);
 
 
@@ -516,14 +509,9 @@ void XPostInsert::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
 }
 
 
-bool XPostInsert::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_task)
+bool XPostInsert::search(LocalSearch &ns, const MCGRPTW &mcgrp, int chosen_task)
 {
     My_Assert(chosen_task >= 1 && chosen_task <= mcgrp.actual_task_num,"Wrong Task");
-
-#ifdef DEBUG
-    attempt_count = 0;
-    hit_count = 0;
-#endif
 
     MoveResult BestM;
 
@@ -548,9 +536,6 @@ bool XPostInsert::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int ch
 
         if (neighbor_task != DUMMY) {
 
-#ifdef DEBUG
-            attempt_count++;
-#endif
 
             //j can't be dummy and b can't be dummy neither here
             int j = neighbor_task;
@@ -582,9 +567,6 @@ bool XPostInsert::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int ch
 
             while (ns.solution[current_start]->next != ns.solution.very_end) {
 
-#ifdef DEBUG
-                attempt_count += 2;
-#endif
 
                 // Consider the start location
                 int j = current_start;
@@ -658,24 +640,41 @@ bool XPostInsert::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int ch
 
 }
 
-bool XPostInsert::update_score(HighSpeedNeighBorSearch &ns)
+bool XPostInsert::update_score(LocalSearch &ns)
 {
-    if(move_result.delta > 0) return false;
+    if(move_result.delta >= 0) return false;
 
-    const int u = move_result.move_arguments_bak.at("insert_pos").front();
-    const int seq_front = move_result.move_arguments_bak.at("output_seq").front();
-    const int seq_back = move_result.move_arguments_bak.at("output_seq").back();
-    double penalty = (ns.best_solution_cost / ns.cur_solution_cost) * (-move_result.delta);
+    double reward = (ns.best_solution_cost / ns.cur_solution_cost) * (-move_result.delta);
+
+    const int u = move_result.move_arguments.at("insert_pos").front();
+
+    // intra-sequence
+    for(int idx = 1; idx < move_result.move_arguments.at("input_seq").size(); ++idx){
+        ns.score_matrix[move_result.move_arguments.at("input_seq")[idx-1]][move_result.move_arguments.at("output_seq")[idx]] -= reward;
+    }
+
+    for(int idx = 1; idx < move_result.move_arguments.at("output_seq").size(); ++idx){
+        ns.score_matrix[move_result.move_arguments.at("output_seq")[idx-1]][move_result.move_arguments.at("output_seq")[idx]] += reward;
+    }
 
     // ...u-seq()...
-    ns.score_matrix[u][seq_front] += penalty;
-    ns.score_matrix[seq_back][max(0,ns.solution[seq_back]->next->ID)] += penalty;
+    const int seq_front = move_result.move_arguments.at("output_seq").front();
+    const int seq_back = move_result.move_arguments.at("output_seq").back();
+    ns.score_matrix[u][seq_front] += reward;
+    ns.score_matrix[seq_back][max(0,ns.solution[seq_back]->next->ID)] += reward;
+
+    // old sequence
+    if(!move_result.move_arguments["empty_route"].size()){
+        int before_input = move_result.move_arguments.at("pre_input").front();
+        int after_input = ns.solution[before_input]->next->ID;
+        ns.score_matrix[max(0,before_input)][max(0,after_input)] -= reward;
+    }
 
     return true;
 }
 
 pair<double, double>
-XPostInsert::cost_delta(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, const vector<int> &move_seq, const int u)
+XPostInsert::cost_delta(LocalSearch &ns, const MCGRPTW &mcgrp, const vector<int> &move_seq, const int u)
 {
     const int v = max(ns.solution[u]->next->ID, 0);
 
@@ -720,8 +719,8 @@ XPostInsert::cost_delta(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, const v
 
 
 vector<vector<RouteInfo::TimeTable>>
-XPreInsert::expected_time_table(HighSpeedNeighBorSearch &ns,
-                                const MCGRP &mcgrp,
+XPreInsert::expected_time_table(LocalSearch &ns,
+                                const MCGRPTW &mcgrp,
                                 const vector<int> &move_sequence,
                                 const int i,
                                 bool allow_infeasible){
@@ -761,7 +760,7 @@ XPreInsert::expected_time_table(HighSpeedNeighBorSearch &ns,
 
 
 bool
-XPreInsert::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,const vector<int>& move_seq, const int u)
+XPreInsert::considerable_move(LocalSearch &ns, const MCGRPTW &mcgrp, const vector<int>& move_seq, const int u)
 {
     // This move used to move the `move_seq` to the front of the task `u`
     // Two policy are contained, 1: no mode choice 2: best mode choice
@@ -771,9 +770,11 @@ XPreInsert::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,co
     My_Assert(all_of(move_seq.begin(), move_seq.end(),
                      [&](int i){return i>=1 && i<=mcgrp.actual_task_num;}), "Wrong Task");
 
-    if(u == ns.solution[move_seq.back()]->next->ID){
-        // Nothing to do
-        move_result.reset();
+    call_times++;
+    move_result.reset();
+
+    if(ns.solution[move_seq.back()]->next->ID == u){
+        // already at the desired position
         return false;
     }
 
@@ -789,19 +790,13 @@ XPreInsert::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,co
             load_delta += mcgrp.inst_tasks[task].demand;
         }
 
-        if (ns.policy.has_rule(FEASIBLE)) {
-
-            if (ns.routes[u_route]->load + load_delta > mcgrp.capacity) {
-                move_result.reset();
+        if (ns.policy.has_rule(FEASIBLE) && ns.routes[u_route]->load + load_delta > mcgrp.capacity) {
                 return false;
-            }
-
         }
         else if (ns.policy.has_rule(INFEASIBLE)) {
 
             int pseudo_capacity = ns.policy.get_pseudo_capacity(mcgrp.capacity);
             if (ns.routes[u_route]->load + load_delta > pseudo_capacity) {
-                move_result.reset();
                 return false;
             }
 
@@ -833,7 +828,6 @@ XPreInsert::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,co
 
 
     if(ns.policy.has_rule(BEST_ACCEPT) && mcgrp.count_edges(move_seq) > 0) {
-//    if(false) {
         // with mode refine
 
         vector<int> first_seq;
@@ -883,7 +877,6 @@ XPreInsert::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,co
 
         // use best sequence to update the move result
         if(best_sequence.cost == INT32_MAX){
-            move_result.reset();
             return false;
         }
 
@@ -891,9 +884,9 @@ XPreInsert::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,co
 
         move_result.choose_tasks(move_seq.front(), u);
 
-        move_result.move_arguments_bak["input_seq"] = move_seq;
-        move_result.move_arguments_bak["output_seq"] = vector<int>(best_sequence.seq.begin() + 1, best_sequence.seq.end() - 1);
-        move_result.move_arguments_bak["insert_pos"] = {u};
+        move_result.move_arguments["input_seq"] = move_seq;
+        move_result.move_arguments["output_seq"] = vector<int>(best_sequence.seq.begin() + 1, best_sequence.seq.end() - 1);
+        move_result.move_arguments["insert_pos"] = {u};
 
         double u_route_length_delta = best_sequence.cost - ns.routes[u_route]->length;
         double i_route_length_delta = 0;
@@ -922,7 +915,7 @@ XPreInsert::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,co
 
             vector<int> u_route_seq;
             u_route_seq.insert(u_route_seq.end(), first_seq.begin() + 1, first_seq.end());
-            u_route_seq.insert(u_route_seq.end(), move_result.move_arguments_bak["output_seq"].begin(), move_result.move_arguments_bak["output_seq"].end());
+            u_route_seq.insert(u_route_seq.end(), move_result.move_arguments["output_seq"].begin(), move_result.move_arguments["output_seq"].end());
             u_route_seq.insert(u_route_seq.end(), last_seq.begin(), last_seq.end() - 1);
 
             move_result.route_time_tbl.emplace_back(RouteInfo::TimeTable::zip(u_route_seq, mcgrp.cal_arrive_time(u_route_seq)));
@@ -979,7 +972,7 @@ XPreInsert::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,co
 
             vector<int> u_route_seq;
             u_route_seq.insert(u_route_seq.end(), first_seq.begin() + 1, first_seq.end());
-            u_route_seq.insert(u_route_seq.end(), move_result.move_arguments_bak["output_seq"].begin(), move_result.move_arguments_bak["output_seq"].end());
+            u_route_seq.insert(u_route_seq.end(), move_result.move_arguments["output_seq"].begin(), move_result.move_arguments["output_seq"].end());
             u_route_seq.insert(u_route_seq.end(), last_seq.begin(), last_seq.end() - 1);
 
             move_result.route_time_tbl.emplace_back(RouteInfo::TimeTable::zip(u_route_seq, mcgrp.cal_arrive_time(u_route_seq)));
@@ -1018,13 +1011,11 @@ XPreInsert::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,co
         new_time_tbl = expected_time_table(ns, mcgrp, move_seq, u, allow_infeasible);
 
         if(!mcgrp.isTimeTableFeasible(new_time_tbl[0])){
-            move_result.reset();
             return false;
         }
 
         if(allow_infeasible){
             if(ns.policy.check_time_window(mcgrp,new_time_tbl)){
-                move_result.reset();
                 return false;
             }
         }
@@ -1035,9 +1026,9 @@ XPreInsert::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,co
 
         move_result.choose_tasks(move_seq.front(), u);
 
-        move_result.move_arguments_bak["input_seq"] = move_seq;
-        move_result.move_arguments_bak["output_seq"] = move_seq;
-        move_result.move_arguments_bak["insert_pos"] = {u};
+        move_result.move_arguments["input_seq"] = move_seq;
+        move_result.move_arguments["output_seq"] = move_seq;
+        move_result.move_arguments["insert_pos"] = {u};
 
 
         if (i_route == u_route) {
@@ -1127,21 +1118,18 @@ XPreInsert::considerable_move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp,co
 }
 
 
-void XPreInsert::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
+void XPreInsert::move(LocalSearch &ns, const MCGRPTW &mcgrp)
 {
 
-#ifdef DEBUG
-    hit_count++;
-#endif
-
+    success_times++;
     DEBUG_PRINT("execute a " + to_string(length) + "-insert:presert move");
     My_Assert(move_result.considerable,"Invalid predictions");
 
 
     //phase 0: extract move arguments
-    const int u = move_result.move_arguments_bak.at("insert_pos").front();
-    const vector<int>& input_move_seq = move_result.move_arguments_bak.at("input_seq");
-    const vector<int>& output_move_seq = move_result.move_arguments_bak.at("output_seq");
+    const int u = move_result.move_arguments.at("insert_pos").front();
+    const vector<int>& input_move_seq = move_result.move_arguments.at("input_seq");
+    const vector<int>& output_move_seq = move_result.move_arguments.at("output_seq");
 
     My_Assert(u >= 1 && u <= mcgrp.actual_task_num,"Wrong arguments");
     My_Assert(all_of(input_move_seq.begin(),input_move_seq.end(),[&](int i){return i>=1 && i<=mcgrp.actual_task_num;}),"Wrong arguments");
@@ -1194,13 +1182,13 @@ void XPreInsert::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
     ns.solution[input_move_seq.back()]->next->pre = ns.solution[input_move_seq.front()]->pre;
 
     // presert
+    move_result.move_arguments["pre_input"] = {ns.solution[input_move_seq.front()]->pre->ID};
     if(input_move_seq == output_move_seq){
 
         ns.solution[input_move_seq.front()]->pre = ns.solution[u]->pre;
         ns.solution[input_move_seq.back()]->next = ns.solution[u];
         ns.solution[u]->pre->next = ns.solution[input_move_seq.front()];
         ns.solution[u]->pre = ns.solution[input_move_seq.back()];
-
     }else{
 
         for(auto input_task : input_move_seq){
@@ -1222,6 +1210,7 @@ void XPreInsert::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
 
     // phase 4: compress the empty routes
     if(ns.routes[i_route]->num_customers == 0){
+        move_result.move_arguments["empty_route"] = {1};
         ns.compress_empty_route(i_route);
     }
 
@@ -1231,8 +1220,6 @@ void XPreInsert::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
     ns.total_vio_time += move_result.vio_time_delta;
     My_Assert(ns.valid_sol(mcgrp),"Prediction wrong!");
 
-    update_stable_likelihood(mcgrp,ns,output_move_seq,move_result);
-
     update_score(ns);
 
     ns.trace(mcgrp);
@@ -1240,14 +1227,9 @@ void XPreInsert::move(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp)
 }
 
 
-bool XPreInsert::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int chosen_task)
+bool XPreInsert::search(LocalSearch &ns, const MCGRPTW &mcgrp, int chosen_task)
 {
     My_Assert(chosen_task >= 1 && chosen_task <= mcgrp.actual_task_num,"Wrong Task");
-
-#ifdef DEBUG
-    attempt_count = 0;
-    hit_count = 0;
-#endif
 
     MoveResult BestM;
 
@@ -1273,9 +1255,6 @@ bool XPreInsert::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int cho
 
         if (neighbor_task != DUMMY) {
 
-#ifdef DEBUG
-            attempt_count++;
-#endif
 
             //j can't be dummy and b can't be dummy neither here
             int j = neighbor_task;
@@ -1306,10 +1285,6 @@ bool XPreInsert::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int cho
             int current_start = ns.solution.very_start->next->ID;
 
             while (ns.solution[current_start]->next != ns.solution.very_end) {
-
-#ifdef DEBUG
-                attempt_count += 2;
-#endif
 
                 // Consider the start location
                 int j = current_start;
@@ -1383,24 +1358,40 @@ bool XPreInsert::search(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, int cho
 
 }
 
-bool XPreInsert::update_score(HighSpeedNeighBorSearch &ns)
+bool XPreInsert::update_score(LocalSearch &ns)
 {
-    if(move_result.delta > 0) return false;
+    if(move_result.delta >= 0) return false;
 
-    double penalty = (ns.best_solution_cost / ns.cur_solution_cost) * (-move_result.delta);
+    double reward = (ns.best_solution_cost / ns.cur_solution_cost) * (-move_result.delta);
 
-    const int u = move_result.move_arguments_bak.at("insert_pos").front();
-    const int seq_front = move_result.move_arguments_bak.at("output_seq").front();
-    const int seq_back = move_result.move_arguments_bak.at("output_seq").back();
+    const int u = move_result.move_arguments.at("insert_pos").front();
+
+    // intra-sequence
+    for(int idx = 1; idx < move_result.move_arguments.at("input_seq").size(); ++idx){
+        ns.score_matrix[move_result.move_arguments.at("input_seq")[idx-1]][move_result.move_arguments.at("output_seq")[idx]] -= reward;
+    }
+
+    for(int idx = 1; idx < move_result.move_arguments.at("output_seq").size(); ++idx){
+        ns.score_matrix[move_result.move_arguments.at("output_seq")[idx-1]][move_result.move_arguments.at("output_seq")[idx]] += reward;
+    }
 
     // ...seq()-u...
-    ns.score_matrix[seq_back][u] += penalty;
-    ns.score_matrix[max(0,ns.solution[seq_front]->pre->ID)][seq_front] += penalty;
+    int seq_front = move_result.move_arguments.at("output_seq").front();
+    int seq_back = move_result.move_arguments.at("output_seq").back();
+    ns.score_matrix[seq_back][u] += reward;
+    ns.score_matrix[max(0,ns.solution[seq_front]->pre->ID)][seq_front] += reward;
+
+    // old sequence
+    if(!move_result.move_arguments["empty_route"].size()){
+        int before_input = move_result.move_arguments.at("pre_input").front();
+        int after_input = ns.solution[before_input]->next->ID;
+        ns.score_matrix[max(0,before_input)][max(0,after_input)] -= reward;
+    }
 
     return true;
 }
 
-pair<double,double> XPreInsert::cost_delta(HighSpeedNeighBorSearch &ns, const MCGRP &mcgrp, const vector<int> &move_seq, const int u)
+pair<double,double> XPreInsert::cost_delta(LocalSearch &ns, const MCGRPTW &mcgrp, const vector<int> &move_seq, const int u)
 {
     const int t = max(ns.solution[u]->pre->ID, 0);
 
