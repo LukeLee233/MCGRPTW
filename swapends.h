@@ -41,7 +41,7 @@ public:
 
     bool search(LocalSearch &ns, const MCGRPTW &mcgrp, int chosen_task) override;
 
-    bool update_score(LocalSearch &ns) override;
+    void _apply_reward(LocalSearch &ns, double reward) override;
 };
 
 RouteSegment get_segment_info(const MCGRPTW &mcgrp, LocalSearch &ns, const int chosen_task);

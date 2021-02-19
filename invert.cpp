@@ -173,12 +173,8 @@ Invert::expected_time_table(LocalSearch &ns, const MCGRPTW &mcgrp, int u, int u_
     return res;
 }
 
-bool Invert::update_score(LocalSearch &ns)
+void Invert::_apply_reward(LocalSearch &ns, double reward)
 {
-    if(move_result.delta >= 0) return false;
-
-    double reward = (ns.best_solution_cost / ns.cur_solution_cost) * (-move_result.delta);
-
     const int input_u = move_result.move_arguments.at("input")[0];
     const int output_u = move_result.move_arguments.at("output")[0];
     const int before_u = max(0,ns.solution[output_u]->pre->ID);
@@ -190,5 +186,4 @@ bool Invert::update_score(LocalSearch &ns)
     ns.score_matrix[before_u][output_u] += reward;
     ns.score_matrix[output_u][after_u] += reward;
 
-    return true;
 }

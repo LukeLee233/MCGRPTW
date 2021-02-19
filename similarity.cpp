@@ -2,7 +2,7 @@
 // Created by luke on 2020/1/30.
 //
 
-#include "Similarity.h"
+#include "similarity.h"
 #include <algorithm>
 
 double hamming_dist(const MCGRPTW &mcgrp, const vector<int> &neg_a, const vector<int> &neg_b)

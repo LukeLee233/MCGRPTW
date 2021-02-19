@@ -1,10 +1,10 @@
 #include "Memetic.h"
 #include <iostream>
 #include <vector>
-#include "ConstructPolicy.h"
+#include "initilizer.h"
 #include <algorithm>
 #include <sys/timeb.h>
-#include "Similarity.h"
+#include "similarity.h"
 #include "config.h"
 
 using namespace std;

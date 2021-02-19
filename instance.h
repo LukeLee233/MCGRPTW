@@ -105,6 +105,7 @@ public:
      */
     bool check_best_solution(const double total_route_length, const std::vector<int> &sol_seq) const;
 
+    vector<int> exclude(int task) const;
 
     /*!
      * 重置算例信息

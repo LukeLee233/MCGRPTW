@@ -46,7 +46,6 @@ public:
 
     bool search(LocalSearch &ns, const MCGRPTW &mcgrp, int chosen_task) override;
 
-    bool update_score(LocalSearch &ns) override;
 };
 
 //low level operator
@@ -76,7 +75,6 @@ public:
 
     bool search(LocalSearch &ns, const MCGRPTW &mcgrp, int chosen_task) override;
 
-    bool update_score(LocalSearch &ns) override;
 };
 
 
@@ -111,7 +109,6 @@ public:
 
     void move(LocalSearch &ns, const MCGRPTW &mcgrp);
 
-    bool update_score(LocalSearch &ns) override;
 };
 
 

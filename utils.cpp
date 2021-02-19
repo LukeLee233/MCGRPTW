@@ -10,9 +10,8 @@ using namespace std;
 ofstream result_out;
 ofstream log_out;
 
-struct timeb cur_time;
-struct timeb iteration_start_time;
-
+system_clock::time_point cur_time;
+system_clock::time_point iteration_start_time;
 
 void __My_Assert(const char *expr_str, bool expr, const char *file, int line, const char *msg)
 {
@@ -190,6 +189,11 @@ vector<double> stable_uniform(const vector<double> &x)
     }
 
     return numerator;
+}
+
+double get_time_difference(const system_clock::time_point &start, const system_clock::time_point &end){
+    auto duration = duration_cast<microseconds>(end - start);
+    return double(duration.count()) * microseconds::period::num / microseconds::period::den;
 }
 
 vector<RouteInfo::TimeTable>

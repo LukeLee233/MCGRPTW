@@ -62,7 +62,8 @@ public:
     MoveOperator(): call_times(0),success_times(0){};
 
     virtual bool search(LocalSearch &ns, const MCGRPTW &mcgrp, int chosen_task) = 0;
-    virtual bool update_score(LocalSearch &ns) = 0;
+    virtual bool update_score(LocalSearch &ns)  final;
+    virtual void _apply_reward(LocalSearch &ns, double reward){};
 
     viterbi::PseudoTask Seq2Pseudo(const MCGRPTW &mcgrp, const vector<int>& seq, int phase);
 

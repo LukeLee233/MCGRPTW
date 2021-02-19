@@ -307,12 +307,8 @@ bool Flip::search(LocalSearch &ns, const MCGRPTW &mcgrp, int chosen_task)
     return false;
 }
 
-bool Flip::update_score(LocalSearch &ns)
+void Flip::_apply_reward(LocalSearch &ns,double reward)
 {
-    if(move_result.delta >= 0) return false;
-
-    double reward = (ns.best_solution_cost / ns.cur_solution_cost) * (-move_result.delta);
-
     // ...start-(actual flip seq)-end...
     const int pre_seq = ns.solution[move_result.move_arguments.at("output_seq").front()]->pre->ID;
     const int after_seq = ns.solution[move_result.move_arguments.at("output_seq").back()]->next->ID;
@@ -334,6 +330,4 @@ bool Flip::update_score(LocalSearch &ns)
         ns.score_matrix[output_seq[idx-1]][output_seq[idx]] += reward;
     }
     ns.score_matrix[output_seq.back()][after_seq] += reward;
-
-    return true;
 }

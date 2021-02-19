@@ -2,7 +2,7 @@
 // Created by luke on 2019/12/31.
 //
 
-#include "SearchPolicy.h"
+#include "policy.h"
 #include "local_search.h"
 #include "instance.h"
 

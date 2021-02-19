@@ -1,5 +1,4 @@
 #include "swap.h"
-#include <iostream>
 #include <vector>
 
 
@@ -958,7 +957,7 @@ bool Swap::considerable_move(LocalSearch &ns, const MCGRPTW &mcgrp, int i, int u
 
 void Swap::move(LocalSearch &ns, const MCGRPTW &mcgrp)
 {
-
+    success_times++;
     DEBUG_PRINT("execute a swap move");
 
     My_Assert(move_result.considerable,"Invalid predictions");
@@ -1443,14 +1442,8 @@ vector<vector<RouteInfo::TimeTable>> Swap::expected_time_table(LocalSearch &ns,
 }
 
 
-bool Swap::update_score(LocalSearch &ns)
+void Swap::_apply_reward(LocalSearch &ns,double reward)
 {
-    if(move_result.delta >= 0) return false;
-
-    double reward = (ns.best_solution_cost / ns.cur_solution_cost) * (-move_result.delta);
-
-    success_times++;
-
     const int output_u = move_result.move_arguments.at("output_task_u").front();
     const int output_i = move_result.move_arguments.at("output_task_i").front();
     const int input_u = move_result.move_arguments.at("input_task_u").front();
@@ -1473,5 +1466,4 @@ bool Swap::update_score(LocalSearch &ns)
     ns.score_matrix[output_u][after_input_i] += reward;
 
 
-    return true;
 }

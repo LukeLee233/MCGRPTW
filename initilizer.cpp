@@ -2,24 +2,22 @@
 // Created by luke on 2019/11/29.
 //
 
-#include "ConstructPolicy.h"
+#include "initilizer.h"
 #include "RNG.h"
 #include <bits/stdc++.h>
 #include "local_search.h"
-#include "SearchPolicy.h"
-
+#include "policy.h"
 
 
 using namespace std;
 
 const int max_merge_set_num = 20;
 
-
-NearestScanner::NearestScanner(const MCGRPTW &mcgrp, Distance& distance_)
-    : PathConstructor(mcgrp,"nearest scanning"), distance(distance_)
+NearestScanner::NearestScanner(const MCGRPTW &mcgrp, Distance &distance_)
+    : PathConstructor(mcgrp, "nearest scanning"), distance(distance_)
 {}
 
-Individual NearestScanner::operator()(const vector<int> &taskList, const string& mode)
+Individual NearestScanner::operator()(const vector<int> &taskList, const string &mode)
 {
     int load;
     double min_dist;
@@ -33,10 +31,11 @@ Individual NearestScanner::operator()(const vector<int> &taskList, const string&
 
     unordered_set<int> unserved_task_id_set;
 
-    if(taskList.empty()){
+    if (taskList.empty()) {
         for (int i = 1; i <= mcgrp.actual_task_num; i++)
             unserved_task_id_set.insert(i);
-    }else{
+    }
+    else {
         unserved_task_id_set = unordered_set<int>(taskList.begin(), taskList.end());
     }
 
@@ -52,7 +51,7 @@ Individual NearestScanner::operator()(const vector<int> &taskList, const string&
         current_tail_task = solution.back();
 
         //Find all the tasks that satisfy the capacity constraint
-        if(mode == "feasible"){
+        if (mode == "feasible") {
             FCL.clear();
             for (auto unserved_task : unserved_task_id_set) {
                 if (mcgrp.inst_tasks[unserved_task].demand <= mcgrp.capacity - load
@@ -61,10 +60,11 @@ Individual NearestScanner::operator()(const vector<int> &taskList, const string&
                     FCL.push_back(unserved_task);
                 }
             }
-        }else if(mode == "allow_infeasible"){
+        }
+        else if (mode == "allow_infeasible") {
             FCL = vector<int>(unserved_task_id_set.begin(), unserved_task_id_set.end());
-        }else{
-            My_Assert(false,"error! unknown mode!");
+        }
+        else { My_Assert(false, "error! unknown mode!");
         }
 
 
@@ -79,13 +79,13 @@ Individual NearestScanner::operator()(const vector<int> &taskList, const string&
 
         //Find the nearest Task from the current candidate Task set
         for (auto candidate_task : FCL) {
-            if (distance(mcgrp,current_tail_task,candidate_task) < min_dist) {
-                min_dist = distance(mcgrp,current_tail_task,candidate_task);
+            if (distance(mcgrp, current_tail_task, candidate_task) < min_dist) {
+                min_dist = distance(mcgrp, current_tail_task, candidate_task);
                 nearest_task_set.clear();
                 nearest_task_set.push_back(candidate_task);
             }
             else if (
-                distance(mcgrp,current_tail_task,candidate_task) == min_dist) {
+                distance(mcgrp, current_tail_task, candidate_task) == min_dist) {
                 nearest_task_set.push_back(candidate_task);
             }
         }
@@ -103,7 +103,7 @@ Individual NearestScanner::operator()(const vector<int> &taskList, const string&
 
         if (mcgrp.is_edge(chosen_task)) {
             int inverse_task = mcgrp.inst_tasks[chosen_task].inverse;
-            if(unserved_task_id_set.find(inverse_task) != unserved_task_id_set.end())
+            if (unserved_task_id_set.find(inverse_task) != unserved_task_id_set.end())
                 unserved_task_id_set.erase(inverse_task);
         }
     }
@@ -120,16 +120,14 @@ void
 merge_split(LocalSearch &ns,
             const MCGRPTW &mcgrp, const int merge_size)
 {
-    if (ns.routes.activated_route_id.size() < merge_size) {
-        DEBUG_PRINT("Too few routes to merge!");
+    if (ns.routes.activated_route_id.size() < merge_size) { DEBUG_PRINT("Too few routes to merge!");
         return;
     }
-    else if (ns.routes.activated_route_id.size() == merge_size) {
-        DEBUG_PRINT("Merge whole routes");
+    else if (ns.routes.activated_route_id.size() == merge_size) { DEBUG_PRINT("Merge whole routes");
         ns.clear();
 
         auto candidate_tasks = ns.get_tasks_set();
-        auto seq_buffer = split_task(mcgrp,ns, candidate_tasks, ns.policy);
+        auto seq_buffer = split_task(mcgrp, ns, candidate_tasks, ns.policy);
 
         ns.unpack_seq(seq_buffer, mcgrp);
 
@@ -156,7 +154,7 @@ merge_split(LocalSearch &ns,
 
     auto stable_scores = ns.cal_route_scores(mcgrp);
     vector<int> routes_id;
-    for (int i = 0; i < merge_size;i++) {
+    for (int i = 0; i < merge_size; i++) {
         routes_id.push_back(stable_scores[i].route_id);
     }
 
@@ -169,9 +167,9 @@ merge_split(LocalSearch &ns,
 
     //extract chosen tasks
     vector<int> candidate_tasks;
-    for (auto route_id : routes_id) {
-        My_Assert(ns.routes.activated_route_id.find(route_id) != ns.routes.activated_route_id.end(),
-                  "Invalid route");
+    for (auto route_id : routes_id) { My_Assert(
+            ns.routes.activated_route_id.find(route_id) != ns.routes.activated_route_id.end(),
+            "Invalid route");
 
 
         for (auto task : task_routes.at(route_id)) {
@@ -183,12 +181,12 @@ merge_split(LocalSearch &ns,
         }
     }
 
-    vector<int> seq_buffer = split_task(mcgrp,ns, candidate_tasks, ns.policy);
-    My_Assert(seq_buffer.front() == DUMMY && seq_buffer.back() == DUMMY, "Incorrect sequence!");
+    vector<int> seq_buffer = split_task(mcgrp, ns, candidate_tasks, ns.policy);My_Assert(
+        seq_buffer.front() == DUMMY && seq_buffer.back() == DUMMY, "Incorrect sequence!");
 
     //Best Accept
     Individual res = mcgrp.parse_delimiter_seq(seq_buffer);
-    double fitness = ns.getFitness(mcgrp,ns.policy,res);
+    double fitness = ns.getFitness(mcgrp, ns.policy, res);
     if (fitness < best_choice) {
         best_choice = fitness;
         best_buffer = seq_buffer;
@@ -201,7 +199,7 @@ merge_split(LocalSearch &ns,
 
 }
 
-vector<int> split_task(const MCGRPTW &mcgrp, LocalSearch& ns, const vector<int> &tasks, Policy &policy)
+vector<int> split_task(const MCGRPTW &mcgrp, LocalSearch &ns, const vector<int> &tasks, Policy &policy)
 {
     vector<int> merge_sequence;
 
@@ -215,14 +213,14 @@ vector<int> split_task(const MCGRPTW &mcgrp, LocalSearch& ns, const vector<int> 
     Individual nearest_L2_indi;
     nearest_L2_indi = mcgrp.parse_delimiter_seq(merge_sequence);
     res = nearest_L2_indi;
-    fitness = ns.getFitness(mcgrp,ns.policy,res);
+    fitness = ns.getFitness(mcgrp, ns.policy, res);
     /*-----------------Nearest L2 distance merge policy--------------------------*/
 
     /*-----------------Furthest L2 distance merge policy--------------------------*/
     merge_sequence = nearest_depot_growing(mcgrp, tasks, policy);
     Individual nearest_depot_indi;
     nearest_depot_indi = mcgrp.parse_delimiter_seq(merge_sequence);
-    buffer = ns.getFitness(mcgrp,ns.policy,nearest_depot_indi);
+    buffer = ns.getFitness(mcgrp, ns.policy, nearest_depot_indi);
     if (buffer < fitness) {
         res = nearest_depot_indi;
         fitness = buffer;
@@ -233,7 +231,7 @@ vector<int> split_task(const MCGRPTW &mcgrp, LocalSearch& ns, const vector<int> 
     merge_sequence = maximum_yield_growing(mcgrp, tasks, policy);
     Individual maximum_yield_indi;
     maximum_yield_indi = mcgrp.parse_delimiter_seq(merge_sequence);
-    buffer = ns.getFitness(mcgrp,ns.policy,maximum_yield_indi);
+    buffer = ns.getFitness(mcgrp, ns.policy, maximum_yield_indi);
     if (buffer < fitness) {
         res = maximum_yield_indi;
         fitness = buffer;
@@ -244,7 +242,7 @@ vector<int> split_task(const MCGRPTW &mcgrp, LocalSearch& ns, const vector<int> 
     merge_sequence = minimum_yield_growing(mcgrp, tasks, policy);
     Individual minimum_yield_indi;
     minimum_yield_indi = mcgrp.parse_delimiter_seq(merge_sequence);
-    buffer = ns.getFitness(mcgrp,ns.policy,minimum_yield_indi);
+    buffer = ns.getFitness(mcgrp, ns.policy, minimum_yield_indi);
     if (buffer < fitness) {
         res = minimum_yield_indi;
         fitness = buffer;
@@ -252,10 +250,10 @@ vector<int> split_task(const MCGRPTW &mcgrp, LocalSearch& ns, const vector<int> 
     /*-----------------Max yield merge policy--------------------------*/
 
     /*-----------------mixture merge policy--------------------------*/
-    merge_sequence = mixture_growing(mcgrp, tasks,policy);
+    merge_sequence = mixture_growing(mcgrp, tasks, policy);
     Individual mixture_indi;
     mixture_indi = mcgrp.parse_delimiter_seq(merge_sequence);
-    buffer = ns.getFitness(mcgrp,ns.policy,mixture_indi);
+    buffer = ns.getFitness(mcgrp, ns.policy, mixture_indi);
     if (buffer < fitness) {
         res = mixture_indi;
         fitness = buffer;
@@ -266,7 +264,7 @@ vector<int> split_task(const MCGRPTW &mcgrp, LocalSearch& ns, const vector<int> 
 
 }
 
-vector<int> nearest_growing(const MCGRPTW &mcgrp, vector<int> tasks, Policy& policy)
+vector<int> nearest_growing(const MCGRPTW &mcgrp, vector<int> tasks, Policy &policy)
 {
     vector<int> sequence;
 
@@ -322,13 +320,13 @@ vector<int> nearest_growing(const MCGRPTW &mcgrp, vector<int> tasks, Policy& pol
         sequence.push_back(chosen_task);
         current_load += mcgrp.inst_tasks[chosen_task].demand;
 
-        auto ite = find(tasks.begin(), tasks.end(), chosen_task);
-        My_Assert(ite != tasks.end(), "Cannot find chosen tasks!");
+        auto ite = find(tasks.begin(), tasks.end(), chosen_task);My_Assert(ite != tasks.end(),
+                                                                           "Cannot find chosen tasks!");
         tasks.erase(ite);
 
         if (mcgrp.is_edge(chosen_task)) {
-            ite = find(tasks.begin(), tasks.end(), mcgrp.inst_tasks[chosen_task].inverse);
-            My_Assert(ite != tasks.end(), "Cannot find chosen tasks!");
+            ite = find(tasks.begin(), tasks.end(), mcgrp.inst_tasks[chosen_task].inverse);My_Assert(ite != tasks.end(),
+                                                                                                    "Cannot find chosen tasks!");
             tasks.erase(ite);
         }
     }
@@ -340,7 +338,7 @@ vector<int> nearest_growing(const MCGRPTW &mcgrp, vector<int> tasks, Policy& pol
     return sequence;
 }
 
-vector<int> nearest_depot_growing(const MCGRPTW &mcgrp, vector<int> tasks, Policy& policy)
+vector<int> nearest_depot_growing(const MCGRPTW &mcgrp, vector<int> tasks, Policy &policy)
 {
     vector<int> sequence;
 
@@ -394,13 +392,13 @@ vector<int> nearest_depot_growing(const MCGRPTW &mcgrp, vector<int> tasks, Polic
         current_load += mcgrp.inst_tasks[chosen_task].demand;
 
 
-        auto ite = find(tasks.begin(), tasks.end(), chosen_task);
-        My_Assert(ite != tasks.end(), "Cannot find chosen tasks!");
+        auto ite = find(tasks.begin(), tasks.end(), chosen_task);My_Assert(ite != tasks.end(),
+                                                                           "Cannot find chosen tasks!");
         tasks.erase(ite);
 
         if (mcgrp.is_edge(chosen_task)) {
-            ite = find(tasks.begin(), tasks.end(), mcgrp.inst_tasks[chosen_task].inverse);
-            My_Assert(ite != tasks.end(), "Cannot find chosen tasks!");
+            ite = find(tasks.begin(), tasks.end(), mcgrp.inst_tasks[chosen_task].inverse);My_Assert(ite != tasks.end(),
+                                                                                                    "Cannot find chosen tasks!");
             tasks.erase(ite);
         }
     }
@@ -412,7 +410,7 @@ vector<int> nearest_depot_growing(const MCGRPTW &mcgrp, vector<int> tasks, Polic
     return sequence;
 }
 
-vector<int> maximum_yield_growing(const MCGRPTW &mcgrp, vector<int> tasks, Policy& policy)
+vector<int> maximum_yield_growing(const MCGRPTW &mcgrp, vector<int> tasks, Policy &policy)
 {
     vector<int> sequence;
 
@@ -466,13 +464,13 @@ vector<int> maximum_yield_growing(const MCGRPTW &mcgrp, vector<int> tasks, Polic
         current_load += mcgrp.inst_tasks[chosen_task].demand;
 
 
-        auto ite = find(tasks.begin(), tasks.end(), chosen_task);
-        My_Assert(ite != tasks.end(), "Cannot find chosen tasks!");
+        auto ite = find(tasks.begin(), tasks.end(), chosen_task);My_Assert(ite != tasks.end(),
+                                                                           "Cannot find chosen tasks!");
         tasks.erase(ite);
 
         if (mcgrp.is_edge(chosen_task)) {
-            ite = find(tasks.begin(), tasks.end(), mcgrp.inst_tasks[chosen_task].inverse);
-            My_Assert(ite != tasks.end(), "Cannot find chosen tasks!");
+            ite = find(tasks.begin(), tasks.end(), mcgrp.inst_tasks[chosen_task].inverse);My_Assert(ite != tasks.end(),
+                                                                                                    "Cannot find chosen tasks!");
             tasks.erase(ite);
         }
     }
@@ -484,7 +482,7 @@ vector<int> maximum_yield_growing(const MCGRPTW &mcgrp, vector<int> tasks, Polic
     return sequence;
 }
 
-vector<int> minimum_yield_growing(const MCGRPTW &mcgrp, vector<int> tasks, Policy& policy)
+vector<int> minimum_yield_growing(const MCGRPTW &mcgrp, vector<int> tasks, Policy &policy)
 {
     vector<int> sequence;
 
@@ -538,13 +536,13 @@ vector<int> minimum_yield_growing(const MCGRPTW &mcgrp, vector<int> tasks, Polic
         current_load += mcgrp.inst_tasks[chosen_task].demand;
 
 
-        auto ite = find(tasks.begin(), tasks.end(), chosen_task);
-        My_Assert(ite != tasks.end(), "Cannot find chosen tasks!");
+        auto ite = find(tasks.begin(), tasks.end(), chosen_task);My_Assert(ite != tasks.end(),
+                                                                           "Cannot find chosen tasks!");
         tasks.erase(ite);
 
         if (mcgrp.is_edge(chosen_task)) {
-            ite = find(tasks.begin(), tasks.end(), mcgrp.inst_tasks[chosen_task].inverse);
-            My_Assert(ite != tasks.end(), "Cannot find chosen tasks!");
+            ite = find(tasks.begin(), tasks.end(), mcgrp.inst_tasks[chosen_task].inverse);My_Assert(ite != tasks.end(),
+                                                                                                    "Cannot find chosen tasks!");
             tasks.erase(ite);
         }
     }
@@ -556,7 +554,7 @@ vector<int> minimum_yield_growing(const MCGRPTW &mcgrp, vector<int> tasks, Polic
     return sequence;
 }
 
-vector<int> mixture_growing(const MCGRPTW &mcgrp, vector<int> tasks, Policy& policy)
+vector<int> mixture_growing(const MCGRPTW &mcgrp, vector<int> tasks, Policy &policy)
 {
     vector<int> sequence;
 
@@ -613,13 +611,13 @@ vector<int> mixture_growing(const MCGRPTW &mcgrp, vector<int> tasks, Policy& pol
             current_load += mcgrp.inst_tasks[chosen_task].demand;
 
 
-            auto ite = find(tasks.begin(), tasks.end(), chosen_task);
-            My_Assert(ite != tasks.end(), "Cannot find chosen tasks!");
+            auto ite = find(tasks.begin(), tasks.end(), chosen_task);My_Assert(ite != tasks.end(),
+                                                                               "Cannot find chosen tasks!");
             tasks.erase(ite);
 
             if (mcgrp.is_edge(chosen_task)) {
-                ite = find(tasks.begin(), tasks.end(), mcgrp.inst_tasks[chosen_task].inverse);
-                My_Assert(ite != tasks.end(), "Cannot find chosen tasks!");
+                ite = find(tasks.begin(), tasks.end(), mcgrp.inst_tasks[chosen_task].inverse);My_Assert(
+                    ite != tasks.end(), "Cannot find chosen tasks!");
                 tasks.erase(ite);
             }
         }
@@ -648,13 +646,13 @@ vector<int> mixture_growing(const MCGRPTW &mcgrp, vector<int> tasks, Policy& pol
             sequence.push_back(chosen_task);
             current_load += mcgrp.inst_tasks[chosen_task].demand;
 
-            auto ite = find(tasks.begin(), tasks.end(), chosen_task);
-            My_Assert(ite != tasks.end(), "Cannot find chosen tasks!");
+            auto ite = find(tasks.begin(), tasks.end(), chosen_task);My_Assert(ite != tasks.end(),
+                                                                               "Cannot find chosen tasks!");
             tasks.erase(ite);
 
             if (mcgrp.is_edge(chosen_task)) {
-                ite = find(tasks.begin(), tasks.end(), mcgrp.inst_tasks[chosen_task].inverse);
-                My_Assert(ite != tasks.end(), "Cannot find chosen tasks!");
+                ite = find(tasks.begin(), tasks.end(), mcgrp.inst_tasks[chosen_task].inverse);My_Assert(
+                    ite != tasks.end(), "Cannot find chosen tasks!");
                 tasks.erase(ite);
             }
         }
@@ -667,30 +665,31 @@ vector<int> mixture_growing(const MCGRPTW &mcgrp, vector<int> tasks, Policy& pol
     return sequence;
 }
 
-vector<vector<int>> tour_splitting(const MCGRPTW &mcgrp, vector<int>& task_list)
+vector<vector<int>> tour_splitting(const MCGRPTW &mcgrp, vector<int> &task_list)
 {
-    task_list.insert(task_list.begin(),DUMMY);
+    task_list.insert(task_list.begin(), DUMMY);
     int nsize = task_list.size();
 
-    vector<int> W(nsize,0);
-    vector<int> P(nsize,DUMMY);
+    vector<int> W(nsize, 0);
+    vector<int> P(nsize, DUMMY);
 
-    for(int i = 1;i<W.size();i++)
+    for (int i = 1; i < W.size(); i++)
         W[i] = INT32_MAX;
 
-    for(int i = 1;i<nsize;i++){
+    for (int i = 1; i < nsize; i++) {
         int j = i;
         int load = 0;
         int length = 0;
         int DepartureTime = 0;
         int u = 0;
-        while (true){
+        while (true) {
             int v = j;
             load += mcgrp.inst_tasks[task_list[v]].demand;
-            length = length - mcgrp.min_cost[mcgrp.inst_tasks[task_list[u]].tail_node][mcgrp.inst_tasks[DUMMY].head_node]
-                + mcgrp.min_cost[mcgrp.inst_tasks[task_list[u]].tail_node][mcgrp.inst_tasks[task_list[v]].head_node]
-                + mcgrp.inst_tasks[task_list[v]].serv_cost
-                + mcgrp.min_cost[mcgrp.inst_tasks[task_list[v]].tail_node][mcgrp.inst_tasks[DUMMY].head_node];
+            length =
+                length - mcgrp.min_cost[mcgrp.inst_tasks[task_list[u]].tail_node][mcgrp.inst_tasks[DUMMY].head_node]
+                    + mcgrp.min_cost[mcgrp.inst_tasks[task_list[u]].tail_node][mcgrp.inst_tasks[task_list[v]].head_node]
+                    + mcgrp.inst_tasks[task_list[v]].serv_cost
+                    + mcgrp.min_cost[mcgrp.inst_tasks[task_list[v]].tail_node][mcgrp.inst_tasks[DUMMY].head_node];
 
             int ArrivalTime = DepartureTime
                 + mcgrp.min_time[mcgrp.inst_tasks[task_list[u]].tail_node][mcgrp.inst_tasks[task_list[v]].head_node];
@@ -700,14 +699,15 @@ vector<vector<int>> tour_splitting(const MCGRPTW &mcgrp, vector<int>& task_list)
 
             if (load <= mcgrp.capacity
                 && W[i - 1] + length < W[j]
-                && ArrivalTime <= mcgrp.inst_tasks[task_list[v]].time_window.second){
+                && ArrivalTime <= mcgrp.inst_tasks[task_list[v]].time_window.second) {
                 W[j] = W[i - 1] + length;
                 P[j] = i - 1;
             }
 
             j += 1;
             u = v;
-            if(j >= nsize || load > mcgrp.capacity || ArrivalTime > mcgrp.inst_tasks[task_list[u]].time_window.second){
+            if (j >= nsize || load > mcgrp.capacity
+                || ArrivalTime > mcgrp.inst_tasks[task_list[u]].time_window.second) {
                 break;
             }
         }
@@ -716,9 +716,9 @@ vector<vector<int>> tour_splitting(const MCGRPTW &mcgrp, vector<int>& task_list)
     vector<vector<int>> routes;
     int cur = nsize - 1;
     int pred = P[cur];
-    while(cur != 0){
+    while (cur != 0) {
         vector<int> route;
-        for(int i = pred + 1;i <= cur;i++)
+        for (int i = pred + 1; i <= cur; i++)
             route.push_back(task_list[i]);
         routes.emplace_back(route);
         cur = pred;
@@ -729,11 +729,11 @@ vector<vector<int>> tour_splitting(const MCGRPTW &mcgrp, vector<int>& task_list)
     return routes;
 }
 
-BestServeSeq viterbi_decoding(const MCGRPTW &mcgrp, const vector<int>& task_list, bool allow_infeasible)
+BestServeSeq viterbi_decoding(const MCGRPTW &mcgrp, const vector<int> &task_list, bool allow_infeasible)
 {
     BestServeSeq ans;
 
-    if(task_list.empty()){
+    if (task_list.empty()) {
         ans.cost = 0;
         ans.sequence.clear();
         ans.arrive_time_tbl.clear();
@@ -741,31 +741,33 @@ BestServeSeq viterbi_decoding(const MCGRPTW &mcgrp, const vector<int>& task_list
     }
 
     vector<vector<int>> DAG;
-    DAG.push_back(vector<int>(1,DUMMY));
-    for(int i = 0;i<task_list.size();i++){
-        if(mcgrp.is_edge(task_list[i])){
+    DAG.push_back(vector<int>(1, DUMMY));
+    for (int i = 0; i < task_list.size(); i++) {
+        if (mcgrp.is_edge(task_list[i])) {
             DAG.push_back(vector<int>{task_list[i], mcgrp.inst_tasks[task_list[i]].inverse});
-        }else{
+        }
+        else {
             DAG.push_back(vector<int>{task_list[i]});
         }
     }
-    DAG.push_back(vector<int>(1,DUMMY));
+    DAG.push_back(vector<int>(1, DUMMY));
 
 
-    vector<vector<int>> W(DAG.size(),vector<int>());
-    vector<vector<int>> P(DAG.size(),vector<int>());
+    vector<vector<int>> W(DAG.size(), vector<int>());
+    vector<vector<int>> P(DAG.size(), vector<int>());
     vector<vector<int>> ArriveTime(DAG.size(), vector<int>());
 
     W[0].push_back(0);
     P[0].push_back(0);
     ArriveTime[0].push_back(0);
 
-    function<pair<int,int>(const vector<int>&)> argmin_ = [](const vector<int>& seq){
+    function<pair<int, int>(const vector<int> &)> argmin_ = [](const vector<int> &seq)
+    {
         int index = -1;
         int val = INT32_MAX;
-        for(int ii = 0;ii < seq.size();ii++){
-            if (seq[ii] < val){
-                index  = ii;
+        for (int ii = 0; ii < seq.size(); ii++) {
+            if (seq[ii] < val) {
+                index = ii;
                 val = seq[ii];
             }
         }
@@ -774,28 +776,30 @@ BestServeSeq viterbi_decoding(const MCGRPTW &mcgrp, const vector<int>& task_list
     };
 
 
-    for(int i = 1; i < DAG.size();i++){
-        for(int j = 0;j < DAG[i].size() ;j++){
+    for (int i = 1; i < DAG.size(); i++) {
+        for (int j = 0; j < DAG[i].size(); j++) {
             vector<int> distance_;
             vector<int> ArriveTime_;
             int LatestDepartureTime = allow_infeasible ? INT32_MAX : mcgrp.inst_tasks[DAG[i][j]].time_window.second;
 
-            for(int k = 0; k < W[i-1].size();k++){
-                if(W[i - 1][k] == INT32_MAX ||
+            for (int k = 0; k < W[i - 1].size(); k++) {
+                if (W[i - 1][k] == INT32_MAX ||
                     ArriveTime[i - 1][k] == INT32_MAX ||
                     ArriveTime[i - 1][k] + mcgrp.inst_tasks[DAG[i - 1][k]].serve_time +
                         mcgrp.min_time[mcgrp.inst_tasks[DAG[i - 1][k]].tail_node][mcgrp.inst_tasks[DAG[i][j]].head_node]
-                        > LatestDepartureTime){
+                        > LatestDepartureTime) {
                     distance_.push_back(INT32_MAX);
                     ArriveTime_.push_back(INT32_MAX);
                 }
-                else{
+                else {
                     distance_.push_back(W[i - 1][k] +
                         mcgrp.inst_tasks[DAG[i - 1][k]].serv_cost +
-                        mcgrp.min_cost[mcgrp.inst_tasks[DAG[i - 1][k]].tail_node][mcgrp.inst_tasks[DAG[i][j]].head_node]);
+                        mcgrp.min_cost[mcgrp.inst_tasks[DAG[i - 1][k]].tail_node][mcgrp.inst_tasks[DAG[i][j]]
+                            .head_node]);
                     ArriveTime_.push_back(max(mcgrp.inst_tasks[DAG[i][j]].time_window.first,
                                               ArriveTime[i - 1][k] + mcgrp.inst_tasks[DAG[i - 1][k]].serve_time +
-                                                  mcgrp.min_time[mcgrp.inst_tasks[DAG[i-1][k]].tail_node][mcgrp.inst_tasks[DAG[i][j]].head_node]));
+                                                  mcgrp.min_time[mcgrp.inst_tasks[DAG[i - 1][k]].tail_node][mcgrp
+                                                      .inst_tasks[DAG[i][j]].head_node]));
                 }
             }
 
@@ -814,32 +818,31 @@ BestServeSeq viterbi_decoding(const MCGRPTW &mcgrp, const vector<int>& task_list
         }
     }
 
-    if (P.back() == vector<int>{-1}){
+    if (P.back() == vector<int>{-1}) {
         ans.cost = INT_MAX;
-    }else{
-        My_Assert(W.back().size() == 1, "Wrong status!");
+    }
+    else { My_Assert(W.back().size() == 1, "Wrong status!");
         ans.cost = W.back().back();
         vector<int> indices{P.back().back()};
-        for(int ii = (int)P.size() - 2; ii >= 2 ; ii--){
+        for (int ii = (int) P.size() - 2; ii >= 2; ii--) {
             indices.push_back(P[ii][indices.back()]);
-        }
-        My_Assert(indices.size() == P.size() - 2, "Wrong decode sequence!");
+        }My_Assert(indices.size() == P.size() - 2, "Wrong decode sequence!");
 
-        reverse(indices.begin(),indices.end());
-        for(int ii = 0;ii < (int)indices.size(); ii++){
-            ans.sequence.push_back(DAG[ii+1][indices[ii]]);
-            ans.arrive_time_tbl.push_back(ArriveTime[ii+1][indices[ii]]);
+        reverse(indices.begin(), indices.end());
+        for (int ii = 0; ii < (int) indices.size(); ii++) {
+            ans.sequence.push_back(DAG[ii + 1][indices[ii]]);
+            ans.arrive_time_tbl.push_back(ArriveTime[ii + 1][indices[ii]]);
         }
     }
 
     return ans;
 }
 
-PathConstructor::PathConstructor(const MCGRPTW &mcgrp_, const string& name_) : mcgrp(mcgrp_)
+PathConstructor::PathConstructor(const MCGRPTW &mcgrp_, const string &name_)
+    : mcgrp(mcgrp_)
 {
     name = name_;
 }
-
 
 Individual RTFScanner::operator()(const vector<int> &taskList, const string &mode)
 {
@@ -854,9 +857,9 @@ Individual RTFScanner::operator()(const vector<int> &taskList, const string &mod
     std::vector<int> RCL1; // restricted candidate list which drive away from the depot
     std::vector<int> RCL2; // restricted candidate list which drive towards the depot
 
-    if(!taskList.empty())
+    if (!taskList.empty())
         unserved_task_id = unordered_set<int>(taskList.begin(), taskList.end());
-    else{
+    else {
         for (int i = 1; i <= mcgrp.actual_task_num; i++)
             unserved_task_id.insert(i);
     }
@@ -867,14 +870,14 @@ Individual RTFScanner::operator()(const vector<int> &taskList, const string &mod
     vector<int> solution;
     solution.push_back(DUMMY);
 
-    while (!unserved_task_id.empty()){
+    while (!unserved_task_id.empty()) {
         int tail_task = solution.back();
 
         FCL.clear();
-        if(mode == "allow_infeasible"){
+        if (mode == "allow_infeasible") {
             FCL = vector<int>(unserved_task_id.begin(), unserved_task_id.end());
         }
-        else if(mode == "feasible"){
+        else if (mode == "feasible") {
             for (auto unserved_task : unserved_task_id) {
                 if (mcgrp.inst_tasks[unserved_task].demand <= mcgrp.capacity - load
                     && mcgrp.cal_arrive_time(tail_task, unserved_task, arrival_time, true)
@@ -882,8 +885,8 @@ Individual RTFScanner::operator()(const vector<int> &taskList, const string &mod
                     FCL.push_back(unserved_task);
                 }
             }
-        }else{
-            My_Assert(false,"error! unknown mode!");
+        }
+        else { My_Assert(false, "error! unknown mode!");
         }
 
 
@@ -895,10 +898,10 @@ Individual RTFScanner::operator()(const vector<int> &taskList, const string &mod
         }
 
         min_dist = MAX(min_dist);
-        for (const auto& task : FCL) {
-            double d_uz = distance(mcgrp,tail_task,task);
-            double d_udummy = distance(mcgrp,tail_task,DUMMY);
-            double d_zdummy = distance(mcgrp,task,DUMMY);
+        for (const auto &task : FCL) {
+            double d_uz = distance(mcgrp, tail_task, task);
+            double d_udummy = distance(mcgrp, tail_task, DUMMY);
+            double d_zdummy = distance(mcgrp, task, DUMMY);
 
             if (d_uz > min_dist) continue;
 
@@ -908,29 +911,31 @@ Individual RTFScanner::operator()(const vector<int> &taskList, const string &mod
                 RCL2.clear();
             }
 
-            if(d_udummy < d_zdummy) RCL1.push_back(task);
+            if (d_udummy < d_zdummy) RCL1.push_back(task);
             else RCL2.push_back(task);
         }
 
         int chosen_task = -1;
-        if(RCL1.empty()){
+        if (RCL1.empty()) {
             int seed = (int) mcgrp._rng.Randint(0, RCL2.size() - 1);
             chosen_task = RCL2[seed];
         }
-        else if(RCL2.empty()){
+        else if (RCL2.empty()) {
             int seed = (int) mcgrp._rng.Randint(0, RCL1.size() - 1);
             chosen_task = RCL1.front();
-        }else{
-            if((load % mcgrp.capacity) < (mcgrp.capacity / 2)){
+        }
+        else {
+            if ((load % mcgrp.capacity) < (mcgrp.capacity / 2)) {
                 int seed = (int) mcgrp._rng.Randint(0, RCL1.size() - 1);
                 chosen_task = RCL1.front();
-            }else{
+            }
+            else {
                 int seed = (int) mcgrp._rng.Randint(0, RCL2.size() - 1);
                 chosen_task = RCL2[seed];
             }
         }
 
-        My_Assert(chosen_task != -1,"error! cannot find a Task");
+        My_Assert(chosen_task != -1, "error! cannot find a Task");
 
         load += mcgrp.inst_tasks[chosen_task].demand;
         arrival_time = mcgrp.cal_arrive_time(tail_task, chosen_task, arrival_time, true);
@@ -941,7 +946,7 @@ Individual RTFScanner::operator()(const vector<int> &taskList, const string &mod
 
         if (mcgrp.is_edge(chosen_task)) {
             int inverse_task = mcgrp.inst_tasks[chosen_task].inverse;
-            if(unserved_task_id.find(inverse_task) != unserved_task_id.end())
+            if (unserved_task_id.find(inverse_task) != unserved_task_id.end())
                 unserved_task_id.erase(inverse_task);
         }
 
@@ -975,10 +980,11 @@ Individual SampleScanner::operator()(const vector<int> &taskList, const string &
 
     unordered_set<int> unserved_task_id_set;
 
-    if(taskList.empty()){
+    if (taskList.empty()) {
         for (int i = 1; i <= mcgrp.actual_task_num; i++)
             unserved_task_id_set.insert(i);
-    }else{
+    }
+    else {
         unserved_task_id_set = unordered_set<int>(taskList.begin(), taskList.end());
     }
 
@@ -993,34 +999,36 @@ Individual SampleScanner::operator()(const vector<int> &taskList, const string &
     while (!unserved_task_id_set.empty()) {
         current_tail_task = solution.back();
 
-        const vector<double>& prob_vector = distance.get_prob_vector(current_tail_task);
+        const vector<double> &prob_vector = distance.get_prob_vector(current_tail_task);
 
         FCL.clear();
-        for(int sample_cnt = 0; sample_cnt < sample_times; sample_cnt++){
+        for (int sample_cnt = 0; sample_cnt < sample_times; sample_cnt++) {
             //Find all the tasks that satisfy the capacity constraint
             int sample_task = sample::uniform_sample(prob_vector);
 
-            if(unserved_task_id_set.find(sample_task) == unserved_task_id_set.end())
+            if (unserved_task_id_set.find(sample_task) == unserved_task_id_set.end())
                 continue;
 
-            if(mode == "feasible"){
+            if (mode == "feasible") {
                 if (mcgrp.inst_tasks[sample_task].demand <= mcgrp.capacity - load
                     && mcgrp.cal_arrive_time(current_tail_task, sample_task, drive_time, true)
                         <= mcgrp.inst_tasks[sample_task].time_window.second) {
                     FCL.insert(sample_task);
                 }
-            }else if(mode == "allow_infeasible"){
+            }
+            else if (mode == "allow_infeasible") {
                 FCL.insert(sample_task);
-            }else{
-                My_Assert(false,"error! unknown mode!");
+            }
+            else { My_Assert(false, "error! unknown mode!");
             }
         }
 
 
         if (FCL.empty()) {
-            if(solution.back() == DUMMY){
+            if (solution.back() == DUMMY) {
                 FCL = unserved_task_id_set;
-            }else{
+            }
+            else {
                 solution.push_back(DUMMY);
                 load = 0;
                 drive_time = 0;
@@ -1032,13 +1040,13 @@ Individual SampleScanner::operator()(const vector<int> &taskList, const string &
 
         //Find the nearest Task from the current candidate Task set
         for (auto candidate_task : FCL) {
-            if (distance(mcgrp,current_tail_task,candidate_task) < min_dist) {
-                min_dist = distance(mcgrp,current_tail_task,candidate_task);
+            if (distance(mcgrp, current_tail_task, candidate_task) < min_dist) {
+                min_dist = distance(mcgrp, current_tail_task, candidate_task);
                 nearest_task_set.clear();
                 nearest_task_set.push_back(candidate_task);
             }
             else if (
-                distance(mcgrp,current_tail_task,candidate_task) == min_dist) {
+                distance(mcgrp, current_tail_task, candidate_task) == min_dist) {
                 nearest_task_set.push_back(candidate_task);
             }
         }
@@ -1056,7 +1064,7 @@ Individual SampleScanner::operator()(const vector<int> &taskList, const string &
 
         if (mcgrp.is_edge(chosen_task)) {
             int inverse_task = mcgrp.inst_tasks[chosen_task].inverse;
-            if(unserved_task_id_set.find(inverse_task) != unserved_task_id_set.end())
+            if (unserved_task_id_set.find(inverse_task) != unserved_task_id_set.end())
                 unserved_task_id_set.erase(inverse_task);
         }
     }
@@ -1067,3 +1075,196 @@ Individual SampleScanner::operator()(const vector<int> &taskList, const string &
 
     return mcgrp.parse_delimiter_seq(solution);
 }
+
+CWScanner::CWScanner(const MCGRPTW &mcgrp)
+    : PathConstructor(mcgrp,"CW scanner")
+{
+    task_list = vector<int>();
+    saving_list = vector<Cell>();
+    routes = vector<Route>();
+
+    d = vector<vector<int>>(mcgrp.actual_task_num + 1, vector<int>(mcgrp.actual_task_num + 1, 0));
+    t = vector<vector<int>>(mcgrp.actual_task_num + 1, vector<int>(mcgrp.actual_task_num + 1, 0));
+
+    for (int row = 0; row < d.size(); ++row) {
+        for (int col = 0; col < d[row].size(); ++col) {
+            if(row == col){
+                continue;
+            }
+
+            d[row][col] = mcgrp.min_cost[mcgrp.inst_tasks[row].tail_node][mcgrp.inst_tasks[col].head_node];
+            t[row][col] = mcgrp.min_time[mcgrp.inst_tasks[row].tail_node][mcgrp.inst_tasks[col].head_node];
+        }
+    }
+
+}
+
+Individual CWScanner::operator()(const vector<int> &taskList, const string &mode)
+{
+    task_list.clear();
+    if(taskList.empty()){
+        for(int i = 1;i<=mcgrp.actual_task_num;i++){
+            task_list.push_back(i);
+        }
+    }else{
+        task_list = taskList;
+    }
+
+    initialize_savings_();
+
+    // first phase: construct solution
+    double sol_cost = 0;
+    routes.clear();
+    task_pos = vector<int>(mcgrp.actual_task_num + 1, -1);
+
+    unordered_set<int> unserved_task_idx;
+    for (int i = 1; i <= mcgrp.actual_task_num; i++) {
+        unserved_task_idx.insert(i);
+    }
+
+    while (!unserved_task_idx.empty()) {
+        int idx = *unserved_task_idx.begin();
+        unserved_task_idx.erase(idx);
+
+        double best_cost = DBL_MAX;
+        int best_idx = idx;
+        auto load = mcgrp.inst_tasks[idx].demand;
+        int best_arrive_time = max(mcgrp.inst_tasks[idx].time_window.first,
+                                   t[mcgrp.inst_tasks[0].tail_node][mcgrp.inst_tasks[idx].head_node]);
+
+        if (best_arrive_time <= mcgrp.inst_tasks[idx].time_window.second) {
+            best_cost = d[0][idx] + mcgrp.inst_tasks[idx].serv_cost + d[idx][0];
+        }
+
+        for (auto alt_idx : mcgrp.exclude(idx)) {
+            auto arrive_time = max(mcgrp.inst_tasks[alt_idx].time_window.first, t[0][alt_idx]);
+            if (arrive_time <= mcgrp.inst_tasks[alt_idx].time_window.second) {
+                double cost = d[0][alt_idx] + mcgrp.inst_tasks[alt_idx].serv_cost + d[alt_idx][0];
+                if (cost < best_cost) {
+                    best_cost = cost;
+                    best_idx = alt_idx;
+                    best_arrive_time = arrive_time;
+                }
+            }
+            unserved_task_idx.erase(alt_idx);
+        }
+
+        if (best_cost == DBL_MAX) {
+            cerr << "the task can\'t be served by one route!";
+            exit(-1);
+        }
+
+        routes.emplace_back(Route(best_cost, load, {best_idx}, {best_arrive_time}));
+
+        task_pos[best_idx] = routes.size() - 1;
+
+        sol_cost += best_cost;
+    }
+
+    // second phase: imporve solution iteratively based on 'saving'
+    bool improve_flag = false;
+    while (true) {
+        for (const auto &saving : saving_list) {
+            if (saving.value <= 0) {
+                continue;
+            }
+
+            if (task_pos[saving.pair1] == task_pos[saving.pair2]) {
+                continue;
+            }
+
+            if (task_pos[saving.pair1] == -1 or task_pos[saving.pair2] == -1) {
+                continue;
+            }
+
+            if (routes[task_pos[saving.pair1]].load + routes[
+                task_pos[saving.pair2]].load > mcgrp.capacity) {
+                continue;
+            }
+
+            if (islast_(saving.pair1, routes[task_pos[saving.pair1]]) \
+                and isfirst_(saving.pair2, routes[task_pos[saving.pair2]])) {
+
+                vector<int> new_route;
+                new_route.insert(new_route.end(),
+                                 routes[task_pos[saving.pair1]].sequence.begin(),
+                                 routes[task_pos[saving.pair1]].sequence.end() - 1);
+                new_route.push_back(saving.pair1mode);
+                new_route.push_back(saving.pair2mode);
+                new_route.insert(new_route.end(),
+                                 routes[task_pos[saving.pair2]].sequence.begin() + 1,
+                                 routes[task_pos[saving.pair2]].sequence.end());
+
+                vector<int> new_arrive_time = vector<int>(routes[task_pos[saving.pair1]].arrive_time.begin(),
+                                                          routes[task_pos[saving.pair1]].arrive_time.end() - 1);
+
+                for (int i = routes[task_pos[saving.pair1]].sequence.size() - 1; i < new_route.size(); i++) {
+                    int next_arrive_time;
+                    if (i == 0) {
+                        next_arrive_time = max(t[0][new_route[i]], mcgrp.inst_tasks[new_route[i]].time_window.first);
+                    }
+                    else {
+                        next_arrive_time = max(
+                            new_arrive_time.back() + mcgrp.inst_tasks[new_route[i - 1]].serve_time + t[
+                                new_route[i - 1]][new_route[i]],
+                            mcgrp.inst_tasks[new_route[i]].time_window.first);
+                    }
+
+                    if (next_arrive_time <= mcgrp.inst_tasks[new_route[i]].time_window.second) {
+                        new_arrive_time.push_back(next_arrive_time);
+                    }
+                    else {
+                        break;
+                    }
+
+                    if (new_arrive_time.size() == new_route.size()) {
+                        // merge two routes
+                        auto new_route_id = task_pos[saving.pair1];
+                        auto deprecate_toute_id = task_pos[saving.pair2];
+                        task_pos[saving.pair1] = -1;
+                        task_pos[saving.pair2] = -1;
+
+                        task_pos[saving.pair1mode] = new_route_id;
+                        task_pos[saving.pair2mode] = new_route_id;
+
+                        routes[new_route_id].sequence = new_route;
+                        routes[new_route_id].arrive_time = new_arrive_time;
+                        routes[new_route_id].load += routes[deprecate_toute_id].load;
+                        routes[new_route_id].cost = routes[new_route_id].cost + routes[
+                            deprecate_toute_id].cost - saving.value;
+
+                        for (int task_idx = 1; task_idx < routes[deprecate_toute_id].sequence.size(); task_idx++) {
+                            task_pos[routes[deprecate_toute_id].sequence[task_idx]] = new_route_id;
+                        }
+
+                        routes[deprecate_toute_id].clear();
+
+                        sol_cost -= saving.value;
+                        improve_flag = true;
+                        update_savings_(new_route_id);
+
+                        auto solution = dump_();
+                        mcgrp.valid_sol(get_negative_coding(solution), sol_cost);
+                    }
+
+                }
+
+            }
+
+        }
+
+        if (not improve_flag) {
+            break;
+        }
+        else {
+            improve_flag = false;
+        }
+    }
+
+    // concatenate routes
+    auto solution = dump_();
+
+    return mcgrp.parse_delimiter_seq(solution);
+}
+
+

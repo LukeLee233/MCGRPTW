@@ -164,9 +164,6 @@ void Slice::move(LocalSearch &ns, const MCGRPTW &mcgrp)
     move_result.move_type = NeighborOperator::SLICE;
 }
 
-bool Slice::update_score(LocalSearch &ns){
-    return false;
-}
 
 /*
  * Pre Slice
@@ -413,11 +410,6 @@ bool Preslice::search(LocalSearch &ns, const MCGRPTW &mcgrp, int chosen_task)
     }
 }
 
-bool Preslice::update_score(LocalSearch &ns)
-{
-    My_Assert(move_result.delta >= 0, "error, wrong outcome!");
-    return false;
-}
 
 /*
  * Post Slice
@@ -609,8 +601,3 @@ bool Postslice::search(LocalSearch &ns, const MCGRPTW &mcgrp, int chosen_task)
     }
 }
 
-bool Postslice::update_score(LocalSearch &ns)
-{
-    My_Assert(move_result.delta >= 0, "error, wrong outcome!");
-    return false;
-}

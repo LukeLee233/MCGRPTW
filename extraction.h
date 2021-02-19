@@ -47,8 +47,6 @@ public:
     expected_time_table(LocalSearch &ns, const MCGRPTW &mcgrp,
                         const int b);
 
-    bool update_score(LocalSearch &ns) override;
-
 };
 
 #endif //EXTRACTION_H

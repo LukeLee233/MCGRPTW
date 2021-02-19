@@ -4,7 +4,7 @@
 
 #include "operator.h"
 #include "local_search.h"
-#include "SearchPolicy.h"
+#include "policy.h"
 
 void unit_test(LocalSearch &ns, const MCGRPTW &mcgrp, MoveOperator &move_operator)
 {
@@ -122,6 +122,17 @@ vector<int> MoveOperator::_seq_regularization(const vector<int> seq)
     }
 
     return res;
+}
+
+bool MoveOperator::update_score(LocalSearch &ns)
+{
+    if(ns.policy.has_rule(INFEASIBLE) || move_result.delta >= 0) return false;
+
+    double reward = (ns.best_solution_cost / ns.cur_solution_cost) * (-move_result.delta);
+
+    _apply_reward(ns,reward);
+
+    return true;
 }
 
 viterbi::BestDecode viterbi::viterbi_decode(const viterbi::PseudoTask* first,

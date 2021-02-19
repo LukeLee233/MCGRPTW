@@ -723,12 +723,8 @@ bool SwapEnds::search(LocalSearch &ns, const MCGRPTW &mcgrp, int chosen_task)
 }
 
 
-bool SwapEnds::update_score(LocalSearch &ns)
+void SwapEnds::_apply_reward(LocalSearch &ns,double reward)
 {
-    if(move_result.delta >= 0) return false;
-
-    double reward = (ns.best_solution_cost / ns.cur_solution_cost) * (-move_result.delta);
-
     // ...a-(seq_v)...
     // ...v-(seq_a)...
     const int a = max(move_result.task1,0);
@@ -798,5 +794,4 @@ bool SwapEnds::update_score(LocalSearch &ns)
 
     }
 
-    return true;
 }

@@ -15,7 +15,7 @@
 #include <algorithm>
 #include "json.hpp"
 #include "config.h"
-#include "ConstructPolicy.h"
+#include "initilizer.h"
 //#include "Memetic.h"
 
 using namespace std;
@@ -171,8 +171,7 @@ int main(int argc, char *argv[])
 #ifdef DEBUG
         log_out.open(date_folder + '/' + file_name + ".log", ios::out);
 #endif
-        struct timeb search_start_time;
-        ftime(&search_start_time);
+        auto search_start_time = system_clock::now();
 
         instance._rng.change(seed[random_seed % seed_size]);
         instance.best_total_route_length = DBL_MAX;
@@ -180,9 +179,12 @@ int main(int argc, char *argv[])
 
         LocalSearch local_search(instance, tabu_step);
         local_search.initialize_score_matrix(instance);
-        Individual initial_solution = NearestScanner(instance, *instance.distance_look_tbl["cost"])();
-        //                Individual initial_solution = nearest_scanning(instance, vector<int>());
 
+        Individual initial_solution = CWScanner(instance)();
+//        Individual initial_solution = NearestScanner(instance, *instance.distance_look_tbl["cost"])();
+//                        Individual initial_solution = nearest_scanning(instance, vector<int>());
+
+        auto neg = get_negative_coding(initial_solution.sequence);
         local_search.unpack_seq(initial_solution.sequence, instance);
         local_search.trace(instance);
         cout << "Begin Local search..." << endl;
@@ -190,9 +192,9 @@ int main(int argc, char *argv[])
         for (auto iter = 1; iter <= iterations
             && get_time_difference(search_start_time, cur_time) < search_time; iter++) {
             cout << "start "<< iter << "th iterations...\n";
-            ftime(&iteration_start_time);
+            iteration_start_time = system_clock::now();
             local_search.neighbor_search(instance);
-            ftime(&cur_time);
+            cur_time = system_clock::now();
             cout << "Finish " << iter << "th iterations, spent: "
                  << get_time_difference(iteration_start_time, cur_time) << 's' << endl;
         }

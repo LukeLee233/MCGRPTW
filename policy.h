@@ -2,8 +2,8 @@
 // Created by luke on 2019/12/31.
 //
 
-#ifndef SEARCHPOLICY_H
-#define SEARCHPOLICY_H
+#ifndef POLICY_H
+#define POLICY_H
 
 #include <bitset>
 #include "instance.h"
@@ -120,4 +120,4 @@ public:
     bool check_result(const MCGRPTW& mcgrp, LocalSearch& ns, const MoveResult &M1, const MoveResult &M2);
 };
 
-#endif //SEARCHPOLICY_H
+#endif //POLICY_H

@@ -3,11 +3,13 @@
 
 #include <bits/stdc++.h>
 #include <sys/timeb.h>
+#include <chrono>
 
 using namespace std;
+using namespace chrono;
 
-extern struct timeb cur_time;
-extern struct timeb iteration_start_time;
+extern system_clock::time_point cur_time;
+extern system_clock::time_point iteration_start_time;
 
 const int seed_size = 100;
 
@@ -377,9 +379,7 @@ public:
     }
 };
 
-inline double get_time_difference(const timeb& start,const timeb& end){
-    return (end.time - start.time) + ((end.millitm - start.millitm) * 1.0 / 1000);
-}
+double get_time_difference(const system_clock::time_point& start,const system_clock::time_point& end);
 
 vector<int> sort_solution(const vector<int>& negative_sol);
 

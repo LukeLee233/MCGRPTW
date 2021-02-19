@@ -44,10 +44,13 @@ def transfer(input_file: str, output_file: str):
         non_req_edges = []
         for idx in range(2, 2 + edges_num):
             edge = list(map(int, lines[idx].split()))
-            if len(edge) == 6:
+            if edge[3] > 0:
                 req_edges.append(Edge(*edge))
             else:
-                non_req_edges.append(Edge(*edge, -1, -1))
+                if len(edge) == 6:
+                    non_req_edges.append(Edge(*edge))
+                else:
+                    non_req_edges.append(Edge(*edge,-1,-1))
 
         capacity = int(lines[-5])
         phi = int(lines[-4])
@@ -230,9 +233,9 @@ def transfer_xlsx(filename: str):
 if __name__ == '__main__':
     transfer_xlsx('instance/istanze/Istanze ABCes.xlsx')
 
-    # input_dir = 'instance/carp_tw_a'
-    # output_dir = 'instance/carp_tw_a_trans'
-
+    # input_dir = 'instance/carp_tw_e'
+    # output_dir = 'instance/carp_tw_e_trans'
+    #
     # try:
     #     os.mkdir(output_dir)
     # except FileExistsError:

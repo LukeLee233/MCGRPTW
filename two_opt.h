@@ -33,8 +33,6 @@ public:
 
     void move(LocalSearch &ns, const MCGRPTW &mcgrp);
 
-
-    bool update_score(LocalSearch &ns) override;
 };
 
 

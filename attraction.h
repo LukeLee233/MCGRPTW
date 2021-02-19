@@ -45,10 +45,6 @@ public:
 
     bool search(LocalSearch &ns, const MCGRPTW &mcgrp, int chosen_task) override;
 
-    bool update_score(LocalSearch &ns) override{
-        // This action will be executed by post slice and post insert operator
-        return true;
-    };
 };
 
 

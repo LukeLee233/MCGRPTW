@@ -30,5 +30,5 @@ public:
     vector<vector<RouteInfo::TimeTable>> expected_time_table(LocalSearch &ns, const MCGRPTW &mcgrp,
                                                              int u, int u_tilde, int i, int i_tilde, bool allow_infeasible);
 
-    bool update_score(LocalSearch &ns) override;
+    void _apply_reward(LocalSearch &ns, double reward) override;
 };

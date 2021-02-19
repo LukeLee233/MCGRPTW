@@ -4,8 +4,8 @@
 #include "RNG.h"
 #include "utils.h"
 #include "instance.h"
-#include "SearchPolicy.h"
-#include "ConstructPolicy.h"
+#include "policy.h"
+#include "initilizer.h"
 #include "config.h"
 #include "operator.h"
 
@@ -441,9 +441,7 @@ public:
 
     vector<RouteScores> cal_route_scores(const MCGRPTW& mcgrp);
 
-#ifdef DEBUG
-    int success_viterbi = 0;
-#endif
+    void print_scores();
 
     void viterbi_refine(const MCGRPTW &mcgrp);
 };

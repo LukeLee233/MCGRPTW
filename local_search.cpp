@@ -13,7 +13,7 @@
 #include <algorithm>
 #include "config.h"
 #include "utils.h"
-#include "ConstructPolicy.h"
+#include "initilizer.h"
 #include "insert.h"
 #include "attraction.h"
 
@@ -132,6 +132,7 @@ void LocalSearch::_neigh_search(const MCGRPTW &mcgrp, int mode)
 
     vector<int> task_set_bak;
     task_set_bak.swap(task_set);
+    print_scores();
     auto route_stables = cal_route_scores(mcgrp);
     int intensive_size = routes.activated_route_id.size() * intensive_local_search_portion;
     for(int ii = 0; ii < intensive_size;ii++){
@@ -348,8 +349,7 @@ void LocalSearch::feasible_search(const MCGRPTW &mcgrp)
     _region_best_solution_neg = get_current_sol("negative");
 
     do {
-        struct timeb start_time;
-        ftime(&start_time);
+        auto start_time = system_clock::now();
 
         _search_route_start = cur_solution_cost;
         _search_route_best = _search_route_start;
@@ -364,8 +364,7 @@ void LocalSearch::feasible_search(const MCGRPTW &mcgrp)
         }
         while (cur_solution_cost < descent_start);
 
-        struct timeb end_time;
-        ftime(&end_time);
+        auto end_time = system_clock::now();
 
         cout << "Finish a feasible search process, spent: "
              << fixed << get_time_difference(start_time, end_time) << 's' << endl;
@@ -1646,9 +1645,6 @@ void LocalSearch::viterbi_refine(const MCGRPTW &mcgrp)
 
             if(refine_result.cost < routes[route_id]->length){
 
-#ifdef DEBUG
-                success_viterbi++;
-#endif
                 cur_solution_cost -= routes[route_id]->length;
                 total_vio_load -= max(0,(routes[route_id]->load - mcgrp.capacity));
                 total_vio_time -= mcgrp.get_vio_time(routes[route_id]->time_table).second;
@@ -1883,6 +1879,16 @@ vector<RouteScores> LocalSearch::cal_route_scores(const MCGRPTW &mcgrp)
     sort(stable_scores.begin(), stable_scores.end(), RouteScores::cmp);
 
     return stable_scores;
+}
+
+void LocalSearch::print_scores()
+{
+    for(int i = 0; i< score_matrix.size();i++){
+        for(int j = 0; j< score_matrix[i].size();j++){
+            cout<<score_matrix[i][j]<<"\t";
+        }
+        cout<<endl;
+    }
 }
 
 

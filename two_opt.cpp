@@ -323,7 +323,3 @@ void TwoOpt::move(LocalSearch &ns, const MCGRPTW &mcgrp){
     move_result.move_type = NeighborOperator::TWO_OPT;
 }
 
-bool TwoOpt::update_score(LocalSearch &ns)
-{
-    return false;
-}

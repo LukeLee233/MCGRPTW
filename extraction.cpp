@@ -303,8 +303,3 @@ Extraction::expected_time_table(LocalSearch &ns, const MCGRPTW &mcgrp, const int
     return res;
 }
 
-bool Extraction::update_score(LocalSearch &ns)
-{
-    My_Assert(move_result.delta >= 0, "error, wrong outcome!");
-    return false;
-}

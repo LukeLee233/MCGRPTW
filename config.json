@@ -1,7 +1,7 @@
 {
-    "iterations": 3,
+    "iterations": 5,
     "random_seed": 0,
-    "neighbor_size": 25,
+    "neighbor_size": 35,
     "neighbor_search_mode": "random",
     "search_time": 3600,
     "local_minimum_threshold": 3,

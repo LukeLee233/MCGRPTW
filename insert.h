@@ -59,7 +59,7 @@ public:
 
     bool search(LocalSearch &ns, const MCGRPTW &mcgrp, int chosen_task) override;
 
-    bool update_score(LocalSearch &ns) override;
+    void _apply_reward(LocalSearch &ns, double reward) override;
 
 };
 
@@ -108,7 +108,7 @@ public:
 
     bool search(LocalSearch &ns, const MCGRPTW &mcgrp, int chosen_task) override;
 
-    bool update_score(LocalSearch &ns) override;
+    void _apply_reward(LocalSearch &ns, double reward) override;
 
 
     pair<double,double> cost_delta(LocalSearch &ns,

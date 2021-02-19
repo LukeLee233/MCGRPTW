@@ -640,11 +640,8 @@ bool XPostInsert::search(LocalSearch &ns, const MCGRPTW &mcgrp, int chosen_task)
 
 }
 
-bool XPostInsert::update_score(LocalSearch &ns)
+void XPostInsert::_apply_reward(LocalSearch &ns,double reward)
 {
-    if(move_result.delta >= 0) return false;
-
-    double reward = (ns.best_solution_cost / ns.cur_solution_cost) * (-move_result.delta);
 
     const int u = move_result.move_arguments.at("insert_pos").front();
 
@@ -670,7 +667,6 @@ bool XPostInsert::update_score(LocalSearch &ns)
         ns.score_matrix[max(0,before_input)][max(0,after_input)] -= reward;
     }
 
-    return true;
 }
 
 pair<double, double>
@@ -1358,12 +1354,8 @@ bool XPreInsert::search(LocalSearch &ns, const MCGRPTW &mcgrp, int chosen_task)
 
 }
 
-bool XPreInsert::update_score(LocalSearch &ns)
+void XPreInsert::_apply_reward(LocalSearch &ns, double reward)
 {
-    if(move_result.delta >= 0) return false;
-
-    double reward = (ns.best_solution_cost / ns.cur_solution_cost) * (-move_result.delta);
-
     const int u = move_result.move_arguments.at("insert_pos").front();
 
     // intra-sequence
@@ -1388,7 +1380,6 @@ bool XPreInsert::update_score(LocalSearch &ns)
         ns.score_matrix[max(0,before_input)][max(0,after_input)] -= reward;
     }
 
-    return true;
 }
 
 pair<double,double> XPreInsert::cost_delta(LocalSearch &ns, const MCGRPTW &mcgrp, const vector<int> &move_seq, const int u)

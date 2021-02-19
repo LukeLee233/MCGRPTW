@@ -12,7 +12,7 @@ namespace bacc = boost::accumulators;
 
 using json = nlohmann::json;
 
-extern timeb iteration_start_time;
+extern system_clock::time_point iteration_start_time;
 
 void MCGRPTW::GetTasksNum(std::string filename, InstanceNumInfo &number_info)
 {
@@ -634,7 +634,7 @@ bool MCGRPTW::check_best_solution(const double total_route_length, const vector<
         best_total_route_length = total_route_length;
         best_sol_neg = sol_seq;
 
-        ftime(&cur_time);
+        cur_time = system_clock::now();
         best_sol_time = get_time_difference(iteration_start_time, cur_time);
 
 #ifdef DEBUG
@@ -1311,6 +1311,15 @@ double MCGRPTW::get_average_task_distance() const
     double denominator = pow(req_edge_num + req_node_num + req_arc_num,2);
     average_task_distance = numerator / denominator;
     return average_task_distance;
+}
+
+vector<int> MCGRPTW::exclude(int task) const
+{
+    if(is_edge(task)){
+        return {inst_tasks[task].inverse};
+    }else{
+        return {};
+    }
 }
 
 Distance::Distance(const MCGRPTW& mcgrp, const string &name)

@@ -4,7 +4,6 @@
 
 #include "attraction.h"
 #include "local_search.h"
-#include "swapends.h"
 
 bool Attraction::search(LocalSearch &ns, const MCGRPTW &mcgrp, int chosen_task)
 {
