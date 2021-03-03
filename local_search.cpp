@@ -132,7 +132,7 @@ void LocalSearch::_neigh_search(const MCGRPTW &mcgrp, int mode)
 
     vector<int> task_set_bak;
     task_set_bak.swap(task_set);
-    print_scores();
+//    print_scores();
     auto route_stables = cal_route_scores(mcgrp);
     int intensive_size = routes.activated_route_id.size() * intensive_local_search_portion;
     for(int ii = 0; ii < intensive_size;ii++){

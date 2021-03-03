@@ -9,7 +9,7 @@ using namespace std;
 using namespace chrono;
 
 extern system_clock::time_point cur_time;
-extern system_clock::time_point iteration_start_time;
+extern system_clock::time_point search_start_time;
 
 const int seed_size = 100;
 

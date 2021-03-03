@@ -25,7 +25,7 @@ message(STATUS "Boost_INCLUDE_DIRS: ${Boost_INCLUDE_DIR}")
 message(STATUS "Boost_LIBRARIES: ${Boost_LIBRARIES}")
 message(STATUS "Boost_VERSION: ${Boost_VERSION}")
 
-add_definitions(-D DEBUG)
+#add_definitions(-D DEBUG)
 
 # disable compile warning flag
 add_compile_options(-w)

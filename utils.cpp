@@ -11,7 +11,7 @@ ofstream result_out;
 ofstream log_out;
 
 system_clock::time_point cur_time;
-system_clock::time_point iteration_start_time;
+system_clock::time_point search_start_time;
 
 void __My_Assert(const char *expr_str, bool expr, const char *file, int line, const char *msg)
 {

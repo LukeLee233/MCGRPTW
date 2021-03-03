@@ -24,6 +24,7 @@ using json = nlohmann::json;
 
 int main(int argc, char *argv[])
 {
+    cout<<"version 1.0"<<endl;
     /*-------------------------parse command line----------------------------*/
     bpo::options_description opts("all options");
     bpo::variables_map vm;
@@ -69,7 +70,6 @@ int main(int argc, char *argv[])
         fin >> j;
 
         j.at("iterations").get_to(iterations);
-        j.at("random_seed").get_to(random_seed);
         j.at("neighbor_size").get_to(neighbor_size);
         j.at("search_time").get_to(search_time);
         j.at("neighbor_search_mode").get_to(neighbor_search_mode);
@@ -171,7 +171,7 @@ int main(int argc, char *argv[])
 #ifdef DEBUG
         log_out.open(date_folder + '/' + file_name + ".log", ios::out);
 #endif
-        auto search_start_time = system_clock::now();
+        search_start_time = system_clock::now();
 
         instance._rng.change(seed[random_seed % seed_size]);
         instance.best_total_route_length = DBL_MAX;
@@ -192,7 +192,7 @@ int main(int argc, char *argv[])
         for (auto iter = 1; iter <= iterations
             && get_time_difference(search_start_time, cur_time) < search_time; iter++) {
             cout << "start "<< iter << "th iterations...\n";
-            iteration_start_time = system_clock::now();
+            auto iteration_start_time = system_clock::now();
             local_search.neighbor_search(instance);
             cur_time = system_clock::now();
             cout << "Finish " << iter << "th iterations, spent: "
