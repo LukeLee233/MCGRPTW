@@ -1,0 +1,9 @@
+{
+    "iterations": 500,
+    "neighbor_size": 25,
+    "max_iterations_FS": 300,
+    "tabu_step": 50,
+    "relaxation_coefficient": 1.5,
+    "infeasible_distance_threshold": 0.2,
+    "intensive_local_search_portion": 0.3
+}
