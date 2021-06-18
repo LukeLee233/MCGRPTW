@@ -16,12 +16,13 @@ extern double merge_split_portion;
 extern int random_seed;
 extern int neighbor_size;
 extern double intensive_local_search_portion;
-extern double QNDF_weights;
+
+extern double relaxation_coefficient;
 
 extern std::string neighbor_search_mode;
 
 // Determine whether we arrive at a local minimum
-extern int local_minimum_threshold;
+extern int max_iter_FS;
 
 extern int tabu_step;
 

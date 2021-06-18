@@ -33,23 +33,19 @@ int main(int argc, char *argv[])
         ("help", "MCGRPTW program")
         ("directory,dir", bpo::value<std::string>(&instance_directory), "the instance directory")
         ("config_file,config", bpo::value<string>(&config_file)->default_value(""), "parameter_file")
-        ("search_time", bpo::value<int>(&search_time), "total search time")
-        ("neighbor_search_mode",
-         bpo::value<std::string>(&neighbor_search_mode),
-         "select mode in neighbor search")
-        ("local_minimum_threshold",
-         bpo::value<int>(&local_minimum_threshold),
-         "determine whether we arrived at a local optimal")
-        ("tabu_step", bpo::value<int>(&tabu_step), "tabu steps in the ascent search")
-        ("infeasible_distance_threshold",
-         bpo::value<double>(&infeasible_distance_threshold),
-         "the parameter determine the distance between infeasible region and feasible region")
-        ("evolve_step,es", bpo::value<int>(&iterations), "number of evolving step")
-        ("intensive_local_search_portion", bpo::value<double>(&intensive_local_search_portion))
-        ("merge_split_portion", bpo::value<double>(&merge_split_portion))
-        ("random_seed,rs", bpo::value<int>(&random_seed), "number of evolving step")
+        ("iterations", bpo::value<int>(&iterations), "maximum searching step")
         ("neighbor_size,ns", bpo::value<int>(&neighbor_size), "neighbor size of the local search")
-        ("qndf_weights,qs", bpo::value<double>(&QNDF_weights)->default_value(0), "weight of solution distance");
+        ("max_iterations_FS",bpo::value<int>(&max_iter_FS),
+            "determine whether we arrived at a local optimal")
+        ("tabu_step", bpo::value<int>(&tabu_step), "tabu steps in the ascent search")
+        ("infeasible_distance_threshold",bpo::value<double>(&infeasible_distance_threshold),
+            "the parameter determine the distance between infeasible region and feasible region")
+        ("relaxation_coefficient", bpo::value<double>(&relaxation_coefficient), "relaxation coefficient in infeasible search")
+        ("intensive_local_search_portion", bpo::value<double>(&intensive_local_search_portion))
+        ("random_seed,rs", bpo::value<int>(&random_seed), "number of evolving step")
+        ("neighbor_search_mode",bpo::value<std::string>(&neighbor_search_mode)->default_value("random"),
+            "searching order in neighbor search")
+        ("search_time", bpo::value<int>(&search_time)->default_value(360000), "total search time");
 
     bpo::store(bpo::parse_command_line(argc, argv, opts), vm);
     bpo::notify(vm);
@@ -71,13 +67,11 @@ int main(int argc, char *argv[])
 
         j.at("iterations").get_to(iterations);
         j.at("neighbor_size").get_to(neighbor_size);
-        j.at("search_time").get_to(search_time);
-        j.at("neighbor_search_mode").get_to(neighbor_search_mode);
-        j.at("local_minimum_threshold").get_to(local_minimum_threshold);
+        j.at("max_iterations_FS").get_to(max_iter_FS);
         j.at("tabu_step").get_to(tabu_step);
+        j.at("relaxation_coefficient").get_to(relaxation_coefficient);
         j.at("infeasible_distance_threshold").get_to(infeasible_distance_threshold);
         j.at("intensive_local_search_portion").get_to(intensive_local_search_portion);
-        j.at("merge_split_portion").get_to(merge_split_portion);
     }
 
     iterations = (iterations == -1) ? 1e6 : iterations;
@@ -137,7 +131,7 @@ int main(int argc, char *argv[])
     j["neighbor_size"] = neighbor_size;
     j["search_time"] = search_time;
     j["neighbor_search_mode"] = neighbor_search_mode;
-    j["local_minimum_threshold"] = local_minimum_threshold;
+    j["max_iterations_FS"] = max_iter_FS;
     j["tabu_step"] = tabu_step;
     j["infeasible_distance_threshold"] = infeasible_distance_threshold;
     j["intensive_local_search_portion"] = intensive_local_search_portion;

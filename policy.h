@@ -46,12 +46,8 @@ class Policy{
     double beta = DBL_MAX;
 
 private:
-    double time_window_multiplier = 1.5;
-    double capacity_multiplier = 1.5;
-public:
-    void setTime_window_multiplier(double timeWindowMultiplier);
-    void setCapacity_multiplier(double capacityMultiplier);
-
+    const double time_window_multiplier = relaxation_coefficient;
+    const double capacity_multiplier = relaxation_coefficient;
 public:
     double getBeta() const;
     void setBeta(double beta);

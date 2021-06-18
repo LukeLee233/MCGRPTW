@@ -172,15 +172,6 @@ void Policy::setCurrent_policy(const bitset<RULES> &currentPolicy)
     current_policy = currentPolicy;
 }
 
-void Policy::setTime_window_multiplier(double timeWindowMultiplier)
-{
-    time_window_multiplier = timeWindowMultiplier;
-}
-
-void Policy::setCapacity_multiplier(double capacityMultiplier)
-{
-    capacity_multiplier = capacityMultiplier;
-}
 
 
 

@@ -247,7 +247,7 @@ public:
     Policy policy;
 
 
-    const int local_threshold = local_minimum_threshold;
+    const int local_threshold = max_iter_FS / 100;
 
 
     //dynamic info
