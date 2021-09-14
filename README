@@ -1,0 +1,9 @@
+Use
+
+    ./run.sh [instance file] [start random seed] [end random seed] [config file]
+
+to run the code.
+
+For example,
+    `./run.sh TWA10A_t.dat 0 10 config.json`
+means solve instance TWA10A_t.dat 10 times from random seed 0 to 9 and parameters in config.json.

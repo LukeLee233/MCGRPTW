@@ -1,13 +1,17 @@
-#include "utils.h"
-#include <iostream>
 #include <array>
-#include "NeighborSearch.h"
+#include <iostream>
 #include <boost/filesystem.hpp>
+#include "RNG.h"
+#include "utils.h"
+#include "local_search.h"
 
 using namespace std;
 
 ofstream result_out;
 ofstream log_out;
+
+system_clock::time_point cur_time;
+system_clock::time_point search_start_time;
 
 void __My_Assert(const char *expr_str, bool expr, const char *file, int line, const char *msg)
 {
@@ -38,19 +42,19 @@ vector<int> get_negative_coding(const vector<int> &sequence)
     return negative_coding_sol;
 }
 
-vector<int> get_delimeter_coding(const vector<int> &negative_coding)
+vector<int> get_delimiter_coding(const vector<int> &negative_coding)
 {
-    vector<int> delimeter_coding;
-    delimeter_coding.clear();
+    vector<int> delimiter_coding;
+    delimiter_coding.clear();
     for (auto task:negative_coding) {
         if (task < 0) {
-            delimeter_coding.push_back(DUMMY);
+            delimiter_coding.push_back(DUMMY);
         }
-        delimeter_coding.push_back(abs(task));
+        delimiter_coding.push_back(abs(task));
     }
-    delimeter_coding.push_back(DUMMY);
+    delimiter_coding.push_back(DUMMY);
 
-    return delimeter_coding;
+    return delimiter_coding;
 }
 
 std::vector<std::string> read_directory(const std::string dir_path)
@@ -126,3 +130,100 @@ double sel_ratio(const vector<double> &_prob, const vector<double> &ratio, RNG &
 
     My_Assert(false, "ERROR! Cannot select a ratio!");
 }
+
+vector<int> sort_solution(const vector<int>& negative_sol)
+{
+    map<int, vector<int>> routes;
+    vector<int> route;
+    for(const int task : negative_sol){
+        if(task < 0){
+            if(task != negative_sol.front()){
+                routes[route[0]] = route;
+                route.clear();
+            }
+
+            route.push_back(-task);
+        }else{
+            route.push_back(task);
+        }
+    }
+
+    if(!route.empty())
+        routes[route[0]] = route;
+
+    vector<int> sorted;
+    for(auto& item : routes){
+        item.second[0] *= -1;
+        sorted.insert(sorted.cend(), item.second.cbegin(), item.second.cend());
+    }
+
+    return sorted;
+}
+
+vector<double> stable_softmax(const vector<double> &x)
+{
+    double max_item = *max_element(x.begin(),x.end());
+    vector<double> numerator = x;
+    for(auto &item: numerator) {
+        item -= max_item;
+        item = exp(item);
+    }
+
+    double denominator = accumulate(numerator.begin(),numerator.end(),0);
+
+    for(auto &item: numerator) {
+        item /= denominator;
+    }
+
+    return numerator;
+}
+vector<double> stable_uniform(const vector<double> &x)
+{
+    vector<double> numerator = x;
+
+    double denominator = accumulate(numerator.begin(),numerator.end(),0.0);
+    if(denominator == 0) return numerator;
+
+    for(auto &item: numerator) {
+        item /= denominator;
+    }
+
+    return numerator;
+}
+
+double get_time_difference(const system_clock::time_point &start, const system_clock::time_point &end){
+    auto duration = duration_cast<microseconds>(end - start);
+    return double(duration.count()) * microseconds::period::num / microseconds::period::den;
+}
+
+vector<RouteInfo::TimeTable>
+RouteInfo::TimeTable::zip(const vector<int> &task_list, const vector<int> &ArriveTime)
+{
+    My_Assert(task_list.size() == ArriveTime.size(), "sequence length does not same");
+    vector<RouteInfo::TimeTable> ans;
+    for(int i = 0; i< task_list.size();i++){
+        ans.push_back({task_list[i],ArriveTime[i]});
+    }
+
+    return ans;
+}
+
+vector<vector<int>>
+RouteInfo::TimeTable::unzip(const vector<TimeTable> &time_tbl)
+{
+    if(time_tbl.empty()) {
+        return {};
+    }
+
+    vector<vector<int>> ans(2,vector<int>());
+    for(const auto& tb : time_tbl){
+        ans[0].push_back(tb.task);
+        ans[1].push_back(tb.arrive_time);
+    }
+
+    return ans;
+}
+
+RouteScores::RouteScores(int routeId, int stableScore)
+    : route_id(routeId), scores(stableScore)
+{}

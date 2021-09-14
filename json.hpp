@@ -3933,7 +3933,7 @@ template<typename IteratorType> class iteration_proxy
     typename IteratorType::reference container;
 
   public:
-    /// construct iteration proxy from a container
+    /// construct iterations proxy from a container
     explicit iteration_proxy(typename IteratorType::reference cont) noexcept
         : container(cont) {}
 
@@ -10294,7 +10294,7 @@ class parser
         {
             if (!skip_to_state_evaluation)
             {
-                // invariant: get_token() was called before each iteration
+                // invariant: get_token() was called before each iterations
                 switch (last_token)
                 {
                     case token_type::begin_object:
@@ -21253,7 +21253,7 @@ class basic_json
           element as string (see example).
 
     @param[in] ref  reference to a JSON value
-    @return iteration proxy object wrapping @a ref with an interface to use in
+    @return iterations proxy object wrapping @a ref with an interface to use in
             range-based for loops
 
     @liveexample{The following code shows how the wrapper is used,iterator_wrapper}
@@ -21337,11 +21337,11 @@ class basic_json
           `key()` returns an empty string.
 
     @warning Using `items()` on temporary objects is dangerous. Make sure the
-             object's lifetime exeeds the iteration. See
+             object's lifetime exeeds the iterations. See
              <https://github.com/nlohmann/json/issues/2040> for more
              information.
 
-    @return iteration proxy object wrapping @a ref with an interface to use in
+    @return iterations proxy object wrapping @a ref with an interface to use in
             range-based for loops
 
     @liveexample{The following code shows how the function is used.,items}

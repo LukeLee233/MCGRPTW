@@ -1,19 +1,20 @@
-#pragma once
-#include <array>
-#include <dirent.h>
-#include <sys/types.h>
-#include <vector>
-#include <limits>
-#include <assert.h>
-#include <cmath>
-#include <iostream>
-#include <fstream>
-#include "RNG.h"
-#include <stack>
+#ifndef _UTILS_
+#define _UTILS_
 
-#define seed_size 100
+#include <bits/stdc++.h>
+#include <sys/timeb.h>
+#include <chrono>
 
-#ifndef NODEBUG
+using namespace std;
+using namespace chrono;
+
+extern system_clock::time_point cur_time;
+extern system_clock::time_point search_start_time;
+
+const int seed_size = 100;
+
+
+#ifdef DEBUG
 #   define My_Assert(Expr, Msg) \
     __My_Assert(#Expr, Expr, __FILE__, __LINE__, Msg)
 
@@ -24,11 +25,28 @@
 #   define DEBUG_PRINT(stuff) ;
 #endif
 
-using std::ofstream;
+#define MAX(args) numeric_limits<decltype(args)>::max()
+#define MIN(args) numeric_limits<decltype(args)>::min()
+
+class RNG;
 
 extern ofstream result_out;
 
 extern ofstream log_out;
+
+struct Result{
+    double cost;
+    double time;
+    vector<int> solution;
+
+    Result(double cost, double time, const vector<int> &solution)
+        : cost(cost), time(time), solution(solution)
+    {}
+
+    Result(){
+        cost = DBL_MAX;
+    }
+};
 
 static std::array<int, seed_size>
     seed = {12345678, 23456781, 34567812, 45678123, 56781234, 67812345, 78123456, 81234567,
@@ -45,8 +63,6 @@ static std::array<int, seed_size>
             36428175, 64281753, 42817536, 28175364, 81753642, 17536428, 75364281, 53642817,
             36528174, 65281743, 52817436, 28174365};
 
-const static int inf = std::numeric_limits<int>::max();
-
 /*!
  * @details a more powerful assert function:)
  * @param expr_str
@@ -62,10 +78,7 @@ bool print(std::ostream &os1, const std::string &str);
 
 extern std::array<int, seed_size> seed;
 
-
-double sum(const std::vector<double> &vec);
-
-struct instance_num_information
+struct InstanceNumInfo
 {
     int node_num;
     int edge_num;
@@ -77,21 +90,33 @@ struct instance_num_information
 
 enum NeighborOperator
 {
-    SINGLE_INSERT, DOUBLE_INSERT, SWAP, TWO_OPT, INVERT,
-    PRESERT, POSTSERT, MOVE_STRING, PRE_MOVE_STRING,
-    POST_MOVE_STRING, SLICE, PRE_SLICE, POST_SLICE,
-    EXTRACTION, FLIP, SWAP_ENDS
+    SINGLE_INSERT, DOUBLE_INSERT,
+    TRIBE_INSERT, PRE_INSERT, POST_INSERT,
+    SWAP, TWO_OPT, INVERT,
+    SLICE, PRE_SLICE, POST_SLICE,
+    EXTRACTION, FLIP, SWAP_ENDS,
+    ATTRACTION
 };
 
 
-struct MCGRPRoute
+struct RouteInfo
 {
+    struct TimeTable{
+        int task;
+        int arrive_time;
+
+        static vector<TimeTable> zip(const vector<int>& task_list, const vector<int>& ArriveTime);
+        static vector<vector<int>> unzip(const vector<TimeTable>& time_tbl);
+    };
     int ID = -1;
     int start = -1;
     int end = -1;
     int load = 0;
     double length = 0;
     int num_customers = 0;
+    int num_edges = 0;
+    vector<TimeTable> time_table;
+
 
     void clear(){
         start = -1;
@@ -99,50 +124,87 @@ struct MCGRPRoute
         load = 0;
         length = 0;
         num_customers = 0;
+        num_edges = 0;
+        time_table.clear();
     }
-    static double accumulate_load(double accumulator, const MCGRPRoute &a)
-    {
+
+    static double accumulate_load_op(double accumulator, const RouteInfo &a){
         return accumulator + a.length;
     };
 };
 
-struct MCGRPNeighborInfo
-{
+struct TaskNeighborInfo{
 public:
     int task_id;
     double distance;
+    double coverage;
 
-    ~MCGRPNeighborInfo()
-    {};
-    static bool cmp(const MCGRPNeighborInfo &a, const MCGRPNeighborInfo &b)
-    {
+    TaskNeighborInfo(int taskId, double distance)
+        : task_id(taskId), distance(distance),coverage(0){}
+
+    TaskNeighborInfo(int taskId, double distance, double coverage)
+        : task_id(taskId), distance(distance),coverage(coverage){}
+
+    static bool cmp_distance(const TaskNeighborInfo &a, const TaskNeighborInfo &b){
         return a.distance < b.distance;
     };
+
+    static bool cmp_hybrid(const TaskNeighborInfo &a, const TaskNeighborInfo &b){
+        if(a.coverage != b.coverage) return a.coverage > b.coverage;
+        else return a.distance < b.distance;
+    }
 };
 
-struct task
+struct NeighborInfo
 {
+public:
+    int start = -1;
+    int end = -1;
+    vector<TaskNeighborInfo> basic_neighbor;
+    vector<TaskNeighborInfo> coverage_neighbor;
+    unordered_map<int, vector<TaskNeighborInfo>> predecessor_neighbor;
+    unordered_map<int, vector<TaskNeighborInfo>> successor_neighbor;
+};
+
+struct Task
+{
+    typedef pair<int,int> Window;
+    string task_name;
+    int task_id;
     int head_node;
     int tail_node;
     int trave_cost;
     int serv_cost;
     int demand;
     int inverse;
+    int trave_time;
+    int serve_time;
+    Window time_window;
+
+    Task() = default;
 };
 
-struct arc
+struct Arc
 {
     int tail_node;
     int head_node;
     int trav_cost;
+    int trav_time;
 };
 
+/*!
+ * Individual has two format:
+ * 1. delimiter sequence
+ * 2. giant tour sequence
+ */
 struct Individual
 {
     std::vector<int> sequence;
     std::vector<int> route_seg_load;
+    std::vector<vector<RouteInfo::TimeTable>> time_tbl;
     double total_cost;
     int total_vio_load;
+    int total_vio_time;
 };
 
 struct POPOrder
@@ -184,12 +246,12 @@ struct identity
     typedef T type;
 };
 
-class Genetator
+class Generator
 {
 private:
     int _count = 0;
 public:
-    Genetator(int count = 0):_count(count){};
+    Generator(int count = 0): _count(count){};
 
     int operator()()
     {
@@ -198,21 +260,31 @@ public:
 };
 
 /*!
- * @details convert  delimeter coding to negative coding
- * @param sequence : delimeter coding
+ * @details convert  delimiter coding to negative coding
+ * @param sequence : delimiter coding
  * @return  negative coding
  */
 vector<int> get_negative_coding(const vector<int> &sequence);
 
 /*!
- * @details convert negative coding to delimeter coding
+ * @details convert negative coding to delimiter coding
  * @param negative_coding : negative coding
- * @return  delimeter coding
+ * @return  delimiter coding
  */
-vector<int> get_delimeter_coding(const vector<int> &negative_coding);
+vector<int> get_delimiter_coding(const vector<int> &negative_coding);
 
+struct RouteScores{
+    int route_id = -1;
+    double scores = 0;
 
-class MCGRPMOVE
+    RouteScores(int routeId, int stableScore);
+
+    static bool cmp(const RouteScores& a, const RouteScores& b){
+        return a.scores < b.scores;
+    }
+};
+
+class MoveResult
 {
 public:
     //pairwise tasks in a moving action
@@ -224,12 +296,13 @@ public:
     int seq2_cus_num = -1;
 
     bool considerable = false;
-    int total_number_of_routes;
     double delta;
 
     double new_total_route_length;
     double vio_load_delta;
-    vector<int> move_arguments;
+    int vio_time_delta;
+    int vio_time_custom_num_delta;
+    unordered_map<string, vector<int>> move_arguments;
 
     int num_affected_routes;
     vector<int> route_loads;
@@ -237,33 +310,38 @@ public:
     vector<int> route_custs_num;
 
     vector<double> route_lens;
+    vector<vector<RouteInfo::TimeTable>> route_time_tbl;
+
     NeighborOperator move_type;
 
+    vector<vector<int>> old_route_seq;
+    vector<vector<int>> new_route_seq;
 
-    MCGRPMOVE()
+    MoveResult()
         : task1(-1), task2(-1), num_affected_routes(-1)
     {
         considerable = false;
         delta = 0;
         seq1_cus_num = -1;
         seq2_cus_num = -1;
-        new_total_route_length =
-            std::numeric_limits<identity<decltype(MCGRPMOVE::new_total_route_length)>::type>::max();
+        new_total_route_length = DBL_MAX;
 
         vio_load_delta = 0;
+        vio_time_delta = 0;
     };
 
-    MCGRPMOVE(NeighborOperator _move_type)
+    MoveResult(NeighborOperator _move_type)
         : task1(-1), task2(-1), num_affected_routes(-1)
     {
         considerable = false;
         delta = 0;
         new_total_route_length =
-            std::numeric_limits<identity<decltype(MCGRPMOVE::new_total_route_length)>::type>::max();
+            std::numeric_limits<identity<decltype(MoveResult::new_total_route_length)>::type>::max();
         move_type = _move_type;
         seq1_cus_num = -1;
         seq2_cus_num = -1;
         vio_load_delta = 0;
+        vio_time_delta = 0;
     }
 
     void choose_tasks(int _task1, int _task2)
@@ -275,27 +353,38 @@ public:
 
     void reset()
     {
-        if(considerable){
-            task1 = -1;
-            task2 = -1;
-            seq1_cus_num = -1;
-            seq2_cus_num = -1;
-            total_number_of_routes = 0;
-            delta = 0;
-            vio_load_delta = 0;
-            new_total_route_length =
-                std::numeric_limits<identity<decltype(MCGRPMOVE::new_total_route_length)>::type>::max();
-            move_arguments.clear();
+        task1 = -1;
+        task2 = -1;
+        seq1_cus_num = -1;
+        seq2_cus_num = -1;
+        delta = 0;
+        vio_load_delta = 0;
+        vio_time_delta = 0;
+        new_total_route_length =
+            std::numeric_limits<identity<decltype(MoveResult::new_total_route_length)>::type>::max();
+        move_arguments.clear();
 
-            num_affected_routes = -1;
-            route_loads.clear();
-            route_id.clear();
-            route_custs_num.clear();
+        num_affected_routes = -1;
+        route_loads.clear();
+        route_id.clear();
+        route_custs_num.clear();
+        route_time_tbl.clear();
 
-            route_lens.clear();
-            considerable = false;
-        }
+        route_lens.clear();
 
+        old_route_seq.clear();
+        new_route_seq.clear();
+
+        considerable = false;
     }
-
 };
+
+double get_time_difference(const system_clock::time_point& start,const system_clock::time_point& end);
+
+vector<int> sort_solution(const vector<int>& negative_sol);
+
+vector<double> stable_softmax(const vector<double>&);
+
+vector<double> stable_uniform(const vector<double>&);
+
+#endif
